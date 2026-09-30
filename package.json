@@ -1,0 +1,38 @@
+{
+  "name": "wyspy-wiedzy",
+  "version": "1.0.0",
+  "description": "Aplikacja do nauki dla ucznia — ćwiczenia, postępy, nagrody",
+  "scripts": {
+    "dev": "vite --host",
+    "build": "tsc --noEmit && vite build",
+    "build:preview": "vite build --mode preview",
+    "preview": "vite preview --host",
+    "test": "vitest run",
+    "e2e": "playwright test"
+  },
+  "dependencies": {
+    "@fontsource/caveat": "^5.3.0",
+    "@fontsource/chakra-petch": "^5.3.0",
+    "@fontsource/fredoka": "^5.3.0",
+    "@fontsource/lexend": "^5.3.0",
+    "@fontsource/nunito": "^5.3.0",
+    "@fontsource/pixelify-sans": "^5.3.0",
+    "@fontsource/rubik": "^5.3.0",
+    "@supabase/supabase-js": "^2.117.2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@types/node": "^22.20.4",
+    "@types/react": "^18.3.31",
+    "@types/react-dom": "^18.3.7",
+    "@vitejs/plugin-react": "^4.7.0",
+    "typescript": "^5.9.3",
+    "vite": "^5.4.21",
+    "vite-plugin-singlefile": "^2.3.3",
+    "vitest": "^2.1.9"
+  },
+  "private": true,
+  "type": "module"
+}

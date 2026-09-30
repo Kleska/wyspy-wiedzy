@@ -1,0 +1,416 @@
+import { Fragment, useMemo, useRef, useState } from 'react';
+import type { ChoiceExercise, Exercise, FillExercise, MatchExercise, SortExercise, TapExercise } from '../../types';
+import { isFillAnswerCorrect } from '../../dsl';
+import { plural } from '../../themes';
+import { Icon } from '../icons';
+import { seededOrder, type Answer } from './logic';
+
+interface Props<E extends Exercise, A extends Answer> {
+  ex: E;
+  answer: A;
+  setAnswer: (a: A) => void;
+  reveal: boolean;
+  hint: boolean;
+  seed: string;
+  onEnter?: () => void;
+}
+
+export function renderSentence(s: string) {
+  const out: React.ReactNode[] = [];
+  const re = /\{([^}]+)\}|_{2,}/g;
+  let last = 0;
+  let m: RegExpExecArray | null;
+  let k = 0;
+  while ((m = re.exec(s))) {
+    if (m.index > last) out.push(<Fragment key={k++}>{s.slice(last, m.index)}</Fragment>);
+    if (m[1]) out.push(<span key={k++} className="hl">{m[1]}</span>);
+    else out.push(<span key={k++} className="blank" aria-label="luka">&nbsp;</span>);
+    last = m.index + m[0].length;
+  }
+  if (last < s.length) out.push(<Fragment key={k++}>{s.slice(last)}</Fragment>);
+  return out;
+}
+
+export function ExerciseView(p: Props<Exercise, Answer>) {
+  switch (p.ex.type) {
+    case 'choice':
+      return <Choice {...(p as unknown as Props<ChoiceExercise, number | null>)} />;
+    case 'tap':
+      return <Tap {...(p as unknown as Props<TapExercise, number[]>)} />;
+    case 'sort':
+      return <Sort {...(p as unknown as Props<SortExercise, (number | null)[]>)} />;
+    case 'fill':
+      return <Fill {...(p as unknown as Props<FillExercise, string[]>)} />;
+    case 'match':
+      return <Match {...(p as unknown as Props<MatchExercise, number[]>)} />;
+  }
+}
+
+// ─── Wybór ───────────────────────────────────────────────────────────────────
+
+function Choice({ ex, answer, setAnswer, reveal, hint, seed }: Props<ChoiceExercise, number | null>) {
+  const order = useMemo(() => seededOrder(ex.options.length, seed), [ex.options.length, seed]);
+  const hidden = hint && ex.options.length > 2 ? order.find((i) => i !== ex.correct && i !== answer) : undefined;
+  return (
+    <>
+      {ex.sentence && <p className="sentence">{renderSentence(ex.sentence)}</p>}
+      <div className="options" role="group" aria-label="Odpowiedzi">
+        {order.map((i, k) => {
+          const cls = reveal ? (i === ex.correct ? 'correct' : i === answer ? 'wrong' : '') : '';
+          return (
+            <button
+              key={i}
+              className={`opt ${cls} ${i === hidden ? 'hidden-opt' : ''}`}
+              aria-pressed={answer === i}
+              disabled={reveal || i === hidden}
+              onClick={() => setAnswer(i)}
+              aria-keyshortcuts={String(k + 1)}
+            >
+              {ex.options[i]}
+              {reveal && i === ex.correct && (
+                <span className="mark good">
+                  <Icon name="check" size={18} stroke={3.2} />
+                </span>
+              )}
+              {reveal && i === answer && i !== ex.correct && (
+                <span className="mark bad">
+                  <Icon name="x" size={18} stroke={3.2} />
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+    </>
+  );
+}
+
+// ─── Klikanie słów ───────────────────────────────────────────────────────────
+
+function Tap({ ex, answer, setAnswer, reveal, hint }: Props<TapExercise, number[]>) {
+  const correct = new Set(ex.correct);
+  const sel = new Set(answer);
+  const toggle = (i: number) => {
+    const n = new Set(sel);
+    if (n.has(i)) n.delete(i);
+    else n.add(i);
+    setAnswer([...n].sort((a, b) => a - b));
+  };
+  return (
+    <>
+      {hint && (
+        <p className="find-count">
+          Szukasz {ex.correct.length} {plural(ex.correct.length, ['słowa', 'słów', 'słów'])}.
+        </p>
+      )}
+      <div className="words">
+        {ex.tokens.map((t, i) => {
+          let cls = '';
+          if (reveal) cls = correct.has(i) ? (sel.has(i) ? 'correct' : 'missed') : sel.has(i) ? 'wrong' : '';
+          return (
+            <button key={i} className={`word ${cls}`} aria-pressed={!reveal && sel.has(i)} disabled={reveal} onClick={() => toggle(i)}>
+              {t}
+            </button>
+          );
+        })}
+      </div>
+    </>
+  );
+}
+
+// ─── Sortowanie ──────────────────────────────────────────────────────────────
+
+interface DragState {
+  i: number;
+  x: number;
+  y: number;
+  sx: number;
+  sy: number;
+  moved: boolean;
+  w: number;
+  h: number;
+}
+
+function Sort({ ex, answer, setAnswer, reveal, seed }: Props<SortExercise, (number | null)[]>) {
+  const order = useMemo(() => seededOrder(ex.items.length, seed), [ex.items.length, seed]);
+  const [selected, setSelected] = useState<number | null>(null);
+  const [drag, setDrag] = useState<DragState | null>(null);
+  const [hover, setHover] = useState<number | 'bank' | null>(null);
+
+  const place = (i: number, cat: number | null) => {
+    const a = answer.slice();
+    a[i] = cat;
+    setAnswer(a);
+    setSelected(null);
+  };
+
+  const targetAt = (x: number, y: number): number | 'bank' | null => {
+    const el = document.elementFromPoint(x, y)?.closest('[data-drop]') as HTMLElement | null;
+    if (!el) return null;
+    const v = el.dataset.drop!;
+    return v === 'bank' ? 'bank' : Number(v);
+  };
+
+  const onDown = (e: React.PointerEvent<HTMLButtonElement>, i: number) => {
+    if (reveal) return;
+    const r = e.currentTarget.getBoundingClientRect();
+    e.currentTarget.setPointerCapture(e.pointerId);
+    setDrag({ i, x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, moved: false, w: r.width, h: r.height });
+  };
+  const onMove = (e: React.PointerEvent) => {
+    if (!drag) return;
+    const moved = drag.moved || Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy) > 8;
+    setDrag({ ...drag, x: e.clientX, y: e.clientY, moved });
+    if (moved) setHover(targetAt(e.clientX, e.clientY));
+  };
+  const onUp = (e: React.PointerEvent) => {
+    if (!drag) return;
+    const d = drag;
+    setDrag(null);
+    setHover(null);
+    if (d.moved) {
+      const t = targetAt(e.clientX, e.clientY);
+      if (t === 'bank') place(d.i, null);
+      else if (t !== null) place(d.i, t);
+      return;
+    }
+    // Zwykłe stuknięcie: słowo w koszyku wraca do puli, słowo z puli zostaje zaznaczone.
+    if (answer[d.i] !== null) place(d.i, null);
+    else setSelected(selected === d.i ? null : d.i);
+  };
+
+  const token = (i: number) => {
+    const placed = answer[i];
+    let cls = '';
+    if (reveal && placed !== null) cls = placed === ex.items[i].cat ? 'correct' : 'wrong';
+    if (selected === i) cls += ' selected';
+    if (drag?.i === i && drag.moved) cls += ' ghost';
+    return (
+      <button
+        key={i}
+        className={`token ${cls}`}
+        onPointerDown={(e) => onDown(e, i)}
+        onPointerMove={onMove}
+        onPointerUp={onUp}
+        onPointerCancel={() => {
+          setDrag(null);
+          setHover(null);
+        }}
+        onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            if (answer[i] !== null) place(i, null);
+            else setSelected(selected === i ? null : i);
+          }
+        }}
+        disabled={reveal}
+        aria-pressed={selected === i}
+      >
+        {ex.items[i].text}
+        {reveal && placed !== null && placed !== ex.items[i].cat && (
+          <span style={{ fontSize: 14, marginLeft: 8, color: 'var(--bad)' }}>→ {ex.categories[ex.items[i].cat]}</span>
+        )}
+      </button>
+    );
+  };
+
+  const inBank = order.filter((i) => answer[i] === null);
+  return (
+    <>
+      <div className={`bank ${hover === 'bank' ? 'drop-hover' : ''}`} data-drop="bank">
+        {inBank.length ? inBank.map(token) : <span className="basket-hint">Wszystkie słowa są w koszykach.</span>}
+      </div>
+      <div className="baskets">
+        {ex.categories.map((c, ci) => (
+          <div
+            key={ci}
+            role="button"
+            tabIndex={reveal ? -1 : 0}
+            aria-label={`Koszyk: ${c}${selected !== null ? '. Stuknij, aby włożyć zaznaczone słowo.' : ''}`}
+            className={`basket ${hover === ci ? 'drop-hover' : ''} ${selected !== null ? 'target' : ''}`}
+            data-drop={ci}
+            onClick={() => selected !== null && !reveal && place(selected, ci)}
+            onKeyDown={(e) => {
+              if ((e.key === 'Enter' || e.key === ' ') && selected !== null && !reveal) {
+                e.preventDefault();
+                place(selected, ci);
+              }
+            }}
+          >
+            <div className="basket-head">{c}</div>
+            <div className="basket-body">
+              {order.filter((i) => answer[i] === ci).map(token)}
+              {selected !== null && <span className="basket-hint">stuknij tutaj</span>}
+            </div>
+          </div>
+        ))}
+      </div>
+      {drag?.moved && (
+        <div className="token dragging" style={{ left: drag.x - drag.w / 2, top: drag.y - drag.h / 2, width: drag.w, height: drag.h, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {ex.items[drag.i].text}
+        </div>
+      )}
+    </>
+  );
+}
+
+// ─── Luki ────────────────────────────────────────────────────────────────────
+
+const PL_LETTERS = ['ą', 'ć', 'ę', 'ł', 'ń', 'ó', 'ś', 'ź', 'ż'];
+
+function Fill({ ex, answer, setAnswer, reveal, hint, onEnter }: Props<FillExercise, string[]>) {
+  const refs = useRef<(HTMLInputElement | null)[]>([]);
+  const lastFocus = useRef(0);
+  const numeric = ex.parts.filter((p): p is string[] => Array.isArray(p)).every((g) => g.every((a) => /^-?\d+([.,]\d+)?$/.test(a)));
+  let gi = -1;
+  const setGap = (i: number, v: string) => {
+    const a = answer.slice();
+    a[i] = v;
+    setAnswer(a);
+  };
+  const insert = (ch: string) => {
+    const i = lastFocus.current;
+    const el = refs.current[i];
+    if (!el) return;
+    const start = el.selectionStart ?? el.value.length;
+    const end = el.selectionEnd ?? el.value.length;
+    const v = el.value.slice(0, start) + ch + el.value.slice(end);
+    setGap(i, v);
+    requestAnimationFrame(() => {
+      el.focus();
+      el.setSelectionRange(start + 1, start + 1);
+    });
+  };
+  return (
+    <>
+      <p className="fill-text">
+        {ex.parts.map((p, k) => {
+          if (!Array.isArray(p)) return <Fragment key={k}>{p}</Fragment>;
+          gi++;
+          const i = gi;
+          const ok = reveal ? isFillAnswerCorrect(answer[i] ?? '', p) : null;
+          return (
+            <Fragment key={k}>
+              {reveal && ok === false && <span className="fix">{p[0]}</span>}
+              <input
+                ref={(el) => (refs.current[i] = el)}
+                className={`gap ${ok === true ? 'correct' : ok === false ? 'wrong' : ''}`}
+                value={answer[i] ?? ''}
+                onChange={(e) => setGap(i, e.target.value)}
+                onFocus={() => (lastFocus.current = i)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const next = refs.current[i + 1];
+                    if (next && !next.value) next.focus();
+                    else onEnter?.();
+                  }
+                }}
+                readOnly={reveal}
+                inputMode={numeric ? 'numeric' : 'text'}
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck={false}
+                aria-label={`Luka ${i + 1}`}
+                placeholder={hint ? p[0].slice(0, 1) + '…' : ''}
+                style={{ width: `calc(${Math.max(4, Math.max(...p.map((a) => a.length)) + 2)}ch + 26px)` }}
+              />
+            </Fragment>
+          );
+        })}
+      </p>
+      {!reveal && !numeric && (
+        <div className="pl-keys" aria-label="Polskie litery">
+          {PL_LETTERS.map((ch) => (
+            <button key={ch} type="button" onPointerDown={(e) => e.preventDefault()} onClick={() => insert(ch)} aria-label={`Wstaw ${ch}`}>
+              {ch}
+            </button>
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
+// ─── Pary ────────────────────────────────────────────────────────────────────
+
+function Match({ ex, answer, setAnswer, reveal, seed }: Props<MatchExercise, number[]>) {
+  const right = useMemo(() => seededOrder(ex.pairs.length, seed), [ex.pairs.length, seed]);
+  const [activeL, setActiveL] = useState<number | null>(null);
+  const [activeR, setActiveR] = useState<number | null>(null);
+  const pairOfRight = (r: number) => answer.findIndex((v) => v === r);
+
+  const link = (l: number, r: number) => {
+    const a = answer.map((v) => (v === r ? -1 : v));
+    a[l] = r;
+    setAnswer(a);
+    setActiveL(null);
+    setActiveR(null);
+  };
+  const clickL = (l: number) => {
+    if (answer[l] >= 0) {
+      const a = answer.slice();
+      a[l] = -1;
+      setAnswer(a);
+      return;
+    }
+    if (activeR !== null) link(l, activeR);
+    else setActiveL(activeL === l ? null : l);
+  };
+  const clickR = (r: number) => {
+    const owner = pairOfRight(r);
+    if (owner >= 0) {
+      const a = answer.slice();
+      a[owner] = -1;
+      setAnswer(a);
+      return;
+    }
+    if (activeL !== null) link(activeL, r);
+    else setActiveR(activeR === r ? null : r);
+  };
+
+  return (
+    <>
+      <div className="match">
+        <div className="match-col">
+          {ex.pairs.map(([l], i) => {
+            const paired = answer[i] >= 0;
+            const res = reveal ? (answer[i] === i ? 'correct' : 'wrong') : '';
+            return (
+              <button key={i} className={`match-item ${paired ? `paired pair-${i % 6}` : ''} ${activeL === i ? 'active' : ''} ${res}`} disabled={reveal} onClick={() => clickL(i)}>
+                {l}
+              </button>
+            );
+          })}
+        </div>
+        <div className="match-col">
+          {right.map((r) => {
+            const owner = pairOfRight(r);
+            const res = reveal && owner >= 0 ? (owner === r ? 'correct' : 'wrong') : '';
+            return (
+              <button key={r} className={`match-item ${owner >= 0 ? `paired pair-${owner % 6}` : ''} ${activeR === r ? 'active' : ''} ${res}`} disabled={reveal} onClick={() => clickR(r)}>
+                {ex.pairs[r][1]}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+      {reveal && answer.some((v, i) => v !== i) && (
+        <div className="hint-box">
+          <Icon name="check" />
+          <span>
+            Poprawne pary:{' '}
+            {ex.pairs.map(([l, r], i) => (
+              <Fragment key={i}>
+                {i > 0 && ' · '}
+                <b>{l}</b> – {r}
+              </Fragment>
+            ))}
+          </span>
+        </div>
+      )}
+    </>
+  );
+}
