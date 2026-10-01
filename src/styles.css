@@ -107,7 +107,8 @@
   --card-shadow: 6px 6px 0 #0a0d1a;
   --card-border: 3px solid #0a0d1a;
   --btn-depth: 4px;
-  --font-display: 'Pixelify Sans', 'Rubik', system-ui, sans-serif;
+  /* „Pixelify Letters” nie ma cyfr — cyfry biorą się z czytelnego Rubika (pixelFont.ts). */
+  --font-display: 'Pixelify Letters', 'Rubik', system-ui, sans-serif;
   --font-body: 'Rubik', system-ui, sans-serif;
   --display-weight: 700;
   --panel: #2a1c3a;

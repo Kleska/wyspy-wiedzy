@@ -136,11 +136,9 @@ export async function loadThemeFonts(id: ThemeId) {
       ]);
       break;
     case 'pixel':
+      // Litery pikselowe, cyfry z Rubika (czytelne) — patrz pixelFont.ts.
       await Promise.all([
-        import('@fontsource/pixelify-sans/latin-600.css'),
-        import('@fontsource/pixelify-sans/latin-ext-600.css'),
-        import('@fontsource/pixelify-sans/latin-700.css'),
-        import('@fontsource/pixelify-sans/latin-ext-700.css'),
+        import('./pixelFont').then((m) => m.registerPixelLetters()),
         import('@fontsource/rubik/latin-500.css'),
         import('@fontsource/rubik/latin-ext-500.css'),
         import('@fontsource/rubik/latin-700.css'),
