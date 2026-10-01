@@ -508,12 +508,15 @@ function Fill({ ex, answer, setAnswer, reveal, hint, onEnter }: Props<FillExerci
         </div>
       )}
       {!reveal && !mathy && (
-        <div className="pl-keys" aria-label="Polskie litery">
-          {PL_LETTERS.map((ch) => (
-            <button key={ch} type="button" onPointerDown={(e) => e.preventDefault()} onClick={() => press(ch)} aria-label={`Wstaw ${ch}`}>
-              {ch}
-            </button>
-          ))}
+        <div className="pl-keys-wrap">
+          <span className="pl-keys-label">Nie ma tej litery na klawiaturze? Stuknij tutaj, a wpisze się w okienko:</span>
+          <div className="pl-keys" aria-label="Polskie litery">
+            {PL_LETTERS.map((ch) => (
+              <button key={ch} type="button" onPointerDown={(e) => e.preventDefault()} onClick={() => press(ch)} aria-label={`Wstaw ${ch}`}>
+                {ch}
+              </button>
+            ))}
+          </div>
         </div>
       )}
     </>

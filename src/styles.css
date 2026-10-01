@@ -1671,6 +1671,18 @@ p {
   color: var(--bad);
 }
 
+.pl-keys-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pl-keys-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
 .pl-keys {
   display: flex;
   flex-wrap: wrap;
