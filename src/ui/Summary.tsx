@@ -56,6 +56,11 @@ export function Summary({ result }: { result: SessionResult }) {
           <div className="muted" style={{ fontWeight: 700 }}>
             dobrze za pierwszym razem
           </div>
+          {result.retryTotal > 0 && (
+            <div style={{ fontWeight: 800, marginTop: 6 }}>
+              poprawione: {result.retryCorrect} z {result.retryTotal}
+            </div>
+          )}
         </div>
         <div className="card">
           <b style={{ fontFamily: 'var(--font-display)', fontSize: 30 }}>+{result.xpGained} XP</b>

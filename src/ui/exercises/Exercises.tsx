@@ -367,6 +367,7 @@ function Fill({ ex, answer, setAnswer, reveal, hint, onEnter }: Props<FillExerci
       onChange={(e) => setVal(sl, sl.part === 'x' ? e.target.value : e.target.value.replace(/[^\d]/g, ''))}
       onFocus={() => (focus.current = sl)}
       onKeyDown={(e) => {
+        if (reveal) return; // po sprawdzeniu Enter przechodzi dalej (obsługa w ćwiczeniu)
         if (e.key === '/' && sl.part === 'n') {
           e.preventDefault();
           focusSlot(nextSlot(sl));

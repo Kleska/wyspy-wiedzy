@@ -73,6 +73,7 @@ test('sortowanie (przeciąganie), luki i pary działają i dają poprawny wynik'
     }
     await page.getByRole('button', { name: 'Sprawdź' }).click();
     await expect(page.locator('.pr-foot.good')).toBeVisible();
+    await page.waitForTimeout(750);
     await page.getByRole('button', { name: /^(Dalej|Zakończ)$/ }).click();
   }
   await expect(page.getByText('3/3')).toBeVisible();
@@ -117,9 +118,19 @@ test('zadania liczbowe: klawiatura z cyframi i ułamek piętrowy zamiast polskic
       for (const k of ['3', 'Przecinek', '7', '5']) await page.getByLabel('Klawiatura liczbowa').getByRole('button', { name: k, exact: true }).click();
       await expect(page.getByLabel('Luka 1')).toHaveValue('3,75');
       await snap(page, 't8-decimal');
+      // Enter z klawiatury sprawdza odpowiedź i ZOSTAJE na informacji zwrotnej
+      await page.getByLabel('Luka 1').press('Enter');
+      await expect(page.locator('.pr-foot.good')).toBeVisible();
+      await page.waitForTimeout(300);
+      await expect(page.locator('.pr-foot.good')).toBeVisible();
+      await page.waitForTimeout(600);
+      await page.keyboard.press('Enter');
+      if (step === 0) await expect(page.locator('.pr-foot.good')).toHaveCount(0);
+      continue;
     }
     await page.getByRole('button', { name: 'Sprawdź' }).click();
     await expect(page.locator('.pr-foot.good')).toBeVisible();
+    await page.waitForTimeout(750);
     await page.getByRole('button', { name: /^(Dalej|Zakończ)$/ }).click();
   }
   await expect(page.getByText('2/2')).toBeVisible();

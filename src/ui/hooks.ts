@@ -49,6 +49,8 @@ export interface SessionResult {
   answered: number;
   firstCorrect: number;
   firstTotal: number;
+  retryTotal: number;
+  retryCorrect: number;
   seconds: number;
   xpGained: number;
   coinsGained: number;

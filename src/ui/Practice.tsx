@@ -12,6 +12,11 @@ import { Icon } from './icons';
 
 type Item = QueueItem & { retry?: boolean };
 
+/** Ile błędnych zadań wraca jeszcze raz na końcu jednego ćwiczenia (reszta wróci w powtórkach). */
+const MAX_RETRIES = 4;
+/** Ochrona przed „przeskoczeniem” informacji zwrotnej tym samym naciśnięciem Enter. */
+const FEEDBACK_GUARD_MS = 700;
+
 function snapshot(profileId: string): Progress {
   return computeProgress({
     profileId,
@@ -61,6 +66,10 @@ export function Practice({ topicId }: { topicId: string | null }) {
   const lastInteract = useRef(Date.now());
   const itemStart = useRef(Date.now());
   const finished = useRef(false);
+  const mainCount = useRef(queue.length).current;
+  const retryStats = useRef({ total: 0, correct: 0 });
+  const feedbackAt = useRef(0);
+  const [retryQueued, setRetryQueued] = useState(false);
 
   const save = useCallback(async (completed: boolean) => {
     if (!started.current) return;
@@ -135,16 +144,21 @@ export function Practice({ topicId }: { topicId: string | null }) {
     });
     if (!item.retry) {
       session.current = { ...session.current, answered: session.current.answered + 1, correct: session.current.correct + (correct ? 1 : 0) };
+    } else {
+      retryStats.current = { total: retryStats.current.total + 1, correct: retryStats.current.correct + (correct ? 1 : 0) };
     }
     dirty.current = true;
     void save(false);
-    if (!correct && !item.retry) setQueue((q) => [...q, { ...item, retry: true }]);
+    const willRetry = !correct && !item.retry && queue.filter((q) => q.retry).length < MAX_RETRIES;
+    if (willRetry) setQueue((q) => [...q, { ...item, retry: true }]);
+    setRetryQueued(willRetry);
+    feedbackAt.current = Date.now();
     setCombo((c) => (correct ? (item.retry ? c : c + 1) : 0));
     setOk(correct);
     setPraise(theme.praise[Math.floor(Math.random() * theme.praise.length)]);
     setPhase('feedback');
     if (settings.sounds) playSound(correct ? 'good' : 'bad');
-  }, [item, phase, answer, hint, profile.id, save, theme.praise, settings.sounds]);
+  }, [item, phase, answer, hint, profile.id, save, theme.praise, settings.sounds, queue]);
 
   const finish = useCallback(async () => {
     finished.current = true;
@@ -157,6 +171,8 @@ export function Practice({ topicId }: { topicId: string | null }) {
       answered: firstTotal,
       firstCorrect: session.current.correct,
       firstTotal,
+      retryTotal: retryStats.current.total,
+      retryCorrect: retryStats.current.correct,
       seconds: seconds.current,
       xpGained: after.xp - before.xp,
       coinsGained: after.coinsEarned - before.coinsEarned,
@@ -172,6 +188,7 @@ export function Practice({ topicId }: { topicId: string | null }) {
   }, [before, go, profile.id, save, settings.sounds, topicId]);
 
   const next = useCallback(() => {
+    if (phase !== 'feedback' || Date.now() - feedbackAt.current < FEEDBACK_GUARD_MS) return;
     stopSpeaking();
     if (idx + 1 >= queue.length) {
       void finish();
@@ -182,11 +199,11 @@ export function Practice({ topicId }: { topicId: string | null }) {
     setPhase('answer');
     setHint(false);
     window.scrollTo({ top: 0 });
-  }, [idx, queue, finish]);
+  }, [idx, queue, finish, phase]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Enter') return;
+      if (e.key !== 'Enter' || e.repeat || e.isComposing || e.defaultPrevented) return;
       const tag = (e.target as HTMLElement)?.tagName;
       if (phase === 'feedback') {
         if (tag === 'BUTTON') return; // przycisk „Dalej” obsłuży to sam
@@ -226,7 +243,9 @@ export function Practice({ topicId }: { topicId: string | null }) {
   const ex = item.ex;
   const exTopic = topics.find((t) => t.id === item.topicId);
   const ready = isReady(ex, answer);
-  const pctDone = Math.round(((idx + (phase === 'feedback' ? 1 : 0)) / queue.length) * 100);
+  const inRetry = idx >= mainCount;
+  const pctDone = inRetry ? 100 : Math.round(((idx + (phase === 'feedback' ? 1 : 0)) / mainCount) * 100);
+  const counter = inRetry ? `Poprawka ${idx - mainCount + 1} z ${queue.length - mainCount}` : `${idx + 1} / ${mainCount}`;
   const showCorrectText = !ok && (ex.type === 'choice' || ex.type === 'tap' || ex.type === 'fill');
 
   return (
@@ -239,7 +258,7 @@ export function Practice({ topicId }: { topicId: string | null }) {
           <span style={{ width: `${pctDone}%` }} />
         </div>
         <span className="muted" style={{ fontWeight: 800, whiteSpace: 'nowrap' }}>
-          {Math.min(idx + 1, queue.length)} / {queue.length}
+          {counter}
         </span>
         {combo >= 2 && (
           <span className="combo" aria-label={`Seria ${combo} dobrych odpowiedzi`}>
@@ -293,10 +312,12 @@ export function Practice({ topicId }: { topicId: string | null }) {
               <div className="fb-title">{ok ? praise : theme.oops}</div>
               {showCorrectText && <div className="fb-text">Poprawnie: {correctText(ex)}</div>}
               {ex.explain && <div className="fb-text">{ex.explain}</div>}
-              {!ok && !item.retry && <div className="fb-text muted">To zadanie wróci jeszcze raz na końcu.</div>}
+              {!ok && !item.retry && (
+                <div className="fb-text muted">{retryQueued ? 'To zadanie wróci jeszcze raz na końcu.' : 'To zadanie wróci w powtórce w kolejnych dniach.'}</div>
+              )}
             </div>
           </div>
-          <button className="btn btn-primary btn-lg" onClick={next} autoFocus>
+          <button className="btn btn-primary btn-lg" onClick={next}>
             {idx + 1 >= queue.length ? 'Zakończ' : 'Dalej'}
             <Icon name="arrowRight" />
           </button>

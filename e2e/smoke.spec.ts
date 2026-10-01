@@ -60,6 +60,7 @@ test('pełna ścieżka: profil → przedmiot → ćwiczenie → podsumowanie →
   await page.getByRole('dialog').getByRole('button', { name: /Graj!/ }).click();
 
   const seen = new Set<string>();
+  let total = 0;
   for (let step = 0; step < 40; step++) {
     const cls = (await page.locator('.opt').count()) ? 'choice' : (await page.locator('.word').count()) ? 'tap' : (await page.locator('.token').count()) ? 'sort' : (await page.locator('.gap').count()) ? 'fill' : 'match';
     if (!seen.has(cls)) {
@@ -72,10 +73,14 @@ test('pełna ścieżka: profil → przedmiot → ćwiczenie → podsumowanie →
       seen.add(cls + '-fb');
       await snap(page, `05-feedback-${cls}`);
     }
+    await page.waitForTimeout(720);
     await page.getByRole('button', { name: /^(Dalej|Zakończ)$/ }).click();
     await page.waitForFunction(() => document.querySelector('.summary') || document.querySelector('.pr-foot:not(.good):not(.bad)'));
     if (await page.locator('.summary').count()) break;
+    total++;
   }
+  // 10 pytań + najwyżej 4 poprawki
+  expect(total).toBeLessThanOrEqual(13);
   await expect(page.getByText('dobrze za pierwszym razem')).toBeVisible();
   await page.waitForTimeout(300);
   await snap(page, '06-summary');
@@ -114,6 +119,7 @@ test('pełna ścieżka: profil → przedmiot → ćwiczenie → podsumowanie →
   if (await page.getByRole('dialog').count()) await page.getByRole('dialog').getByRole('button', { name: /GRAJ/ }).click();
   await answerAny(page);
   await page.getByRole('button', { name: 'Sprawdź' }).click();
+  await page.waitForTimeout(720);
   await snap(page, '09-pixel-exercise');
   await page.getByRole('button', { name: 'Zakończ ćwiczenie' }).click();
   await page.getByRole('alertdialog').getByRole('button', { name: 'Skończ' }).click();
