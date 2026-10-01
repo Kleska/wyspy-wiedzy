@@ -81,3 +81,46 @@ test('sortowanie (przeciąganie), luki i pary działają i dają poprawny wynik'
   await page.waitForTimeout(300);
   await snap(page, 't6-home');
 });
+
+test('zadania liczbowe: klawiatura z cyframi i ułamek piętrowy zamiast polskich liter', async ({ page }) => {
+  await page.goto('/');
+  await page.getByPlaceholder('Imię').fill('Ola');
+  await page.getByRole('group', { name: 'Klasa' }).getByRole('button', { name: '5', exact: true }).click();
+  await page.getByRole('button', { name: 'Zaczynamy!' }).click();
+  await page.getByRole('button', { name: 'Panel rodzica' }).click();
+  for (let k = 0; k < 2; k++) {
+    for (const d of '1234') await page.getByRole('button', { name: d, exact: true }).click();
+    await page.getByRole('button', { name: 'Zatwierdź' }).click();
+  }
+  await page.getByRole('button', { name: 'Tematy' }).click();
+  await page.getByRole('button', { name: 'Nowy temat' }).click();
+  await page.getByPlaceholder('np. Czasownik — czas przeszły').fill('Test liczb');
+  await page.getByRole('combobox').first().selectOption('mat');
+  await page.locator('textarea.textarea').fill('wpisz: Skróć ułamek. >> 6/8 = [3/4]\nwpisz: Oblicz. >> 2,5 + 1,25 = [3,75]');
+  await page.getByRole('button', { name: 'Zapisz' }).click();
+  await page.getByRole('button', { name: 'Wyjdź' }).click();
+  await page.getByRole('button', { name: /Matematyka/ }).click();
+  await page.getByRole('button', { name: /Test liczb/ }).first().click();
+  await page.getByRole('dialog').getByRole('button', { name: /Graj!/ }).click();
+
+  for (let step = 0; step < 2; step++) {
+    await expect(page.getByLabel('Klawiatura liczbowa')).toBeVisible();
+    await expect(page.getByLabel('Polskie litery')).toHaveCount(0);
+    if (await page.getByLabel('Licznik, luka 1').count()) {
+      await page.getByLabel('Licznik, luka 1').click();
+      await page.getByLabel('Klawiatura liczbowa').getByRole('button', { name: '3', exact: true }).click();
+      await page.getByLabel('Mianownik, luka 1').click();
+      await page.getByLabel('Klawiatura liczbowa').getByRole('button', { name: '4', exact: true }).click();
+      await snap(page, 't7-fraction');
+    } else {
+      await page.getByLabel('Luka 1').click();
+      for (const k of ['3', 'Przecinek', '7', '5']) await page.getByLabel('Klawiatura liczbowa').getByRole('button', { name: k, exact: true }).click();
+      await expect(page.getByLabel('Luka 1')).toHaveValue('3,75');
+      await snap(page, 't8-decimal');
+    }
+    await page.getByRole('button', { name: 'Sprawdź' }).click();
+    await expect(page.locator('.pr-foot.good')).toBeVisible();
+    await page.getByRole('button', { name: /^(Dalej|Zakończ)$/ }).click();
+  }
+  await expect(page.getByText('2/2')).toBeVisible();
+});

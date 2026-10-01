@@ -145,7 +145,7 @@ function fractionsSimplify(): string {
     [5, 6, 18],
   ]) {
     const k = D / d;
-    out.push(`wpisz: Rozszerz ułamek. >> ${n}/${d} = [${n * k}]/${D} !! Mianownik pomnożono przez ${k}, więc licznik też: ${n} · ${k} = ${n * k}.`);
+    out.push(`wpisz: Rozszerz ułamek tak, aby mianownik był równy ${D}. >> ${n}/${d} = [${n * k}/${D}] !! Mianownik pomnożono przez ${k}, więc licznik też: ${n} · ${k} = ${n * k}.`);
   }
   out.push('wybierz: Który ułamek jest równy 1/2? | *4/8 | 3/8 | 2/5 | 5/8 !! 4/8 po skróceniu przez 4 to 1/2.');
   out.push('pary: Połącz równe ułamki. >> 2/4 = 1/2 ; 6/9 = 2/3 ; 5/20 = 1/4 ; 8/10 = 4/5 !! Skróć ułamki z lewej strony.');

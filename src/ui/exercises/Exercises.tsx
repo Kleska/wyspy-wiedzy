@@ -15,6 +15,29 @@ interface Props<E extends Exercise, A extends Answer> {
   onEnter?: () => void;
 }
 
+/** Zamienia zapis 3/4 na ułamek „piętrowy”. */
+export function withFractions(text: string): React.ReactNode {
+  const re = /(\d+)\/(\d+)/g;
+  if (!re.test(text)) return text;
+  re.lastIndex = 0;
+  const out: React.ReactNode[] = [];
+  let last = 0;
+  let m: RegExpExecArray | null;
+  let k = 0;
+  while ((m = re.exec(text))) {
+    if (m.index > last) out.push(<Fragment key={k++}>{text.slice(last, m.index)}</Fragment>);
+    out.push(
+      <span key={k++} className="frac" aria-label={`${m[1]} przez ${m[2]}`}>
+        <span className="frac-n">{m[1]}</span>
+        <span className="frac-d">{m[2]}</span>
+      </span>,
+    );
+    last = m.index + m[0].length;
+  }
+  if (last < text.length) out.push(<Fragment key={k++}>{text.slice(last)}</Fragment>);
+  return out;
+}
+
 export function renderSentence(s: string) {
   const out: React.ReactNode[] = [];
   const re = /\{([^}]+)\}|_{2,}/g;
@@ -22,12 +45,12 @@ export function renderSentence(s: string) {
   let m: RegExpExecArray | null;
   let k = 0;
   while ((m = re.exec(s))) {
-    if (m.index > last) out.push(<Fragment key={k++}>{s.slice(last, m.index)}</Fragment>);
-    if (m[1]) out.push(<span key={k++} className="hl">{m[1]}</span>);
+    if (m.index > last) out.push(<Fragment key={k++}>{withFractions(s.slice(last, m.index))}</Fragment>);
+    if (m[1]) out.push(<span key={k++} className="hl">{withFractions(m[1])}</span>);
     else out.push(<span key={k++} className="blank" aria-label="luka">&nbsp;</span>);
     last = m.index + m[0].length;
   }
-  if (last < s.length) out.push(<Fragment key={k++}>{s.slice(last)}</Fragment>);
+  if (last < s.length) out.push(<Fragment key={k++}>{withFractions(s.slice(last))}</Fragment>);
   return out;
 }
 
@@ -66,7 +89,7 @@ function Choice({ ex, answer, setAnswer, reveal, hint, seed }: Props<ChoiceExerc
               onClick={() => setAnswer(i)}
               aria-keyshortcuts={String(k + 1)}
             >
-              {ex.options[i]}
+              {withFractions(ex.options[i])}
               {reveal && i === ex.correct && (
                 <span className="mark good">
                   <Icon name="check" size={18} stroke={3.2} />
@@ -258,73 +281,181 @@ function Sort({ ex, answer, setAnswer, reveal, seed }: Props<SortExercise, (numb
 // ─── Luki ────────────────────────────────────────────────────────────────────
 
 const PL_LETTERS = ['ą', 'ć', 'ę', 'ł', 'ń', 'ó', 'ś', 'ź', 'ż'];
+const isMathAnswer = (a: string) => /^[-−]?[\d\s.,/]+$/.test(a);
+const isFracGap = (g: string[]) => g.some((a) => /^\d+\/\d+$/.test(a)) && g.every((a) => /^\d+(\/\d+)?$/.test(a));
+const coarsePointer = () => typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches;
+
+type Slot = { gap: number; part: 'x' | 'n' | 'd' };
 
 function Fill({ ex, answer, setAnswer, reveal, hint, onEnter }: Props<FillExercise, string[]>) {
-  const refs = useRef<(HTMLInputElement | null)[]>([]);
-  const lastFocus = useRef(0);
-  const numeric = ex.parts.filter((p): p is string[] => Array.isArray(p)).every((g) => g.every((a) => /^-?\d+([.,]\d+)?$/.test(a)));
-  let gi = -1;
-  const setGap = (i: number, v: string) => {
+  const gaps = ex.parts.filter((p): p is string[] => Array.isArray(p));
+  const mathy = gaps.every((g) => g.every(isMathAnswer));
+  const hasComma = gaps.some((g) => g.some((a) => a.includes(',')));
+  const hasSlash = gaps.some((g, i) => !isFracGap(g) && g.some((a) => a.includes('/'))) && !gaps.every(isFracGap);
+  const slotOrder: Slot[] = gaps.flatMap((g, i): Slot[] => (isFracGap(g) ? [{ gap: i, part: 'n' }, { gap: i, part: 'd' }] : [{ gap: i, part: 'x' }]));
+  const refs = useRef<Record<string, HTMLInputElement | null>>({});
+  const focus = useRef<Slot>(slotOrder[0]);
+  const key = (sl: Slot) => `${sl.gap}${sl.part}`;
+  const virtualOnly = mathy && coarsePointer();
+
+  const getVal = (sl: Slot): string => {
+    const v = answer[sl.gap] ?? '';
+    if (sl.part === 'x') return v;
+    const [n, d] = v.split('/');
+    return sl.part === 'n' ? n ?? '' : d ?? '';
+  };
+  const setVal = (sl: Slot, val: string) => {
     const a = answer.slice();
-    a[i] = v;
+    if (sl.part === 'x') a[sl.gap] = val;
+    else {
+      const [n = '', d = ''] = (a[sl.gap] ?? '').split('/');
+      const nn = sl.part === 'n' ? val : n;
+      const dd = sl.part === 'd' ? val : d;
+      a[sl.gap] = dd ? `${nn}/${dd}` : nn;
+    }
     setAnswer(a);
   };
-  const insert = (ch: string) => {
-    const i = lastFocus.current;
-    const el = refs.current[i];
-    if (!el) return;
-    const start = el.selectionStart ?? el.value.length;
-    const end = el.selectionEnd ?? el.value.length;
-    const v = el.value.slice(0, start) + ch + el.value.slice(end);
-    setGap(i, v);
+  const focusSlot = (sl: Slot | undefined) => {
+    if (!sl) return;
+    focus.current = sl;
+    const el = refs.current[key(sl)];
+    el?.focus();
+  };
+  const nextSlot = (sl: Slot) => slotOrder[slotOrder.findIndex((x) => key(x) === key(sl)) + 1];
+
+  const press = (k: string) => {
+    const sl = focus.current;
+    const el = refs.current[key(sl)];
+    const v = getVal(sl);
+    const start = el?.selectionStart ?? v.length;
+    const end = el?.selectionEnd ?? v.length;
+    let nv: string;
+    let caret: number;
+    if (k === '⌫') {
+      if (start !== end) {
+        nv = v.slice(0, start) + v.slice(end);
+        caret = start;
+      } else {
+        nv = v.slice(0, Math.max(0, start - 1)) + v.slice(start);
+        caret = Math.max(0, start - 1);
+      }
+    } else {
+      nv = v.slice(0, start) + k + v.slice(end);
+      caret = start + k.length;
+    }
+    setVal(sl, nv);
     requestAnimationFrame(() => {
-      el.focus();
-      el.setSelectionRange(start + 1, start + 1);
+      const e2 = refs.current[key(sl)];
+      if (!e2) return;
+      e2.focus();
+      try {
+        e2.setSelectionRange(caret, caret);
+      } catch {
+        /* niektóre pola nie wspierają zaznaczenia */
+      }
     });
   };
+
+  const input = (sl: Slot, accepted: string[], width: number, extraClass = '', placeholder = '') => (
+    <input
+      key={key(sl)}
+      ref={(el) => {
+        refs.current[key(sl)] = el;
+      }}
+      className={`gap ${extraClass}`}
+      value={getVal(sl)}
+      onChange={(e) => setVal(sl, sl.part === 'x' ? e.target.value : e.target.value.replace(/[^\d]/g, ''))}
+      onFocus={() => (focus.current = sl)}
+      onKeyDown={(e) => {
+        if (e.key === '/' && sl.part === 'n') {
+          e.preventDefault();
+          focusSlot(nextSlot(sl));
+        } else if (e.key === 'Enter') {
+          e.preventDefault();
+          const nx = nextSlot(sl);
+          if (nx && !getVal(nx)) focusSlot(nx);
+          else onEnter?.();
+        }
+      }}
+      readOnly={reveal}
+      inputMode={virtualOnly ? 'none' : mathy ? (hasSlash || hasComma ? 'text' : 'numeric') : 'text'}
+      autoComplete="off"
+      autoCorrect="off"
+      autoCapitalize="off"
+      spellCheck={false}
+      aria-label={sl.part === 'n' ? `Licznik, luka ${sl.gap + 1}` : sl.part === 'd' ? `Mianownik, luka ${sl.gap + 1}` : `Luka ${sl.gap + 1}`}
+      placeholder={placeholder}
+      style={{ width: `calc(${width}ch + 26px)` }}
+      data-accepted={accepted.length}
+    />
+  );
+
+  let gi = -1;
   return (
     <>
       <p className="fill-text">
         {ex.parts.map((p, k) => {
-          if (!Array.isArray(p)) return <Fragment key={k}>{p}</Fragment>;
+          if (!Array.isArray(p)) return <Fragment key={k}>{withFractions(p)}</Fragment>;
           gi++;
           const i = gi;
           const ok = reveal ? isFillAnswerCorrect(answer[i] ?? '', p) : null;
+          const cls = ok === true ? 'correct' : ok === false ? 'wrong' : '';
+          if (isFracGap(p)) {
+            const [cn, cd] = p.find((a) => a.includes('/'))!.split('/');
+            return (
+              <Fragment key={k}>
+                {reveal && ok === false && <span className="fix">{withFractions(p[0])}</span>}
+                <span className={`frac-gap ${cls}`} role="group" aria-label={`Ułamek, luka ${i + 1}`}>
+                  {input({ gap: i, part: 'n' }, p, Math.max(2, cn.length + 1), cls, hint ? cn.slice(0, 1) : '')}
+                  <span className="frac-line" aria-hidden="true" />
+                  {input({ gap: i, part: 'd' }, p, Math.max(2, cd.length + 1), cls, hint ? cd.slice(0, 1) : '')}
+                </span>
+              </Fragment>
+            );
+          }
           return (
             <Fragment key={k}>
-              {reveal && ok === false && <span className="fix">{p[0]}</span>}
-              <input
-                ref={(el) => (refs.current[i] = el)}
-                className={`gap ${ok === true ? 'correct' : ok === false ? 'wrong' : ''}`}
-                value={answer[i] ?? ''}
-                onChange={(e) => setGap(i, e.target.value)}
-                onFocus={() => (lastFocus.current = i)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    const next = refs.current[i + 1];
-                    if (next && !next.value) next.focus();
-                    else onEnter?.();
-                  }
-                }}
-                readOnly={reveal}
-                inputMode={numeric ? 'numeric' : 'text'}
-                autoComplete="off"
-                autoCorrect="off"
-                autoCapitalize="off"
-                spellCheck={false}
-                aria-label={`Luka ${i + 1}`}
-                placeholder={hint ? p[0].slice(0, 1) + '…' : ''}
-                style={{ width: `calc(${Math.max(4, Math.max(...p.map((a) => a.length)) + 2)}ch + 26px)` }}
-              />
+              {reveal && ok === false && <span className="fix">{withFractions(p[0])}</span>}
+              {input({ gap: i, part: 'x' }, p, Math.max(3, Math.max(...p.map((a) => a.length)) + 1), cls, hint ? p[0].slice(0, 1) + '…' : '')}
             </Fragment>
           );
         })}
       </p>
-      {!reveal && !numeric && (
+      {!reveal && mathy && (
+        <div className="keypad" aria-label="Klawiatura liczbowa">
+          {['7', '8', '9', '4', '5', '6', '1', '2', '3'].map((d) => (
+            <button key={d} type="button" onPointerDown={(e) => e.preventDefault()} onClick={() => press(d)}>
+              {d}
+            </button>
+          ))}
+          {hasComma || hasSlash ? (
+            <button type="button" onPointerDown={(e) => e.preventDefault()} onClick={() => press(hasComma ? ',' : '/')} aria-label={hasComma ? 'Przecinek' : 'Kreska ułamkowa'}>
+              {hasComma ? ',' : '/'}
+            </button>
+          ) : slotOrder.length > 1 ? (
+            <button type="button" onPointerDown={(e) => e.preventDefault()} onClick={() => focusSlot(nextSlot(focus.current) ?? slotOrder[0])} aria-label="Następne pole">
+              <Icon name="arrowRight" size={26} />
+            </button>
+          ) : (
+            <span />
+          )}
+          <button type="button" onPointerDown={(e) => e.preventDefault()} onClick={() => press('0')}>
+            0
+          </button>
+          <button type="button" className="key-back" onPointerDown={(e) => e.preventDefault()} onClick={() => press('⌫')} aria-label="Usuń">
+            ⌫
+          </button>
+          {slotOrder.length > 1 && (hasComma || hasSlash) && (
+            <button type="button" className="key-wide" onPointerDown={(e) => e.preventDefault()} onClick={() => focusSlot(nextSlot(focus.current) ?? slotOrder[0])} aria-label="Następne pole">
+              Następne pole <Icon name="arrowRight" size={22} />
+            </button>
+          )}
+        </div>
+      )}
+      {!reveal && !mathy && (
         <div className="pl-keys" aria-label="Polskie litery">
           {PL_LETTERS.map((ch) => (
-            <button key={ch} type="button" onPointerDown={(e) => e.preventDefault()} onClick={() => insert(ch)} aria-label={`Wstaw ${ch}`}>
+            <button key={ch} type="button" onPointerDown={(e) => e.preventDefault()} onClick={() => press(ch)} aria-label={`Wstaw ${ch}`}>
               {ch}
             </button>
           ))}
@@ -380,7 +511,7 @@ function Match({ ex, answer, setAnswer, reveal, seed }: Props<MatchExercise, num
             const res = reveal ? (answer[i] === i ? 'correct' : 'wrong') : '';
             return (
               <button key={i} className={`match-item ${paired ? `paired pair-${i % 6}` : ''} ${activeL === i ? 'active' : ''} ${res}`} disabled={reveal} onClick={() => clickL(i)}>
-                {l}
+                {withFractions(l)}
               </button>
             );
           })}
@@ -391,7 +522,7 @@ function Match({ ex, answer, setAnswer, reveal, seed }: Props<MatchExercise, num
             const res = reveal && owner >= 0 ? (owner === r ? 'correct' : 'wrong') : '';
             return (
               <button key={r} className={`match-item ${owner >= 0 ? `paired pair-${owner % 6}` : ''} ${activeR === r ? 'active' : ''} ${res}`} disabled={reveal} onClick={() => clickR(r)}>
-                {ex.pairs[r][1]}
+                {withFractions(ex.pairs[r][1])}
               </button>
             );
           })}
