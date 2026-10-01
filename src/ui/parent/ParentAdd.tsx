@@ -15,7 +15,7 @@ const TYPE_WORD: Record<ExerciseType, string> = { choice: 'wybierz', tap: 'klikn
 export function ParentAdd({ pin, onResult }: { pin: string; onResult: (s: EditorSeed) => void }) {
   const [mode, setMode] = useState<Mode>('photo');
   const [subject, setSubject] = useState('pl');
-  const [grade, setGrade] = useState(() => store.list('profile')[0]?.grade ?? 3);
+  const [grade, setGrade] = useState(() => store.profiles()[0]?.grade ?? 3);
   const [count, setCount] = useState(12);
   const [types, setTypes] = useState<ExerciseType[]>([]);
   const [request, setRequest] = useState('');

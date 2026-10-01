@@ -30,6 +30,7 @@ export function useProgress(profileId: string | null): Progress | null {
       redemptions: store.list('redemption'),
       topics: store.allTopics(),
       settings: store.settingsFor(profileId),
+      since: store.get('profile', profileId)?.resetAt,
       now: Date.now(),
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps

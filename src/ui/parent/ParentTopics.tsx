@@ -158,7 +158,7 @@ export function TopicEditor({ seed, onClose }: { seed: EditorSeed; onClose: () =
   const [title, setTitle] = useState(seed.title);
   const [subject, setSubject] = useState(seed.subject);
   const [description, setDescription] = useState(seed.description);
-  const [grades, setGrades] = useState<number[]>(seed.grades ?? [...new Set(store.list('profile').map((p) => p.grade ?? 3))]);
+  const [grades, setGrades] = useState<number[]>(seed.grades ?? [...new Set(store.profiles().map((p) => p.grade ?? 3))]);
   const [dsl, setDsl] = useState(seed.dsl);
   const [target, setTarget] = useState<string>(seed.topicId ?? 'new');
   const [err, setErr] = useState('');

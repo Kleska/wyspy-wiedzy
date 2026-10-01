@@ -25,6 +25,7 @@ function snapshot(profileId: string): Progress {
     redemptions: store.list('redemption'),
     topics: store.allTopics(),
     settings: store.settingsFor(profileId),
+    since: store.get('profile', profileId)?.resetAt,
     now: Date.now(),
   });
 }

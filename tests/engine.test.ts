@@ -80,6 +80,15 @@ describe('postęp', () => {
     expect(p.pendingRewards).toBe(1);
   });
 
+  it('„Zacznij od nowa” — liczymy tylko zdarzenia od chwili wyzerowania', () => {
+    const a = [att(noun, 0, true, '2026-10-01T10:00:00'), att(noun, 1, true, '2026-10-02T10:00:00')];
+    const full = progress(a, [], '2026-10-02T12:00:00');
+    const reset = computeProgress({ profileId: P, attempts: a, sessions: [], redemptions: [], topics, settings: DEFAULT_SETTINGS, now: Date.parse('2026-10-02T12:00:00'), since: '2026-10-02T00:00:00' });
+    expect(full.totalAnswered).toBe(2);
+    expect(reset.totalAnswered).toBe(1);
+    expect(reset.xp).toBe(10);
+  });
+
   it('poziomy', () => {
     expect(levelFromXp(0)).toBe(1);
     expect(levelFromXp(99)).toBe(1);

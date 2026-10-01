@@ -203,4 +203,25 @@ test('dwie osoby: każda ma swoją klasę, tematy i postępy', async ({ page }) 
   await snap(page, '17-people');
   await page.getByRole('button', { name: /Kuba/ }).click();
   await expect(page.getByText('Cześć, Kuba!')).toBeVisible();
+
+  // Rodzic zmienia imię i usuwa osobę
+  await page.getByRole('button', { name: 'Panel rodzica' }).click();
+  for (let k = 0; k < 2; k++) {
+    for (const d of '1234') await page.getByRole('button', { name: d, exact: true }).click();
+    await page.getByRole('button', { name: 'Zatwierdź' }).click();
+  }
+  await page.getByRole('button', { name: 'Ustawienia' }).click();
+  const nameInput = page.getByLabel('Imię: Kuba');
+  await nameInput.fill('Jakub');
+  await nameInput.press('Enter');
+  await expect(page.getByText('Zapisano imię: Jakub')).toBeVisible();
+  await snap(page, '18-parent-people');
+  await page.getByRole('button', { name: 'Usuń osobę' }).nth(1).click();
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Usuń' }).click();
+  await expect(page.getByText('Usunięto: Ola')).toBeVisible();
+  await page.getByRole('button', { name: 'Wyjdź' }).click();
+  await expect(page.getByText('Cześć, Jakub!')).toBeVisible();
+  await page.reload();
+  // została jedna osoba — aplikacja nie pyta, kto się uczy
+  await expect(page.getByText('Cześć, Jakub!')).toBeVisible();
 });

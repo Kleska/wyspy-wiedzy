@@ -140,13 +140,16 @@ export interface ProgressInput {
   topics: ParsedTopic[];
   settings: Settings;
   now: number;
+  /** Liczyć tylko zdarzenia od tej chwili (wyzerowanie postępów). */
+  since?: string;
 }
 
 export function computeProgress(input: ProgressInput): Progress {
   const { profileId, settings, now } = input;
-  const attempts = input.attempts.filter((a) => a.profileId === profileId).sort((a, b) => (a.at < b.at ? -1 : a.at > b.at ? 1 : 0));
-  const sessions = input.sessions.filter((s) => s.profileId === profileId);
-  const redemptions = input.redemptions.filter((r) => r.profileId === profileId);
+  const since = input.since ?? '';
+  const attempts = input.attempts.filter((a) => a.profileId === profileId && a.at >= since).sort((a, b) => (a.at < b.at ? -1 : a.at > b.at ? 1 : 0));
+  const sessions = input.sessions.filter((s) => s.profileId === profileId && s.startedAt >= since);
+  const redemptions = input.redemptions.filter((r) => r.profileId === profileId && r.at >= since);
 
   const items = new Map<string, ItemState>();
   const days = new Map<string, DayStats>();

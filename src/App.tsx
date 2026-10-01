@@ -44,7 +44,7 @@ export function App() {
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout>>();
 
-  const profiles = store.list('profile').sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  const profiles = store.profiles();
   const profile: Profile | undefined = profiles.find((p) => p.id === profileId) ?? (profiles.length === 1 ? profiles[0] : undefined);
   const theme = THEMES[profile?.theme ?? 'wyspy'];
 

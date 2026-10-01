@@ -7,7 +7,7 @@ export const FREE_AVATARS = ['🦊', '🐼', '🐸', '🦉', '🐢', '🐙', '�
 export const GRADES = [1, 2, 3, 4, 5, 6, 7, 8];
 
 export function Onboarding({ onDone, onCancel, first = true }: { onDone: (id: string) => void; onCancel?: () => void; first?: boolean }) {
-  const taken = new Set(store.list('profile').map((p) => p.avatar));
+  const taken = new Set(store.profiles().map((p) => p.avatar));
   const [name, setName] = useState('');
   const [grade, setGrade] = useState<number | null>(null);
   const [avatar, setAvatar] = useState(FREE_AVATARS.find((a) => !taken.has(a)) ?? FREE_AVATARS[0]);

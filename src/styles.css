@@ -3033,3 +3033,13 @@ p {
     max-width: none;
   }
 }
+
+.profile-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface-3);
+}

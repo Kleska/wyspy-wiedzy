@@ -147,6 +147,10 @@ export interface Profile {
   grade?: number;
   /** Własny cel dzienny w minutach (gdy brak — ustawienie rodziny). */
   dailyGoalMinutes?: number;
+  /** Profil usunięty (zostaje w bazie, żeby synchronizacja działała bez konfliktów). */
+  deleted?: boolean;
+  /** Postępy liczone od tej chwili („Zacznij od nowa”). */
+  resetAt?: string;
   createdAt: string;
   updatedAt: string;
 }

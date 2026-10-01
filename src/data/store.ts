@@ -1,7 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { BUILTIN_TOPICS, SUBJECTS } from '../content/seed';
 import { parseDsl } from '../dsl';
-import type { DocKind, DocMap, ParsedTopic, Settings, Topic } from '../types';
+import type { DocKind, DocMap, ParsedTopic, Profile, Settings, Topic } from '../types';
 import { openKV, type KV, type StoredDoc } from './idb';
 
 declare global {
@@ -169,6 +169,13 @@ export class Store {
   topics(): ParsedTopic[] {
     const hidden = new Set(this.settings.hiddenBuiltins);
     return this.allTopics().filter((t) => !(t.builtin && hidden.has(t.id)) && t.exercises.length > 0);
+  }
+
+  /** Osoby (bez usuniętych), w kolejności dodania. */
+  profiles(): Profile[] {
+    return this.list('profile')
+      .filter((p) => !p.deleted)
+      .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
   }
 
   /** Tematy dla konkretnej osoby — tylko z jej klasy (tematy bez klasy są dla wszystkich). */

@@ -2,10 +2,12 @@ import { useRef, useState } from 'react';
 import { askConfirm, askText } from '../dialogs';
 import { aiMode, getLocalApiKey, setLocalApiKey } from '../../ai';
 import { nowIso, store, uid } from '../../data/store';
-import { THEMES } from '../../themes';
+import { THEME_ORDER, THEMES } from '../../themes';
 import { useStoreVersion } from '../hooks';
 import { Icon } from '../icons';
 import { FREE_AVATARS, GRADES } from '../Onboarding';
+import { PAID_AVATARS } from '../Rewards';
+import type { Profile, ThemeId } from '../../types';
 import { hashPin } from './ParentGate';
 
 declare const __BUILD_TIME__: string;
@@ -30,7 +32,7 @@ export function ParentSettings() {
   const [newPin, setNewPin] = useState('');
   const [msg, setMsg] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
-  const profiles = store.list('profile').sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  const profiles = store.profiles();
 
   const flash = (m: string) => {
     setMsg(m);
@@ -50,6 +52,30 @@ export function ParentSettings() {
     <>
       <h1>Ustawienia</h1>
       {msg && <div className="note" role="status">{msg}</div>}
+
+      <section className="card col" style={{ gap: 12 }}>
+        <h2 className="card-title" style={{ margin: 0 }}>
+          Osoby (dzieci)
+        </h2>
+        <p className="muted" style={{ fontSize: 14 }}>
+          Zmiany zapisują się od razu. Imię zapisuje się po wyjściu z pola albo po naciśnięciu Enter.
+        </p>
+        {profiles.map((p) => (
+          <ProfileEditor key={p.id} p={p} onMsg={flash} />
+        ))}
+        <div>
+          <button
+            className="btn btn-sm"
+            onClick={async () => {
+              const name = await askText('Imię nowego ucznia (klasę ustawisz obok imienia)', { ok: 'Dodaj' });
+              if (name?.trim())
+                void store.put('profile', { id: uid(), name: name.trim(), avatar: FREE_AVATARS[profiles.length % FREE_AVATARS.length], theme: 'wyspy', grade: 3, createdAt: nowIso(), updatedAt: nowIso() });
+            }}
+          >
+            <Icon name="users" size={16} /> Dodaj ucznia
+          </button>
+        </div>
+      </section>
 
       <section className="card col" style={{ gap: 14 }}>
         <h2 className="card-title" style={{ margin: 0 }}>
@@ -71,72 +97,6 @@ export function ParentSettings() {
         <label className="row">
           <input type="checkbox" checked={s.sounds} onChange={(e) => void store.saveSettings({ sounds: e.target.checked })} /> Dźwięki po odpowiedzi
         </label>
-      </section>
-
-      <section className="card col" style={{ gap: 12 }}>
-        <h2 className="card-title" style={{ margin: 0 }}>
-          Uczniowie
-        </h2>
-        {profiles.map((p) => (
-          <div key={p.id} className="row" style={{ flexWrap: 'wrap', borderBottom: '1px solid var(--line)', paddingBottom: 12 }}>
-            <span style={{ fontSize: 28 }}>{p.avatar}</span>
-            <input
-              className="input"
-              style={{ flex: '1 1 180px' }}
-              defaultValue={p.name}
-              onBlur={(e) => e.target.value.trim() && e.target.value !== p.name && void store.put('profile', { ...p, name: e.target.value.trim(), updatedAt: nowIso() })}
-              aria-label={`Imię: ${p.name}`}
-            />
-            <label className="row" style={{ gap: 6 }}>
-              <span style={{ fontSize: 14, fontWeight: 600 }}>Klasa</span>
-              <select
-                className="select"
-                style={{ width: 80 }}
-                value={p.grade ?? 3}
-                onChange={(e) => void store.put('profile', { ...p, grade: Number(e.target.value), updatedAt: nowIso() })}
-                aria-label={`Klasa: ${p.name}`}
-              >
-                {GRADES.map((g) => (
-                  <option key={g} value={g}>
-                    {g}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="row" style={{ gap: 6 }}>
-              <span style={{ fontSize: 14, fontWeight: 600 }}>Cel dzienny</span>
-              <select
-                className="select"
-                style={{ width: 120 }}
-                value={p.dailyGoalMinutes ?? 0}
-                onChange={(e) => void store.put('profile', { ...p, dailyGoalMinutes: Number(e.target.value) || undefined, updatedAt: nowIso() })}
-                aria-label={`Cel dzienny: ${p.name}`}
-              >
-                <option value={0}>jak wyżej</option>
-                {[10, 15, 20, 25, 30, 40, 45, 60].map((m) => (
-                  <option key={m} value={m}>
-                    {m} min
-                  </option>
-                ))}
-              </select>
-            </label>
-            <span className="muted" style={{ fontSize: 13 }}>
-              wygląd: {THEMES[p.theme].name}
-            </span>
-          </div>
-        ))}
-        <div>
-          <button
-            className="btn btn-sm"
-            onClick={async () => {
-              const name = await askText('Imię nowego ucznia (klasę ustawisz obok imienia)', { ok: 'Dodaj' });
-              if (name?.trim())
-                void store.put('profile', { id: uid(), name: name.trim(), avatar: FREE_AVATARS[profiles.length % FREE_AVATARS.length], theme: 'wyspy', grade: 3, createdAt: nowIso(), updatedAt: nowIso() });
-            }}
-          >
-            <Icon name="users" size={16} /> Dodaj ucznia
-          </button>
-        </div>
       </section>
 
       <section className="card col" style={{ gap: 12 }}>
@@ -278,5 +238,106 @@ export function ParentSettings() {
         Wersja z {new Date(__BUILD_TIME__).toLocaleString('pl-PL')}
       </p>
     </>
+  );
+}
+
+const ALL_AVATARS = [...FREE_AVATARS, ...PAID_AVATARS.map((a) => a.emoji)];
+
+function ProfileEditor({ p, onMsg }: { p: Profile; onMsg: (m: string) => void }) {
+  const save = (patch: Partial<Profile>) => void store.put('profile', { ...p, ...patch, updatedAt: nowIso() });
+  return (
+    <div className="profile-editor">
+      <div className="row" style={{ flexWrap: 'wrap', gap: 12 }}>
+        <label className="field" style={{ width: 90 }}>
+          <span>Bohater</span>
+          <select className="select" style={{ fontSize: 24, padding: '4px 8px' }} value={p.avatar} onChange={(e) => save({ avatar: e.target.value })} aria-label={`Bohater: ${p.name}`}>
+            {ALL_AVATARS.map((a) => (
+              <option key={a} value={a}>
+                {a}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="field" style={{ flex: '1 1 180px' }}>
+          <span>Imię</span>
+          <input
+            className="input"
+            defaultValue={p.name}
+            maxLength={20}
+            onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+            onBlur={(e) => {
+              const v = e.target.value.trim();
+              if (v && v !== p.name) {
+                save({ name: v });
+                onMsg(`Zapisano imię: ${v}`);
+              }
+            }}
+            aria-label={`Imię: ${p.name}`}
+          />
+        </label>
+        <label className="field" style={{ width: 90 }}>
+          <span>Klasa</span>
+          <select className="select" value={p.grade ?? 3} onChange={(e) => save({ grade: Number(e.target.value) })} aria-label={`Klasa: ${p.name}`}>
+            {GRADES.map((g) => (
+              <option key={g} value={g}>
+                {g}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="field" style={{ width: 140 }}>
+          <span>Cel dzienny</span>
+          <select className="select" value={p.dailyGoalMinutes ?? 0} onChange={(e) => save({ dailyGoalMinutes: Number(e.target.value) || undefined })} aria-label={`Cel dzienny: ${p.name}`}>
+            <option value={0}>jak dla wszystkich</option>
+            {[10, 15, 20, 25, 30, 40, 45, 60].map((m) => (
+              <option key={m} value={m}>
+                {m} min
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="field" style={{ width: 180 }}>
+          <span>Wygląd</span>
+          <select className="select" value={p.theme} onChange={(e) => save({ theme: e.target.value as ThemeId })} aria-label={`Wygląd: ${p.name}`}>
+            {THEME_ORDER.map((t) => (
+              <option key={t} value={t}>
+                {THEMES[t].name}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+      <div className="row" style={{ flexWrap: 'wrap', gap: 8 }}>
+        {p.resetAt && <span className="muted" style={{ fontSize: 13 }}>Postępy liczone od {new Date(p.resetAt).toLocaleDateString('pl-PL')}</span>}
+        <span className="spacer" />
+        <button
+          className="btn btn-sm"
+          onClick={async () => {
+            if (
+              await askConfirm(`Wyzerować postępy: ${p.name}? Punkty, poziom, gwiazdki, seria i odznaki zaczną się od zera. Historii nie kasujemy — zostaje w kopii zapasowej.`, {
+                ok: 'Wyzeruj',
+                danger: true,
+              })
+            ) {
+              save({ resetAt: nowIso() });
+              onMsg(`Postępy osoby ${p.name} zaczynają się od nowa.`);
+            }
+          }}
+        >
+          <Icon name="repeat" size={16} /> Zacznij od nowa
+        </button>
+        <button
+          className="btn btn-sm btn-danger"
+          onClick={async () => {
+            if (await askConfirm(`Usunąć osobę: ${p.name}? Zniknie z listy „Kto się dziś uczy?” na wszystkich urządzeniach.`, { ok: 'Usuń', danger: true })) {
+              save({ deleted: true });
+              onMsg(`Usunięto: ${p.name}`);
+            }
+          }}
+        >
+          <Icon name="trash" size={16} /> Usuń osobę
+        </button>
+      </div>
+    </div>
   );
 }

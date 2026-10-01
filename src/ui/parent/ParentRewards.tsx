@@ -11,8 +11,9 @@ function Balance({ profileId }: { profileId: string }) {
 
 export function ParentRewards() {
   const settings = store.settings;
-  const profiles = store.list('profile');
-  const name = (id: string) => profiles.find((p) => p.id === id)?.name ?? '?';
+  const profiles = store.profiles();
+  const everyone = store.list('profile');
+  const name = (id: string) => everyone.find((p) => p.id === id)?.name ?? '?';
   const all = store.list('redemption').sort((a, b) => b.at.localeCompare(a.at));
   const pending = all.filter((r) => r.status === 'pending');
   const history = all.filter((r) => r.status !== 'pending' && r.real).slice(0, 30);

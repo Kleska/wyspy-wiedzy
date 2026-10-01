@@ -16,7 +16,7 @@ function fmtMin(sec: number) {
 }
 
 export function ParentStats() {
-  const profiles = store.list('profile').sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  const profiles = store.profiles();
   const [pid, setPid] = useState(profiles[0]?.id ?? null);
   const progress = useProgress(pid);
   if (!pid || !progress) return <p>Brak profilu ucznia.</p>;
