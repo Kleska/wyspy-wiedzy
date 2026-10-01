@@ -2,6 +2,7 @@ import { store, nowIso } from '../data/store';
 import { THEME_ORDER, THEMES } from '../themes';
 import { useApp } from './hooks';
 import { Modal } from './bits';
+import { ThemePreview } from './ThemePreview';
 
 export function ThemePicker({ onClose }: { onClose: () => void }) {
   const { profile } = useApp();
@@ -20,12 +21,11 @@ export function ThemePicker({ onClose }: { onClose: () => void }) {
                 onClose();
               }}
             >
-              <span className="swatches">
-                {t.swatch.map((c) => (
-                  <span key={c} style={{ background: c }} />
-                ))}
+              <ThemePreview id={id} />
+              <span className="theme-name">
+                {t.name}
+                {profile.theme === id && <span className="pill good">Twój wygląd</span>}
               </span>
-              <span className="theme-name">{t.name}</span>
               <span className="muted" style={{ fontSize: 14, fontWeight: 700 }}>
                 {t.tagline}
               </span>

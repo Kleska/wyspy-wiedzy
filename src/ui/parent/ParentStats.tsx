@@ -21,12 +21,20 @@ const MODE_LABEL: Record<SessionMode, string> = {
   gen: 'Trening',
   fix: 'Poprawa błędów',
   sprint: 'Błyskawica',
+  pairs: 'Pary na czas',
 };
 
 function fmtMin(sec: number) {
   const m = Math.round(sec / 60);
   if (m < 60) return `${m} min`;
   return `${Math.floor(m / 60)} h ${m % 60} min`;
+}
+
+/** Nazwa gry/treningu z klucza zapisanego w sesji (np. „mul”, „quiz:pl”, „pairs:mul”). */
+function gameLabel(key: string): string {
+  const k = key.replace(/^pairs:/, '');
+  if (k.startsWith('quiz:')) return subjectOf(k.slice(5)).name;
+  return generatorById(k)?.title ?? k;
 }
 
 const fmtDay = (t: number) => new Date(t).toLocaleDateString('pl-PL', { day: 'numeric', month: 'numeric' });
@@ -450,7 +458,7 @@ export function ParentStats() {
                         : s.topicIds?.length
                           ? s.topicIds.map((id) => allTopics.find((t) => t.id === id)?.title ?? '?').join(', ')
                           : s.genId
-                            ? generatorById(s.genId)?.title ?? (s.genId.startsWith('quiz:') ? `Szybkie pytania: ${subjectOf(s.genId.slice(5)).name}` : s.genId)
+                            ? gameLabel(s.genId)
                             : '—'}
                     </td>
                     <td>

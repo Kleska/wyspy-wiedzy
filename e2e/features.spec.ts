@@ -129,7 +129,7 @@ test('trening bez końca i Błyskawica', async ({ page }) => {
   await page.clock.install();
   await onboard(page, 'Kuba', 3);
   await page.locator('.subject-big', { hasText: 'Matematyka' }).click();
-  await page.getByRole('button', { name: /Trening bez końca i Błyskawica/ }).click();
+  await page.getByRole('button', { name: /Trening bez końca i mini-gry/ }).click();
   const row = page.locator('.gen-row', { hasText: 'Tabliczka mnożenia' });
   await snap(page, 'f10-gen-modal');
   await row.getByRole('button', { name: 'Trening' }).click();
@@ -141,7 +141,7 @@ test('trening bez końca i Błyskawica', async ({ page }) => {
   await page.getByRole('button', { name: 'Zakończ ćwiczenie' }).click();
   await page.getByRole('alertdialog').getByRole('button', { name: 'Skończ' }).click();
 
-  await page.getByRole('button', { name: /Trening bez końca i Błyskawica/ }).click();
+  await page.getByRole('button', { name: /Trening bez końca i mini-gry/ }).click();
   await page.locator('.gen-row', { hasText: 'Tabliczka mnożenia' }).getByRole('button', { name: /Błyskawica/ }).click();
   await expect(page.getByText('Twój rekord:')).toBeVisible();
   await snap(page, 'f11-sprint-intro');
@@ -207,4 +207,44 @@ test('rodzic: plan, raport tygodnia, pomysły na nagrody i wspólny cel', async 
   await expect(page.getByText('Zamrożenie serii')).toBeVisible();
   await expect(page.getByText('Wybieram obiad na jutro')).toBeVisible();
   await snap(page, 'f18-rewards', true);
+});
+
+test('mini-gry na ekranie startowym: Pary na czas', async ({ page }) => {
+  await onboard(page, 'Kuba', 3);
+  await expect(page.getByRole('heading', { name: 'Mini-gry' })).toBeVisible();
+  await page.getByRole('button', { name: /Pary na czas: Tabliczka mnożenia/ }).click();
+  await snap(page, 'f19-pairs-intro');
+  await page.getByRole('button', { name: /Start!/ }).click();
+  await expect(page.locator('.pair-tile')).toHaveCount(12);
+  await snap(page, 'f20-pairs-play');
+  const texts = await page.locator('.pair-tile').allInnerTexts();
+  for (const t of texts.filter((x) => x.includes('·'))) {
+    await page.locator('.pair-tile', { hasText: t }).first().click();
+    await page.locator('.pair-tile:not(.done)').filter({ hasText: new RegExp(`^${evalText(t)}$`) }).first().click();
+  }
+  await expect(page.getByRole('heading', { name: /Nowy rekord!|Wszystkie pary!/ })).toBeVisible();
+  await snap(page, 'f21-pairs-done');
+  await page.getByRole('button', { name: 'Wróć do tematów' }).click();
+  await expect(page.getByRole('heading', { name: 'Wyspa Matematyki' })).toBeVisible();
+  await page.getByRole('button', { name: 'Wróć', exact: true }).click();
+  await page.getByRole('button', { name: /Pary na czas: Język polski/ }).click();
+  await page.getByRole('button', { name: /Start!/ }).click();
+  await expect(page.locator('.pair-tile')).toHaveCount(12);
+  await snap(page, 'f22-pairs-polish');
+});
+
+test('wybór wyglądu pokazuje podgląd każdego motywu', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('.tp')).toHaveCount(4);
+  await snap(page, 'f23-onboarding-themes', true);
+  await page.getByPlaceholder('Imię').fill('Kuba');
+  await page.getByRole('group', { name: 'Klasa' }).getByRole('button', { name: '3', exact: true }).click();
+  await page.getByRole('button', { name: 'Zaczynamy!' }).click();
+  await page.getByRole('button', { name: 'Wygląd' }).click();
+  const dlg = page.getByRole('dialog', { name: 'Wybierz wygląd' });
+  await expect(dlg.locator('.tp')).toHaveCount(4);
+  await page.waitForTimeout(400);
+  await snap(page, 'f24-theme-picker');
+  await dlg.getByRole('button', { name: /Pixel Quest/ }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'pixel');
 });

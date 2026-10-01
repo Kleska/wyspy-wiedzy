@@ -9,7 +9,8 @@ można ją zainstalować na ekranie głównym i używać bez internetu. Postępy
   Przy uruchomieniu aplikacja pyta „Kto się dziś uczy?”.
 - Start od wyboru przedmiotu (Język polski, Matematyka), potem plansza z tematami dla klasy dziecka.
 
-- 4 wyglądy do przełączania przez dziecko: *Wyspy Wiedzy* (domyślny), *Akademia Pilotów*, *Pixel Quest*, *Zeszyt*.
+- 4 wyglądy do przełączania przez dziecko: *Wyspy Wiedzy* (domyślny), *Akademia Pilotów*, *Pixel Quest*, *Zeszyt* —
+  przy wyborze widać miniaturę każdego.
 - 6 typów zadań: wybór odpowiedzi, klikanie słów w zdaniu, sortowanie do koszyków (przeciąganie lub stuknięcia),
   uzupełnianie luk (z przyciskami ą ć ę ł ń ó ś ź ż), łączenie w pary i dyktando (aplikacja czyta zdanie na głos).
 - Każdy temat ma ściągę (zasada z przykładami): widać ją przed tematem i po błędnej odpowiedzi.
@@ -24,7 +25,8 @@ można ją zainstalować na ekranie głównym i używać bez internetu. Postępy
 - Poziomy tematów (Nowy → Próbowany → Znany → Biegły → Opanowany) — rosną i spadają razem z pamięcią dziecka;
   po ćwiczeniu ekran „Co się zmieniło”.
 - Sprawdzian z oceną 1–6 (bez podpowiedzi, z listą błędów i „Popraw błędy”), test na start, który od razu
-  zalicza znane tematy, trening matematyki bez końca (zawsze nowe liczby) i Błyskawica — 60 sekund na rekord.
+  zalicza znane tematy, trening matematyki bez końca (zawsze nowe liczby) oraz mini-gry na ekranie startowym:
+  Błyskawica (60 sekund na rekord) i Pary na czas (połącz 6 par jak najszybciej).
 - Plan od rodzica (tematy przypięte np. przed sprawdzianem w szkole, z terminem i sprawdzianem próbnym),
   cel tygodnia, zamrożenie serii, kamienie milowe serii, wspólny cel rodzeństwa.
 - Powtórki rozłożone w czasie: błędne zadania wracają na końcu ćwiczenia i w kolejnych dniach (1, 2, 4, 7, 14 dni).

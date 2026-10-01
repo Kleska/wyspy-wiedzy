@@ -163,6 +163,8 @@ export interface Progress {
   levelUps: LevelUp[];
   exams: ExamResult[];
   sprintBest: Map<string, number>;
+  /** Pary na czas: najlepszy (najkrótszy) czas w ms. */
+  pairsBest: Map<string, number>;
   badges: Badge[];
   pendingRewards: number;
 }
@@ -426,6 +428,7 @@ export function computeProgress(input: ProgressInput): Progress {
   const activeDays = new Set<string>();
   const sprintPaid = new Map<string, number>();
   const sprintBest = new Map<string, number>();
+  const pairsBest = new Map<string, number>();
   const exams: ExamResult[] = [];
   for (const s of sessions) {
     const t = Date.parse(s.startedAt);
@@ -436,16 +439,22 @@ export function computeProgress(input: ProgressInput): Progress {
     if (!s.completed) continue;
     d.sessionsCompleted++;
     sessionsCompleted++;
-    if (s.mode === 'sprint') {
-      const n = sprintPaid.get(dk) ?? 0;
+    if (s.mode === 'sprint' || s.mode === 'pairs') {
+      // Minigry: monety za ukończenie tylko kilka razy dziennie (osobno dla każdej gry), premia za rekord.
+      const pk = `${s.mode}|${dk}`;
+      const n = sprintPaid.get(pk) ?? 0;
       if (n < SPRINT_PAID_PER_DAY) {
         coinsEarned += 5;
-        sprintPaid.set(dk, n + 1);
+        sprintPaid.set(pk, n + 1);
       }
-      const key = s.genId ?? 'sprint';
-      if (s.correct > (sprintBest.get(key) ?? 0)) {
+      const key = s.genId ?? s.mode;
+      if (s.mode === 'sprint' && s.correct > (sprintBest.get(key) ?? 0)) {
         if (s.correct >= 5) coinsEarned += SPRINT_RECORD_BONUS;
         sprintBest.set(key, s.correct);
+      }
+      if (s.mode === 'pairs' && s.durationMs && s.durationMs < (pairsBest.get(key) ?? Infinity)) {
+        coinsEarned += SPRINT_RECORD_BONUS;
+        pairsBest.set(key, s.durationMs);
       }
       continue;
     }
@@ -640,6 +649,7 @@ export function computeProgress(input: ProgressInput): Progress {
     levelUps,
     exams,
     sprintBest,
+    pairsBest,
     badges,
     pendingRewards: redemptions.filter((r) => r.status === 'pending').length,
   };
@@ -696,7 +706,7 @@ function computeBadges(b: BadgeBase): Badge[] {
 
 export function familyGoalProgress(goal: FamilyGoal, attempts: Attempt[], sessions: Session[], profileIds: string[]) {
   const ids = new Set(profileIds);
-  const sprint = new Set(sessions.filter((s) => s.mode === 'sprint').map((s) => s.id));
+  const sprint = new Set(sessions.filter((s) => s.mode === 'sprint' || s.mode === 'pairs').map((s) => s.id));
   const per = new Map<string, number>(profileIds.map((id) => [id, 0]));
   let total = 0;
   for (const a of attempts) {

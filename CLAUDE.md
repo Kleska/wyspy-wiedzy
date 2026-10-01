@@ -4,7 +4,7 @@ Aplikacja do nauki dla dziecka (klasa 3+), UI po polsku. React 18 + TypeScript +
 
 ## Mapa kodu
 
-- `src/types.ts` — typy: ćwiczenia (choice/tap/sort/fill/match/dictation), tematy (z `guide` — ściąga), zdarzenia (Attempt z `answer` przy błędach, Session z `mode`: topic/review/test/diagnostic/gen/fix/sprint, Redemption), ustawienia (`familyGoal`), Profile (`plan`).
+- `src/types.ts` — typy: ćwiczenia (choice/tap/sort/fill/match/dictation), tematy (z `guide` — ściąga), zdarzenia (Attempt z `answer` przy błędach, Session z `mode`: topic/review/test/diagnostic/gen/fix/sprint/pairs (`durationMs` dla Par na czas), Redemption), ustawienia (`familyGoal`), Profile (`plan`).
 - `src/dsl.ts` — format tekstowy zadań (parser, serializacja, sprawdzanie luk). Id zadania = hash treści linii (bez `!!` wyjaśnienia).
 - `src/content/seed.ts` (+ `math.ts`, `polish5.ts`, `dictation.ts`, `guides.ts`, `util.ts`) — tematy wbudowane (DSL) z polem `grades`; ściągi w `guides.ts` (test wymaga ściągi dla każdego tematu). Matematyka generowana kodem (wyniki liczone). Zmiana treści linii zmienia id zadania → reset postępu tego zadania; wyjaśnienie po `!!` można zmieniać bez resetu.
 - `src/content/generators.ts` — trening bez końca i Błyskawica (zadania losowane, `topicId` = `gen:<id>`, bez pudełek Leitnera). `rewardIdeas.ts` — pomysły na nagrody.
@@ -13,7 +13,7 @@ Aplikacja do nauki dla dziecka (klasa 3+), UI po polsku. React 18 + TypeScript +
 - `src/data/store.ts` — magazyn: pamięć + IndexedDB (`idb.ts`) + synchronizacja z Supabase (tabela `ww_docs`, kursor po `server_updated_at`, kolejka outbox).
 - `src/ai.ts` + `supabase/functions/ai/prompt.ts` (wspólny plik z poleceniem) + `supabase/functions/ai/index.ts` (Edge Function, Deno).
 - `src/themes.ts` + `src/styles.css` — 4 motywy przez `data-theme` i zmienne CSS. Motyw nie zmienia logiki.
-- `src/ui/` — ekrany: Home (plan, cel tygodnia, cel rodziny, test na start; SubjectScreen z 4 układami planszy i „Wyzwaniami”), Practice (rodzaje: `Run` w `hooks.ts`), Sprint (Błyskawica), exercises/, Summary (ocena, „Co się zmieniło”, błędy), Rewards (zamrożenie), bits.tsx (Modal, LevelChip, ściąga), parent/ (Postępy z raportem, Plan i sprawdziany, Tematy, Dodaj, Nagrody z celem rodziny, Ustawienia).
+- `src/ui/` — ekrany: Home (plan, cel tygodnia, cel rodziny, test na start; SubjectScreen z 4 układami planszy i „Wyzwaniami”), Practice (rodzaje: `Run` w `hooks.ts`), Sprint (Błyskawica), Pairs (Pary na czas), ThemePreview (miniatury motywów przez lokalne `data-theme`), exercises/, Summary (ocena, „Co się zmieniło”, błędy), Rewards (zamrożenie), bits.tsx (Modal, LevelChip, ściąga), parent/ (Postępy z raportem, Plan i sprawdziany, Tematy, Dodaj, Nagrody z celem rodziny, Ustawienia).
 
 ## Zasady
 

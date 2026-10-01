@@ -206,6 +206,13 @@ describe('oceny, Błyskawica, cel rodziny, kolejki', () => {
     expect(p.sprintBest.get('mul')).toBe(9);
   });
 
+  it('Pary na czas: rekord to najkrótszy czas, monety jak w Błyskawicy', () => {
+    const s = [30000, 25000, 28000].map((ms, i): Session => ({ ...sess(`pa${i}`, `2026-10-01T10:0${i}:00`), mode: 'pairs', genId: 'pairs:mul', durationMs: ms, correct: 6, answered: 6 }));
+    const p = progress([], s, '2026-10-01T12:00:00');
+    expect(p.coins).toBe(3 * 5 + 2 * 10);
+    expect(p.pairsBest.get('pairs:mul')).toBe(25000);
+  });
+
   it('cel rodziny liczy dobre odpowiedzi rodzeństwa (bez poprawek i Błyskawicy)', async () => {
     const { familyGoalProgress } = await import('../src/engine');
     const goal = { id: 'g', title: 'Kino', target: 3, startAt: '2026-10-01T00:00:00' };

@@ -54,6 +54,7 @@ export type Screen =
   | { name: 'subject'; subjectId: string }
   | { name: 'practice'; run: Run; nonce: number }
   | { name: 'sprint'; game: SprintGame; nonce: number }
+  | { name: 'pairs'; game: SprintGame; nonce: number }
   | { name: 'summary'; result: SessionResult }
   | { name: 'rewards' }
   | { name: 'parent' };

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { nowIso, store, uid } from '../data/store';
 import { THEME_ORDER, THEMES } from '../themes';
 import type { Profile, ThemeId } from '../types';
+import { ThemePreview } from './ThemePreview';
 
 export const FREE_AVATARS = ['🦊', '🐼', '🐸', '🦉', '🐢', '🐙', '🐶', '🐱'];
 export const GRADES = [1, 2, 3, 4, 5, 6, 7, 8];
@@ -53,11 +54,7 @@ export function Onboarding({ onDone, onCancel, first = true }: { onDone: (id: st
           <div className="theme-cards">
             {THEME_ORDER.map((id) => (
               <button key={id} className="theme-card" aria-pressed={theme === id} onClick={() => setTheme(id)}>
-                <span className="swatches">
-                  {THEMES[id].swatch.map((c) => (
-                    <span key={c} style={{ background: c }} />
-                  ))}
-                </span>
+                <ThemePreview id={id} />
                 <span className="theme-name">{THEMES[id].name}</span>
               </button>
             ))}

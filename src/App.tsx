@@ -10,6 +10,7 @@ import { Onboarding, ProfilePicker } from './ui/Onboarding';
 import { ParentGate } from './ui/parent/ParentGate';
 import { Practice } from './ui/Practice';
 import { Rewards } from './ui/Rewards';
+import { Pairs } from './ui/Pairs';
 import { Sprint } from './ui/Sprint';
 import { Summary } from './ui/Summary';
 import { ThemePicker } from './ui/ThemePicker';
@@ -75,7 +76,7 @@ export function App() {
     if (s.name !== 'home') history.pushState({ ww: s.name }, '');
   }, []);
   useEffect(() => {
-    const onPop = () => setScreen((cur) => (cur.name === 'practice' || cur.name === 'sprint' ? cur : { name: 'home' }));
+    const onPop = () => setScreen((cur) => (cur.name === 'practice' || cur.name === 'sprint' || cur.name === 'pairs' ? cur : { name: 'home' }));
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
   }, []);
@@ -116,6 +117,7 @@ export function App() {
         {screen.name === 'subject' && <SubjectScreen subjectId={screen.subjectId} />}
         {screen.name === 'practice' && <Practice key={screen.nonce} run={screen.run} />}
         {screen.name === 'sprint' && <Sprint key={screen.nonce} game={screen.game} />}
+        {screen.name === 'pairs' && <Pairs key={screen.nonce} game={screen.game} />}
         {screen.name === 'summary' && <Summary result={screen.result} />}
         {screen.name === 'rewards' && <Rewards />}
         {screen.name === 'parent' && <ParentGate onExit={() => go({ name: 'home' })} />}

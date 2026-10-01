@@ -20,6 +20,7 @@ import type { ParsedTopic } from '../types';
 import { LevelChip, LevelSteps, Modal } from './bits';
 import { practice, useApp, useProgress } from './hooks';
 import { Icon, Stars } from './icons';
+import { canPlayPairs, fmtTime } from './Pairs';
 import { quizPool } from './Sprint';
 import { TopBar } from './TopBar';
 
@@ -113,6 +114,7 @@ export function Home() {
             </button>
           </section>
           <DailyCard progress={progress} theme={theme} />
+          <MiniGamesCard progress={progress} />
         </div>
 
         <div className="start-row">
@@ -188,6 +190,73 @@ function PlanCard({ progress }: { progress: Progress }) {
 }
 
 // ─── Karty na dole ekranu startowego ─────────────────────────────────────────
+
+function MiniGamesCard({ progress }: { progress: Progress }) {
+  const { profile, go } = useApp();
+  const gens = generatorsFor(gradeOf(profile));
+  const g = gens.find((x) => x.id === 'mul') ?? gens[0];
+  const items: { key: string; icon: string; title: string; sub: string; onClick: () => void }[] = [];
+  if (g) {
+    const pb = progress.pairsBest.get(`pairs:${g.id}`);
+    items.push({
+      key: 'sg',
+      icon: 'zap',
+      title: `Błyskawica: ${g.title}`,
+      sub: `60 sekund · rekord: ${progress.sprintBest.get(g.id) ?? 0}`,
+      onClick: () => go({ name: 'sprint', game: { kind: 'gen', genId: g.id }, nonce: Date.now() }),
+    });
+    items.push({
+      key: 'pg',
+      icon: 'clock',
+      title: `Pary na czas: ${g.title}`,
+      sub: `6 par · rekord: ${pb ? fmtTime(pb) : '—'}`,
+      onClick: () => go({ name: 'pairs', game: { kind: 'gen', genId: g.id }, nonce: Date.now() }),
+    });
+  }
+  for (const s of SUBJECTS.filter((x) => x.id !== 'mat')) {
+    if (quizPool(profile.id, s.id).length >= 5)
+      items.push({
+        key: `sq${s.id}`,
+        icon: 'zap',
+        title: `Błyskawica: ${s.name}`,
+        sub: `60 sekund · rekord: ${progress.sprintBest.get(`quiz:${s.id}`) ?? 0}`,
+        onClick: () => go({ name: 'sprint', game: { kind: 'quiz', subjectId: s.id }, nonce: Date.now() }),
+      });
+    if (canPlayPairs({ kind: 'quiz', subjectId: s.id }, profile.id)) {
+      const pb = progress.pairsBest.get(`pairs:quiz:${s.id}`);
+      items.push({
+        key: `pq${s.id}`,
+        icon: 'clock',
+        title: `Pary na czas: ${s.name}`,
+        sub: `6 par · rekord: ${pb ? fmtTime(pb) : '—'}`,
+        onClick: () => go({ name: 'pairs', game: { kind: 'quiz', subjectId: s.id }, nonce: Date.now() }),
+      });
+    }
+  }
+  if (!items.length) return null;
+  return (
+    <section className="card col challenges" style={{ gap: 10 }}>
+      <div className="row" style={{ gap: 10 }}>
+        <Icon name="zap" size={26} className="ic-games" />
+        <h2 className="card-title" style={{ margin: 0 }}>
+          Mini-gry
+        </h2>
+      </div>
+      <p className="muted" style={{ fontWeight: 700, fontSize: 14 }}>
+        Szybkie gry na rekord. Więcej gier jest w każdym przedmiocie, w karcie „Wyzwania”.
+      </p>
+      {items.slice(0, 4).map((it) => (
+        <button key={it.key} className="challenge" onClick={it.onClick}>
+          <Icon name={it.icon} size={28} />
+          <span>
+            <b>{it.title}</b>
+            <small>{it.sub}</small>
+          </span>
+        </button>
+      ))}
+    </section>
+  );
+}
 
 const WEEK_NAMES = ['pn', 'wt', 'śr', 'cz', 'pt', 'sb', 'nd'];
 
@@ -424,6 +493,8 @@ function Challenges({ subjectId, topics, progress, planIds }: { subjectId: strin
   const untouched = untouchedTopics(topics, progress).length;
   const gens = subjectId === 'mat' ? generatorsFor(gradeOf(profile)) : [];
   const quizOk = subjectId !== 'mat' && quizPool(profile.id, subjectId).length >= 5;
+  const pairsOk = subjectId !== 'mat' && canPlayPairs({ kind: 'quiz', subjectId }, profile.id);
+  const pairsBest = progress.pairsBest.get(`pairs:quiz:${subjectId}`);
   if (!topics.length) return null;
   return (
     <section className="card col challenges" style={{ gap: 10 }}>
@@ -452,8 +523,8 @@ function Challenges({ subjectId, topics, progress, planIds }: { subjectId: strin
         <button className="challenge" onClick={() => setModal('gen')}>
           <Icon name="infinity" size={28} />
           <span>
-            <b>Trening bez końca i Błyskawica</b>
-            <small>Zawsze nowe liczby · 60 sekund na rekord</small>
+            <b>Trening bez końca i mini-gry</b>
+            <small>Zawsze nowe liczby · Błyskawica · Pary na czas</small>
           </span>
         </button>
       )}
@@ -466,11 +537,21 @@ function Challenges({ subjectId, topics, progress, planIds }: { subjectId: strin
           </span>
         </button>
       )}
+      {pairsOk && (
+        <button className="challenge" onClick={() => go({ name: 'pairs', game: { kind: 'quiz', subjectId }, nonce: Date.now() })}>
+          <Icon name="clock" size={28} />
+          <span>
+            <b>Pary na czas</b>
+            <small>Połącz 6 par jak najszybciej · rekord: {pairsBest ? fmtTime(pairsBest) : '—'}</small>
+          </span>
+        </button>
+      )}
       {modal === 'test' && <TestSetup subjectId={subjectId} topics={topics} progress={progress} planIds={planIds} onClose={() => setModal(null)} />}
       {modal === 'gen' && (
-        <Modal title="Trening bez końca" onClose={() => setModal(null)}>
+        <Modal title="Trening bez końca i mini-gry" onClose={() => setModal(null)}>
           <p className="muted" style={{ fontWeight: 700 }}>
-            Za każdym razem nowe zadania. Trening — spokojnie, z podpowiedzią. Błyskawica — 60 sekund na rekord.
+            Za każdym razem nowe zadania. Trening — spokojnie, z podpowiedzią. Błyskawica — 60 sekund na rekord. Pary na czas — połącz 6 par jak
+            najszybciej.
           </p>
           <div className="col" style={{ gap: 10 }}>
             {gens.map((g) => (
@@ -478,7 +559,8 @@ function Challenges({ subjectId, topics, progress, planIds }: { subjectId: strin
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <b>{g.title}</b>
                   <div className="muted" style={{ fontSize: 14, fontWeight: 700 }}>
-                    {g.description} · rekord: {progress.sprintBest.get(g.id) ?? 0}
+                    {g.description} · rekordy: {progress.sprintBest.get(g.id) ?? 0} w Błyskawicy
+                    {progress.pairsBest.get(`pairs:${g.id}`) ? `, ${fmtTime(progress.pairsBest.get(`pairs:${g.id}`)!)} w Parach` : ''}
                   </div>
                 </div>
                 <button className="btn btn-sm" onClick={() => go(practice({ kind: 'gen', genId: g.id }))}>
@@ -486,6 +568,9 @@ function Challenges({ subjectId, topics, progress, planIds }: { subjectId: strin
                 </button>
                 <button className="btn btn-sm btn-primary" onClick={() => go({ name: 'sprint', game: { kind: 'gen', genId: g.id }, nonce: Date.now() })}>
                   <Icon name="zap" size={16} /> Błyskawica
+                </button>
+                <button className="btn btn-sm btn-primary" onClick={() => go({ name: 'pairs', game: { kind: 'gen', genId: g.id }, nonce: Date.now() })}>
+                  <Icon name="clock" size={16} /> Pary
                 </button>
               </div>
             ))}

@@ -120,9 +120,9 @@ export interface Attempt {
 /**
  * topic — ćwiczenie tematu, review — powtórka, test — sprawdzian z oceną,
  * diagnostic — test na start, gen — trening bez końca (zadania losowane),
- * fix — poprawa błędów ze sprawdzianu, sprint — Błyskawica (60 sekund).
+ * fix — poprawa błędów ze sprawdzianu, sprint — Błyskawica (60 sekund), pairs — Pary na czas.
  */
-export type SessionMode = 'topic' | 'review' | 'test' | 'diagnostic' | 'gen' | 'fix' | 'sprint';
+export type SessionMode = 'topic' | 'review' | 'test' | 'diagnostic' | 'gen' | 'fix' | 'sprint' | 'pairs';
 
 export interface Session {
   id: string;
@@ -131,8 +131,10 @@ export interface Session {
   mode: SessionMode;
   /** Tematy sprawdzianu / testu na start. */
   topicIds?: string[];
-  /** Generator zadań (trening bez końca, Błyskawica). */
+  /** Generator zadań (trening bez końca) albo klucz minigry (Błyskawica, Pary na czas). */
   genId?: string;
+  /** Pary na czas: czas ułożenia wszystkich par w milisekundach (z karami). */
+  durationMs?: number;
   startedAt: string;
   endedAt: string | null;
   activeSeconds: number;
