@@ -59,6 +59,8 @@ export interface Topic {
   description?: string;
   order: number;
   source: TopicSource;
+  /** Dla których klas (puste/brak = dla wszystkich). */
+  grades?: number[];
   /** Treść w formacie tekstowym (źródło prawdy dla edytora). */
   dsl: string;
   deleted?: boolean;
@@ -141,6 +143,10 @@ export interface Profile {
   name: string;
   avatar: string;
   theme: ThemeId;
+  /** Klasa szkolna (1–8). Starsze profile bez klasy traktujemy jak klasę 3. */
+  grade?: number;
+  /** Własny cel dzienny w minutach (gdy brak — ustawienie rodziny). */
+  dailyGoalMinutes?: number;
   createdAt: string;
   updatedAt: string;
 }

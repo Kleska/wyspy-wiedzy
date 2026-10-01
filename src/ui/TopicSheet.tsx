@@ -30,7 +30,7 @@ export function Modal({ title, onClose, children, wide }: { title: string; onClo
 export function TopicSheet({ topicId, onClose }: { topicId: string; onClose: () => void }) {
   const { profile, theme, go } = useApp();
   const progress = useProgress(profile.id)!;
-  const topic = store.topics().find((t) => t.id === topicId);
+  const topic = store.topicsFor(profile.id).find((t) => t.id === topicId);
   if (!topic) return null;
   const s = progress.topics.get(topic.id);
   const n = Math.min(store.settings.sessionLength, topic.exercises.length);

@@ -31,6 +31,7 @@ export function Summary({ result }: { result: SessionResult }) {
   const { theme, go } = useApp();
   const acc = result.firstTotal ? result.firstCorrect / result.firstTotal : 0;
   const topic = result.topicId ? store.topics().find((t) => t.id === result.topicId) : null;
+  const back = () => (topic ? go({ name: 'subject', subjectId: topic.subject }) : go({ name: 'home' }));
   const title = acc >= 0.9 ? 'Mistrzowsko!' : acc >= 0.7 ? 'Świetna robota!' : acc >= 0.5 ? 'Dobrze idzie!' : 'Trening czyni mistrza!';
   const mins = Math.floor(result.seconds / 60);
   const secs = result.seconds % 60;
@@ -93,8 +94,8 @@ export function Summary({ result }: { result: SessionResult }) {
             <Icon name="repeat" /> Jeszcze raz
           </button>
         )}
-        <button className="btn btn-primary btn-lg" onClick={() => go({ name: 'home' })}>
-          Wróć na start
+        <button className="btn btn-primary btn-lg" onClick={back}>
+          {topic ? 'Wróć do tematów' : 'Wróć na start'}
         </button>
       </div>
     </div>

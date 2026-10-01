@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { BUILTIN_TOPICS } from '../src/content/seed';
+import { evalSchool } from '../src/content/math';
 import { exerciseToDsl, isFillAnswerCorrect, parseDsl, parseLine, parseTapSentence } from '../src/dsl';
 import { parsePastedAnswer } from '../src/ai';
 import { correctText, initialAnswer, isCorrect, isReady } from '../src/ui/exercises/logic';
@@ -67,6 +68,15 @@ describe('format tekstowy', () => {
     expect(isFillAnswerCorrect('pisza', ['piszą'])).toBe(false);
     expect(isFillAnswerCorrect('', ['x'])).toBe(false);
   });
+
+  it('liczby dziesiętne i ułamki: kropka = przecinek, zbędne zera, spacje przy kresce ułamkowej', () => {
+    expect(isFillAnswerCorrect('3.75', ['3,75'])).toBe(true);
+    expect(isFillAnswerCorrect('3,750', ['3,75'])).toBe(true);
+    expect(isFillAnswerCorrect('5,0', ['5'])).toBe(true);
+    expect(isFillAnswerCorrect('3 / 4', ['3/4'])).toBe(true);
+    expect(isFillAnswerCorrect('34', ['3,4'])).toBe(false);
+    expect(isFillAnswerCorrect('10', ['1'])).toBe(false);
+  });
 });
 
 describe('logika odpowiedzi', () => {
@@ -104,6 +114,27 @@ describe('logika odpowiedzi', () => {
     const ex = parseLine('kliknij: K >> *Kasia* *śpiewa* głośno.', 1).ex!;
     expect(isCorrect(ex, [0])).toBe(false);
     expect(isCorrect(ex, [0, 1, 2])).toBe(false);
+  });
+});
+
+describe('matematyka', () => {
+  it('parser wyrażeń liczy jak w szkole', () => {
+    expect(evalSchool('2 + 3 · 4')).toBe(14);
+    expect(evalSchool('(15 − 6) · (2 + 3)')).toBe(45);
+    expect(evalSchool('2 · (9 − 4) : 5')).toBe(2);
+  });
+
+  it('w zadaniach z wyborem o podzielności dokładnie jedna odpowiedź jest podzielna', () => {
+    const t = BUILTIN_TOPICS.find((x) => x.id === 'b-m5-podzielnosc')!;
+    for (const ex of parseDsl(t.dsl).exercises) {
+      if (ex.type !== 'choice') continue;
+      const d = Number(ex.prompt.match(/przez (\d+)/)![1]);
+      ex.options.forEach((o, i) => expect(Number(o) % d === 0).toBe(i === ex.correct));
+    }
+  });
+
+  it('każdy temat ma przypisane klasy', () => {
+    for (const t of BUILTIN_TOPICS) expect(t.grades?.length).toBeGreaterThan(0);
   });
 });
 

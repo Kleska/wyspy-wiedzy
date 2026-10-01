@@ -6,6 +6,7 @@ import { DSL_HELP, parseDsl, TYPE_LABEL } from '../../dsl';
 import type { Topic, TopicSource } from '../../types';
 import { plural } from '../../themes';
 import { exerciseSummary } from '../exercises/logic';
+import { GRADES } from '../Onboarding';
 import { useStoreVersion } from '../hooks';
 import { Icon } from '../icons';
 
@@ -16,7 +17,13 @@ export interface EditorSeed {
   description: string;
   dsl: string;
   source: TopicSource;
+  grades?: number[];
   note?: string;
+}
+
+export function gradesLabel(g?: number[]): string {
+  if (!g?.length) return 'wszystkie klasy';
+  return `kl. ${[...g].sort((a, b) => a - b).join(', ')}`;
 }
 
 const SOURCE_LABEL: Record<TopicSource, string> = {
@@ -78,6 +85,7 @@ export function ParentTopics({ onEdit }: { onEdit: (s: EditorSeed) => void }) {
                 <tr>
                   <th>Temat</th>
                   <th>Zadań</th>
+                  <th>Klasa</th>
                   <th>Źródło</th>
                   <th>Akcje</th>
                 </tr>
@@ -93,6 +101,7 @@ export function ParentTopics({ onEdit }: { onEdit: (s: EditorSeed) => void }) {
                         {t.builtin && hidden.has(t.id) && <div className="muted" style={{ fontSize: 12 }}>ukryty dla ucznia</div>}
                       </td>
                       <td>{t.exercises.length}</td>
+                      <td>{gradesLabel(t.grades)}</td>
                       <td>
                         <span className="pill">{SOURCE_LABEL[t.source]}</span>
                       </td>
@@ -107,7 +116,7 @@ export function ParentTopics({ onEdit }: { onEdit: (s: EditorSeed) => void }) {
                               <button
                                 className="btn btn-sm"
                                 onClick={() =>
-                                  onEdit({ title: `${t.title} (moja wersja)`, subject: t.subject, description: t.description ?? '', dsl: t.dsl, source: 'manual' })
+                                  onEdit({ title: `${t.title} (moja wersja)`, subject: t.subject, description: t.description ?? '', dsl: t.dsl, source: 'manual', grades: t.grades })
                                 }
                               >
                                 <Icon name="copy" size={16} /> Kopiuj i zmień
@@ -117,7 +126,7 @@ export function ParentTopics({ onEdit }: { onEdit: (s: EditorSeed) => void }) {
                             <>
                               <button
                                 className="btn btn-sm"
-                                onClick={() => onEdit({ topicId: t.id, title: t.title, subject: t.subject, description: t.description ?? '', dsl: t.dsl, source: t.source })}
+                                onClick={() => onEdit({ topicId: t.id, title: t.title, subject: t.subject, description: t.description ?? '', dsl: t.dsl, source: t.source, grades: t.grades })}
                               >
                                 <Icon name="pencil" size={16} /> Edytuj
                               </button>
@@ -149,6 +158,7 @@ export function TopicEditor({ seed, onClose }: { seed: EditorSeed; onClose: () =
   const [title, setTitle] = useState(seed.title);
   const [subject, setSubject] = useState(seed.subject);
   const [description, setDescription] = useState(seed.description);
+  const [grades, setGrades] = useState<number[]>(seed.grades ?? [...new Set(store.list('profile').map((p) => p.grade ?? 3))]);
   const [dsl, setDsl] = useState(seed.dsl);
   const [target, setTarget] = useState<string>(seed.topicId ?? 'new');
   const [err, setErr] = useState('');
@@ -178,6 +188,7 @@ export function TopicEditor({ seed, onClose }: { seed: EditorSeed; onClose: () =
       description: description.trim() || undefined,
       order: existing?.subject === subject ? existing.order : maxOrder + 10,
       source: existing?.source ?? seed.source,
+      grades: grades.length ? [...grades].sort((a, b) => a - b) : undefined,
       dsl: dsl.trim(),
       createdAt: existing?.createdAt ?? now,
       updatedAt: now,
@@ -234,6 +245,16 @@ export function TopicEditor({ seed, onClose }: { seed: EditorSeed; onClose: () =
                   ))}
                 </select>
               </label>
+              <fieldset className="field" style={{ border: 0, padding: 0, margin: 0 }}>
+                <span>Dla klasy (nic nie zaznaczone = dla wszystkich)</span>
+                <div className="row" style={{ flexWrap: 'wrap', gap: 6 }}>
+                  {GRADES.map((g) => (
+                    <label key={g} className="pill" style={{ padding: '8px 12px', cursor: 'pointer', fontSize: 14 }}>
+                      <input type="checkbox" checked={grades.includes(g)} onChange={(e) => setGrades((cur) => (e.target.checked ? [...cur, g] : cur.filter((x) => x !== g)))} /> {g}
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
               <label className="field">
                 <span>Zasada / ściągawka dla dziecka (pokazuje się jako podpowiedź)</span>
                 <textarea className="input" style={{ minHeight: 80 }} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="np. Czasownik mówi, co ktoś robi. Pytamy: co robi?" />

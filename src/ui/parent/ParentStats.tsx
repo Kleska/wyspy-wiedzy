@@ -20,7 +20,7 @@ export function ParentStats() {
   const [pid, setPid] = useState(profiles[0]?.id ?? null);
   const progress = useProgress(pid);
   if (!pid || !progress) return <p>Brak profilu ucznia.</p>;
-  const topics = store.allTopics();
+  const topics = store.topicsFor(pid);
 
   const days: { key: string; label: string; sec: number; answered: number; correct: number }[] = [];
   for (let i = 13; i >= 0; i--) {

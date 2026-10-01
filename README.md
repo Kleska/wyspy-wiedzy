@@ -5,11 +5,20 @@ można ją zainstalować na ekranie głównym i używać bez internetu. Postępy
 
 **Co jest w środku**
 
+- Kilka osób na jednym koncie: każde dziecko ma swój profil, klasę, postępy, punkty i wygląd.
+  Przy uruchomieniu aplikacja pyta „Kto się dziś uczy?”.
+- Start od wyboru przedmiotu (Język polski, Matematyka), potem plansza z tematami dla klasy dziecka.
+
 - 4 wyglądy do przełączania przez dziecko: *Wyspy Wiedzy* (domyślny), *Akademia Pilotów*, *Pixel Quest*, *Zeszyt*.
 - 5 typów zadań: wybór odpowiedzi, klikanie słów w zdaniu, sortowanie do koszyków (przeciąganie lub stuknięcia),
   uzupełnianie luk (z przyciskami ą ć ę ł ń ó ś ź ż), łączenie w pary.
-- Tematy startowe: rzeczownik, czasownik, przymiotnik, mieszanka części mowy, czasy czasownika, osoba i liczba,
-  mnożenie przez 6 i 7.
+- Tematy startowe:
+  - klasa 3 — polski: rzeczownik, czasownik, przymiotnik, mieszanka części mowy, czasy czasownika, osoba i liczba;
+    matematyka: dodawanie i odejmowanie do 100, mnożenie przez 6 i 7 oraz 8 i 9, dzielenie, zadania z treścią;
+  - klasa 5 — polski: przypadki, stopniowanie przymiotnika, ó/u, „nie” z częściami mowy, części mowy odmienne
+    i nieodmienne, podmiot i orzeczenie; matematyka: ułamki (skracanie, dodawanie, odejmowanie), ułamki dziesiętne,
+    pole i obwód, kolejność działań, cechy podzielności.
+  Wyniki zadań matematycznych są liczone w kodzie, nie wpisywane ręcznie.
 - Powtórki rozłożone w czasie: błędne zadania wracają na końcu ćwiczenia i w kolejnych dniach (1, 2, 4, 7, 14 dni).
   Gwiazdki tematu rosną dopiero, gdy dziecko pamięta zadania przez kilka dni.
 - Punkty doświadczenia i poziomy, waluta (muszelki/monety/punkty), seria dni, 3 zadania dnia i skrzynia,

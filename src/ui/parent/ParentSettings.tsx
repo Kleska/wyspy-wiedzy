@@ -5,7 +5,7 @@ import { nowIso, store, uid } from '../../data/store';
 import { THEMES } from '../../themes';
 import { useStoreVersion } from '../hooks';
 import { Icon } from '../icons';
-import { FREE_AVATARS } from '../Onboarding';
+import { FREE_AVATARS, GRADES } from '../Onboarding';
 import { hashPin } from './ParentGate';
 
 declare const __BUILD_TIME__: string;
@@ -57,7 +57,7 @@ export function ParentSettings() {
         </h2>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
           <label className="field">
-            <span>Cel dzienny (minuty)</span>
+            <span>Cel dzienny dla wszystkich (minuty)</span>
             <input className="input" type="number" min={5} max={90} value={s.dailyGoalMinutes} onChange={(e) => void store.saveSettings({ dailyGoalMinutes: Math.min(90, Math.max(5, Number(e.target.value) || 15)) })} />
           </label>
           <label className="field">
@@ -78,15 +78,48 @@ export function ParentSettings() {
           Uczniowie
         </h2>
         {profiles.map((p) => (
-          <div key={p.id} className="row" style={{ flexWrap: 'wrap' }}>
+          <div key={p.id} className="row" style={{ flexWrap: 'wrap', borderBottom: '1px solid var(--line)', paddingBottom: 12 }}>
             <span style={{ fontSize: 28 }}>{p.avatar}</span>
             <input
               className="input"
-              style={{ flex: '1 1 200px' }}
+              style={{ flex: '1 1 180px' }}
               defaultValue={p.name}
               onBlur={(e) => e.target.value.trim() && e.target.value !== p.name && void store.put('profile', { ...p, name: e.target.value.trim(), updatedAt: nowIso() })}
-              aria-label="Imię"
+              aria-label={`Imię: ${p.name}`}
             />
+            <label className="row" style={{ gap: 6 }}>
+              <span style={{ fontSize: 14, fontWeight: 600 }}>Klasa</span>
+              <select
+                className="select"
+                style={{ width: 80 }}
+                value={p.grade ?? 3}
+                onChange={(e) => void store.put('profile', { ...p, grade: Number(e.target.value), updatedAt: nowIso() })}
+                aria-label={`Klasa: ${p.name}`}
+              >
+                {GRADES.map((g) => (
+                  <option key={g} value={g}>
+                    {g}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="row" style={{ gap: 6 }}>
+              <span style={{ fontSize: 14, fontWeight: 600 }}>Cel dzienny</span>
+              <select
+                className="select"
+                style={{ width: 120 }}
+                value={p.dailyGoalMinutes ?? 0}
+                onChange={(e) => void store.put('profile', { ...p, dailyGoalMinutes: Number(e.target.value) || undefined, updatedAt: nowIso() })}
+                aria-label={`Cel dzienny: ${p.name}`}
+              >
+                <option value={0}>jak wyżej</option>
+                {[10, 15, 20, 25, 30, 40, 45, 60].map((m) => (
+                  <option key={m} value={m}>
+                    {m} min
+                  </option>
+                ))}
+              </select>
+            </label>
             <span className="muted" style={{ fontSize: 13 }}>
               wygląd: {THEMES[p.theme].name}
             </span>
@@ -96,9 +129,9 @@ export function ParentSettings() {
           <button
             className="btn btn-sm"
             onClick={async () => {
-              const name = await askText('Imię nowego ucznia', { ok: 'Dodaj' });
+              const name = await askText('Imię nowego ucznia (klasę ustawisz obok imienia)', { ok: 'Dodaj' });
               if (name?.trim())
-                void store.put('profile', { id: uid(), name: name.trim(), avatar: FREE_AVATARS[profiles.length % FREE_AVATARS.length], theme: 'wyspy', createdAt: nowIso(), updatedAt: nowIso() });
+                void store.put('profile', { id: uid(), name: name.trim(), avatar: FREE_AVATARS[profiles.length % FREE_AVATARS.length], theme: 'wyspy', grade: 3, createdAt: nowIso(), updatedAt: nowIso() });
             }}
           >
             <Icon name="users" size={16} /> Dodaj ucznia

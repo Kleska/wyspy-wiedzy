@@ -19,7 +19,7 @@ function snapshot(profileId: string): Progress {
     sessions: store.list('session'),
     redemptions: store.list('redemption'),
     topics: store.allTopics(),
-    settings: store.settings,
+    settings: store.settingsFor(profileId),
     now: Date.now(),
   });
 }
@@ -27,7 +27,7 @@ function snapshot(profileId: string): Progress {
 export function Practice({ topicId }: { topicId: string | null }) {
   const { profile, theme, go } = useApp();
   const settings = store.settings;
-  const topics = store.topics();
+  const topics = store.topicsFor(profile.id);
   const topic = topicId ? topics.find((t) => t.id === topicId) ?? null : null;
   const before = useMemo(() => snapshot(profile.id), [profile.id]);
 
@@ -204,7 +204,7 @@ export function Practice({ topicId }: { topicId: string | null }) {
     if (started.current && !(await askConfirm('Skończyć teraz? To, co już zrobione, zostanie zapisane.', { ok: 'Skończ', cancel: 'Ćwiczę dalej' }))) return;
     finished.current = true;
     if (started.current) await save(false);
-    go({ name: 'home' });
+    go(topic ? { name: 'subject', subjectId: topic.subject } : { name: 'home' });
   };
 
   if (!item) {

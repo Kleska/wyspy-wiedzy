@@ -59,6 +59,10 @@ export function uid(): string {
 
 export const nowIso = () => new Date().toISOString();
 
+export function gradeOf(p: { grade?: number } | undefined): number {
+  return p?.grade ?? 3;
+}
+
 type Docs = { [K in DocKind]: Map<string, DocMap[K]> };
 
 export class Store {
@@ -165,6 +169,19 @@ export class Store {
   topics(): ParsedTopic[] {
     const hidden = new Set(this.settings.hiddenBuiltins);
     return this.allTopics().filter((t) => !(t.builtin && hidden.has(t.id)) && t.exercises.length > 0);
+  }
+
+  /** Tematy dla konkretnej osoby — tylko z jej klasy (tematy bez klasy są dla wszystkich). */
+  topicsFor(profileId: string | null | undefined): ParsedTopic[] {
+    const grade = gradeOf(profileId ? this.get('profile', profileId) : undefined);
+    return this.topics().filter((t) => !t.grades?.length || t.grades.includes(grade));
+  }
+
+  /** Ustawienia z uwzględnieniem celu dziennego konkretnej osoby. */
+  settingsFor(profileId: string | null | undefined): Settings {
+    const p = profileId ? this.get('profile', profileId) : undefined;
+    const s = this.settings;
+    return p?.dailyGoalMinutes ? { ...s, dailyGoalMinutes: p.dailyGoalMinutes } : s;
   }
 
   private topicVersion = 0;

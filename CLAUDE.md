@@ -6,7 +6,8 @@ Aplikacja do nauki dla dziecka (klasa 3+), UI po polsku. React 18 + TypeScript +
 
 - `src/types.ts` — typy: ćwiczenia (choice/tap/sort/fill/match), tematy, zdarzenia (Attempt, Session, Redemption), ustawienia.
 - `src/dsl.ts` — format tekstowy zadań (parser, serializacja, sprawdzanie luk). Id zadania = hash treści linii (bez `!!` wyjaśnienia).
-- `src/content/seed.ts` — tematy wbudowane (DSL). Zmiana linii zmienia id zadania → reset postępu tego zadania.
+- `src/content/seed.ts` (+ `math.ts`, `polish5.ts`, `util.ts`) — tematy wbudowane (DSL) z polem `grades`. Matematyka generowana kodem (wyniki liczone). Zmiana linii zmienia id zadania → reset postępu tego zadania.
+- Profile mają `grade`; `store.topicsFor(profileId)` filtruje tematy po klasie. Start = wybór przedmiotu (`Home`), potem `SubjectScreen`.
 - `src/engine.ts` — CAŁY postęp wyliczany z dziennika: XP, monety, poziomy, seria, pudełka Leitnera, zadania dnia, odznaki, układanie sesji.
 - `src/data/store.ts` — magazyn: pamięć + IndexedDB (`idb.ts`) + synchronizacja z Supabase (tabela `ww_docs`, kursor po `server_updated_at`, kolejka outbox).
 - `src/ai.ts` + `supabase/functions/ai/prompt.ts` (wspólny plik z poleceniem) + `supabase/functions/ai/index.ts` (Edge Function, Deno).

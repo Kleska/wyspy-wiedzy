@@ -366,8 +366,7 @@ function computeBadges(b: BadgeBase, topics: ParsedTopic[]): Badge[] {
   const perfect = [...b.perSession.values()].some((s) => s.first >= 8 && s.firstCorrect === s.first);
   const stars = [...b.topics.values()].map((t) => t.stars);
   const maxStars = stars.length ? Math.max(...stars) : 0;
-  const pos = ['b-rzeczownik', 'b-czasownik', 'b-przymiotnik'].map((id) => b.topics.get(id)?.stars ?? 0);
-  const posDone = pos.filter((s) => s >= 2).length;
+  const threeStar = stars.filter((s) => s >= 3).length;
   const topicsWithStar = stars.filter((s) => s >= 1).length;
   void topics;
   const list: [string, string, string, number][] = [
@@ -382,7 +381,7 @@ function computeBadges(b: BadgeBase, topics: ParsedTopic[]): Badge[] {
     ['hour', 'Pierwsza godzina', 'Ćwicz łącznie 60 minut', ratio(b.totalSeconds, 3600)],
     ['hours10', 'Dziesięć godzin', 'Ćwicz łącznie 10 godzin', ratio(b.totalSeconds, 36000)],
     ['master', 'Mistrz tematu', 'Zdobądź 3 gwiazdki w dowolnym temacie', maxStars >= 3 ? 1 : ratio(maxStars, 3)],
-    ['pos', 'Znawca części mowy', '2 gwiazdki: rzeczownik, czasownik i przymiotnik', ratio(posDone, 3)],
+    ['master3', 'Potrójny mistrz', 'Zdobądź 3 gwiazdki w trzech tematach', ratio(threeStar, 3)],
     ['explorer', 'Odkrywca', 'Zdobądź gwiazdkę w 5 tematach', ratio(topicsWithStar, 5)],
     ['level5', 'Poziom 5', 'Osiągnij poziom 5', ratio(b.level, 5)],
     ['level10', 'Poziom 10', 'Osiągnij poziom 10', ratio(b.level, 10)],

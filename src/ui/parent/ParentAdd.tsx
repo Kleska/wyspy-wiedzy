@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { aiMode, chatPrompt, generateWithAi, imageToBase64, parsePastedAnswer, type AiRequest } from '../../ai';
 import { SUBJECTS, subjectOf } from '../../content/seed';
+import { store } from '../../data/store';
 import { TYPE_LABEL } from '../../dsl';
 import type { ExerciseType, TopicSource } from '../../types';
 import { Icon } from '../icons';
@@ -14,7 +15,7 @@ const TYPE_WORD: Record<ExerciseType, string> = { choice: 'wybierz', tap: 'klikn
 export function ParentAdd({ pin, onResult }: { pin: string; onResult: (s: EditorSeed) => void }) {
   const [mode, setMode] = useState<Mode>('photo');
   const [subject, setSubject] = useState('pl');
-  const [grade, setGrade] = useState(3);
+  const [grade, setGrade] = useState(() => store.list('profile')[0]?.grade ?? 3);
   const [count, setCount] = useState(12);
   const [types, setTypes] = useState<ExerciseType[]>([]);
   const [request, setRequest] = useState('');
@@ -61,6 +62,7 @@ export function ParentAdd({ pin, onResult }: { pin: string; onResult: (s: Editor
         description: r.description,
         dsl: r.dsl,
         source,
+        grades: [grade],
         note: 'Sprawdź zadania przed zapisaniem — AI może się pomylić. Popraw albo usuń linie, które Ci nie pasują.',
       });
     } catch (e) {
@@ -85,7 +87,7 @@ export function ParentAdd({ pin, onResult }: { pin: string; onResult: (s: Editor
   const usePasted = () => {
     const r = parsePastedAnswer(pasted);
     if (!r.dsl) return setErr('Nie znalazłem zadań w wklejonym tekście. Linie powinny zaczynać się od „wybierz:”, „kliknij:” itd.');
-    onResult({ title: r.title || 'Nowy temat', subject, description: r.description, dsl: r.dsl, source: 'import', note: 'Sprawdź zadania przed zapisaniem.' });
+    onResult({ title: r.title || 'Nowy temat', subject, description: r.description, dsl: r.dsl, source: 'import', grades: [grade], note: 'Sprawdź zadania przed zapisaniem.' });
   };
 
   return (
@@ -242,7 +244,7 @@ export function ParentAdd({ pin, onResult }: { pin: string; onResult: (s: Editor
         </h2>
         <p className="muted">Wolisz wpisać zadania sam? Otwórz edytor — każde zadanie to jedna linia tekstu.</p>
         <div>
-          <button className="btn" onClick={() => onResult({ title: '', subject, description: '', dsl: '', source: 'manual' })}>
+          <button className="btn" onClick={() => onResult({ title: '', subject, description: '', dsl: '', source: 'manual', grades: [grade] })}>
             <Icon name="pencil" size={20} /> Otwórz edytor
           </button>
         </div>

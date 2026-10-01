@@ -14,6 +14,7 @@ const DSL = [
 test('sortowanie (przeciąganie), luki i pary działają i dają poprawny wynik', async ({ page }) => {
   await page.goto('/');
   await page.getByPlaceholder('Imię').fill('Kuba');
+  await page.getByRole('group', { name: 'Klasa' }).getByRole('button', { name: '3', exact: true }).click();
   await page.getByRole('button', { name: 'Zaczynamy!' }).click();
   await page.getByRole('button', { name: 'Panel rodzica' }).click();
   for (let k = 0; k < 2; k++) {
@@ -27,6 +28,7 @@ test('sortowanie (przeciąganie), luki i pary działają i dają poprawny wynik'
   await page.getByRole('button', { name: 'Zapisz' }).click();
   await page.getByRole('button', { name: 'Wyjdź' }).click();
 
+  await page.getByRole('button', { name: /Język polski/ }).click();
   await page.getByRole('button', { name: /Test typów/ }).first().click();
   await page.getByRole('dialog').getByRole('button', { name: /Graj!/ }).click();
 
@@ -75,7 +77,7 @@ test('sortowanie (przeciąganie), luki i pary działają i dają poprawny wynik'
   }
   await expect(page.getByText('3/3')).toBeVisible();
   await snap(page, 't5-summary');
-  await page.getByRole('button', { name: 'Wróć na start' }).click();
+  await page.getByRole('button', { name: 'Wróć do tematów' }).click();
   await page.waitForTimeout(300);
   await snap(page, 't6-home');
 });

@@ -240,14 +240,20 @@ export function exerciseToDsl(ex: Exercise): string {
 }
 
 export function normalizeAnswer(s: string): string {
-  return s
+  let r = s
     .normalize('NFC')
     .toLowerCase()
     .replace(/[×*]/g, '·')
+    .replace(/−/g, '-')
     .replace(/\s+/g, ' ')
     .trim()
     .replace(/[.,!?;:]+$/, '')
-    .trim();
+    .trim()
+    .replace(/(\d)\.(\d)/g, '$1,$2')
+    .replace(/\s*\/\s*/g, '/');
+  // 3,50 = 3,5 · 5,0 = 5
+  if (/^-?\d+,\d+$/.test(r)) r = r.replace(/0+$/, '').replace(/,$/, '');
+  return r;
 }
 
 export function isFillAnswerCorrect(given: string, accepted: string[]): boolean {

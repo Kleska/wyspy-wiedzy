@@ -1,8 +1,11 @@
 import type { Subject, Topic } from '../types';
+import { MATH_GRADE3, MATH_GRADE5 } from './math';
+import { POLISH_GRADE5 } from './polish5';
+import { builtin } from './util';
 
 export const SUBJECTS: Subject[] = [
-  { id: 'pl', name: 'Polski', short: 'PL', island: 'Wyspa Polskiego' },
-  { id: 'mat', name: 'Matematyka', short: 'MAT', island: 'Wyspa Matematyki' },
+  { id: 'pl', name: 'Język polski', short: 'Aa', island: 'Wyspa Polskiego' },
+  { id: 'mat', name: 'Matematyka', short: '123', island: 'Wyspa Matematyki' },
   { id: 'ang', name: 'Angielski', short: 'ENG', island: 'Wyspa Angielskiego' },
   { id: 'prz', name: 'Przyroda', short: 'PRZ', island: 'Wyspa Przyrody' },
   { id: 'inne', name: 'Inne', short: 'INNE', island: 'Wyspa Różności' },
@@ -16,17 +19,13 @@ export function subjectName(id: string): string {
   return SUBJECTS.find((s) => s.id === id)?.name ?? id;
 }
 
-const T0 = '2026-09-30T00:00:00.000Z';
 
-function builtin(id: string, subject: string, order: number, title: string, description: string, dsl: string): Topic {
-  return { id, subject, order, title, description, dsl: dsl.trim(), source: 'builtin', createdAt: T0, updatedAt: T0 };
-}
 
 /*
  * Tematy wbudowane. Każda zmiana linii zmienia identyfikator zadania (postęp tego
  * jednego zadania zacznie się od nowa), więc poprawiaj rozważnie.
  */
-export const BUILTIN_TOPICS: Topic[] = [
+const GRADE3_BASE: Topic[] = [
   builtin(
     'b-rzeczownik',
     'pl',
@@ -185,3 +184,5 @@ wpisz: W pudełku jest 6 rzędów po 7 cukierków. Ile cukierków jest w pudełk
 `,
   ),
 ];
+
+export const BUILTIN_TOPICS: Topic[] = [...GRADE3_BASE, ...MATH_GRADE3, ...POLISH_GRADE5, ...MATH_GRADE5];

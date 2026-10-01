@@ -29,7 +29,7 @@ export function useProgress(profileId: string | null): Progress | null {
       sessions: store.list('session'),
       redemptions: store.list('redemption'),
       topics: store.allTopics(),
-      settings: store.settings,
+      settings: store.settingsFor(profileId),
       now: Date.now(),
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -38,6 +38,7 @@ export function useProgress(profileId: string | null): Progress | null {
 
 export type Screen =
   | { name: 'home' }
+  | { name: 'subject'; subjectId: string }
   | { name: 'practice'; topicId: string | null; nonce: number }
   | { name: 'summary'; result: SessionResult }
   | { name: 'rewards' }

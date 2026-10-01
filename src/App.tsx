@@ -3,7 +3,7 @@ import { DialogHost } from './ui/dialogs';
 import { store } from './data/store';
 import { loadThemeFonts, THEMES } from './themes';
 import type { Profile } from './types';
-import { Home } from './ui/Home';
+import { Home, SubjectScreen } from './ui/Home';
 import { AppContext, useStoreVersion, type AppCtx, type Screen } from './ui/hooks';
 import { Login } from './ui/Login';
 import { Onboarding, ProfilePicker } from './ui/Onboarding';
@@ -15,14 +15,6 @@ import { ThemePicker } from './ui/ThemePicker';
 import { TopicSheet } from './ui/TopicSheet';
 
 const PROFILE_KEY = 'ww-profile';
-
-function readProfileId(): string | null {
-  try {
-    return localStorage.getItem(PROFILE_KEY);
-  } catch {
-    return null;
-  }
-}
 
 function Splash({ text }: { text: string }) {
   return (
@@ -43,7 +35,8 @@ function Splash({ text }: { text: string }) {
 export function App() {
   useStoreVersion();
   const st = store.state;
-  const [profileId, setProfileId] = useState<string | null>(readProfileId);
+  // Przy kilku osobach na jednym urządzeniu pytamy „Kto się dziś uczy?” przy każdym uruchomieniu.
+  const [profileId, setProfileId] = useState<string | null>(null);
   const [screen, setScreen] = useState<Screen>({ name: 'home' });
   const [themesOpen, setThemesOpen] = useState(false);
   const [topicOpen, setTopicOpen] = useState<string | null>(null);
@@ -69,6 +62,7 @@ export function App() {
       /* ignore */
     }
     setPicking(false);
+    setScreen({ name: 'home' });
     window.scrollTo(0, 0);
   }, []);
 
@@ -118,6 +112,7 @@ export function App() {
     <AppContext.Provider value={ctx}>
       <div className="app">
         {screen.name === 'home' && <Home />}
+        {screen.name === 'subject' && <SubjectScreen subjectId={screen.subjectId} />}
         {screen.name === 'practice' && <Practice key={screen.nonce} topicId={screen.topicId} />}
         {screen.name === 'summary' && <Summary result={screen.result} />}
         {screen.name === 'rewards' && <Rewards />}
