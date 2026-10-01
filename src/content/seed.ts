@@ -2,6 +2,7 @@ import type { Subject, Topic } from '../types';
 import { DICTATION_GRADE3, DICTATION_GRADE5 } from './dictation';
 import { GUIDES } from './guides';
 import { MATH_GRADE3, MATH_GRADE5 } from './math';
+import { READING_GRADE3, READING_GRADE5 } from './reading';
 import { POLISH_GRADE5 } from './polish5';
 import { builtin } from './util';
 
@@ -187,7 +188,7 @@ wpisz: W pudełku jest 6 rzędów po 7 cukierków. Ile cukierków jest w pudełk
   ),
 ];
 
-export const BUILTIN_TOPICS: Topic[] = [...GRADE3_BASE, DICTATION_GRADE3, ...MATH_GRADE3, ...POLISH_GRADE5, DICTATION_GRADE5, ...MATH_GRADE5].map((t) => ({
+export const BUILTIN_TOPICS: Topic[] = [...GRADE3_BASE, DICTATION_GRADE3, READING_GRADE3, ...MATH_GRADE3, ...POLISH_GRADE5, DICTATION_GRADE5, READING_GRADE5, ...MATH_GRADE5].map((t) => ({
   ...t,
   guide: GUIDES[t.id],
 }));

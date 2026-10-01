@@ -6,11 +6,14 @@ import type { Profile } from '../../types';
 import { LevelChip } from '../bits';
 import { useProgress, useStoreVersion } from '../hooks';
 import { Icon } from '../icons';
+import { PlanFromPhoto } from './PlanFromPhoto';
 
-export function ParentPlan() {
+export function ParentPlan({ pin }: { pin: string }) {
   useStoreVersion();
   const profiles = store.profiles();
   const [pid, setPid] = useState(profiles[0]?.id ?? null);
+  // Po zapisaniu planu ze zdjęcia odświeżamy edytor planu (pokazuje nowe tematy i termin).
+  const [ver, setVer] = useState(0);
   const p = pid ? store.get('profile', pid) : undefined;
   if (!p) return <p>Brak profilu ucznia.</p>;
   return (
@@ -31,7 +34,8 @@ export function ParentPlan() {
         Przypnij tematy, które dziecko ma teraz ćwiczyć (np. przed sprawdzianem w szkole). Zobaczy je na górze ekranu startowego, a aplikacja będzie je polecać w
         pierwszej kolejności. Cel: poziom „Biegły” w każdym temacie.
       </p>
-      <PlanEditor key={p.id} p={p} />
+      <PlanFromPhoto key={`photo-${p.id}`} p={p} pin={pin} onPlanSaved={() => setVer((v) => v + 1)} />
+      <PlanEditor key={`${p.id}:${ver}`} p={p} />
       <ExamHistory profileId={p.id} />
     </>
   );

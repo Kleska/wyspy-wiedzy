@@ -242,3 +242,49 @@ describe('oceny, Błyskawica, cel rodziny, kolejki', () => {
     expect(new Set(d.map((x) => x.topicId)).size * 3).toBe(d.length);
   });
 });
+
+describe('moje błędy, tabliczka mnożenia, czytanie', () => {
+  it('moje błędy: znikają po dobrej odpowiedzi w późniejszej sesji', async () => {
+    const { mistakesToFix } = await import('../src/engine');
+    const a = [
+      att(noun, 0, false, '2026-10-01T10:00:00', 's1'),
+      att(noun, 0, true, '2026-10-01T10:00:05', 's1', true), // poprawka w tej samej sesji się nie liczy
+      att(noun, 1, false, '2026-10-01T10:00:10', 's1'),
+      att(noun, 1, true, '2026-10-01T11:00:00', 's2'),
+      att(noun, 2, false, '2026-09-01T10:00:00', 's0'), // za stare
+    ];
+    const m = mistakesToFix({ profileId: P, attempts: a, topics, now: Date.parse('2026-10-01T12:00:00') });
+    expect(m.map((x) => x.exerciseId)).toEqual([noun.exercises[0].id]);
+  });
+
+  it('tabliczka: działanie zielone po dwóch szybkich dobrych odpowiedziach, 6·7 = 7·6', async () => {
+    const { multiplicationMap, factKey, weakestFacts } = await import('../src/engine');
+    const { allMulExercises } = await import('../src/content/generators');
+    const sources = allMulExercises();
+    const ex = (a: number, b: number) => sources.find((s) => s.ex.parts[0] === `${a} · ${b} = `)!.ex;
+    const mk = (a: number, b: number, ok: boolean, at: string, ms = 3000): Attempt => ({
+      id: `m${n++}`, profileId: P, sessionId: 'g', topicId: 'gen:mul', exerciseId: ex(a, b).id, correct: ok, retry: false, hint: false, ms, at,
+    });
+    const attempts = [mk(6, 7, true, '2026-10-01T10:00:00'), mk(7, 6, true, '2026-10-01T10:00:10'), mk(8, 9, true, '2026-10-01T10:00:20'), mk(8, 9, false, '2026-10-01T10:00:30'), mk(4, 5, true, '2026-10-01T10:00:40', 9000), mk(4, 5, true, '2026-10-01T10:00:50', 9000)];
+    const map = multiplicationMap({ profileId: P, attempts, sources });
+    expect(map.size).toBe(55);
+    expect(map.get(factKey(7, 6))!.status).toBe('known');
+    expect(map.get(factKey(8, 9))!.status).toBe('weak');
+    expect(map.get(factKey(4, 5))!.status).toBe('learning'); // dobrze, ale za wolno
+    expect(map.get(factKey(2, 3))!.status).toBe('none');
+    const w = weakestFacts(map, 3);
+    expect(w).toHaveLength(3);
+    expect(factKey(w[0][0], w[0][1])).toBe(factKey(8, 9));
+    expect(w.every(([a, b]) => a > 1 && b > 1)).toBe(true);
+  });
+
+  it('czytanie: lekcja to całe teksty z pytaniami w kolejności z tekstu', async () => {
+    const { buildTopicQueue } = await import('../src/engine');
+    const reading = topics.find((t) => t.id === 'b-czytanie-3')!;
+    const p = progress([], [], '2026-10-01T10:00:00');
+    const q = buildTopicQueue(reading, p, 5, Date.parse('2026-10-01T10:00:00'));
+    const titles = q.map((x) => x.ex.passage?.title);
+    expect(new Set(titles).size).toBe(1);
+    expect(q.map((x) => x.ex.id)).toEqual(reading.exercises.filter((e) => e.passage?.title === titles[0]).map((e) => e.id));
+  });
+});

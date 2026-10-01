@@ -68,7 +68,7 @@ export function ParentPanel({ pin, onExit }: { pin: string; onExit: () => void }
           ) : (
             <>
               {tab === 'stats' && <ParentStats />}
-              {tab === 'plan' && <ParentPlan />}
+              {tab === 'plan' && <ParentPlan pin={pin} />}
               {tab === 'topics' && <ParentTopics onEdit={openEditor} />}
               {tab === 'add' && <ParentAdd pin={pin} onResult={openEditor} />}
               {tab === 'rewards' && <ParentRewards />}

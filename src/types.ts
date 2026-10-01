@@ -9,6 +9,14 @@ interface ExerciseBase {
   prompt: string;
   /** Wyjaśnienie pokazywane po odpowiedzi (i jako podpowiedź). */
   explain?: string;
+  /** Czytanie ze zrozumieniem: tekst, którego dotyczy pytanie (linia „tekst:” nad pytaniami). */
+  passage?: Passage;
+}
+
+export interface Passage {
+  title: string;
+  /** Akapity rozdzielone „ // ”. */
+  text: string;
 }
 
 /** Wybór jednej odpowiedzi. `sentence` może zawierać {wyróżnienie} i ___ (luka). */

@@ -1,5 +1,7 @@
 import { useEffect } from 'react';
+import { passageParagraphs } from '../dsl';
 import { LEVEL_NAMES, type TopicLevel } from '../engine';
+import type { Passage } from '../types';
 import { speak } from '../speech';
 import { withFractions } from './exercises/Exercises';
 import { Icon } from './icons';
@@ -86,6 +88,27 @@ export function GuideCard({ title, description, guide }: { title?: string; descr
       </div>
       <GuideText text={text} />
     </div>
+  );
+}
+
+/** Tekst do czytania ze zrozumieniem — nad pytaniem, z czytaniem na głos. */
+export function PassageCard({ passage, defaultOpen }: { passage: Passage; defaultOpen: boolean }) {
+  const paras = passageParagraphs(passage);
+  return (
+    <details className="passage" open={defaultOpen}>
+      <summary>
+        <Icon name="book" size={20} /> <span className="passage-title">{passage.title}</span>
+        <span className="passage-toggle muted">{defaultOpen ? '' : '(pokaż tekst)'}</span>
+      </summary>
+      <div className="passage-body">
+        {paras.map((p, i) => (
+          <p key={i}>{p}</p>
+        ))}
+        <button type="button" className="btn btn-sm" onClick={() => speak(`${passage.title}. ${paras.join(' ')}`)}>
+          <Icon name="volume" size={18} /> Posłuchaj tekstu
+        </button>
+      </div>
+    </details>
   );
 }
 

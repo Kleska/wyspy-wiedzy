@@ -2,13 +2,14 @@ import { useState } from 'react';
 import { subjectOf } from '../../content/seed';
 import { generatorById } from '../../content/generators';
 import { gradeOf, store } from '../../data/store';
-import { addDays, dateKey, GRADE_NAMES, LEVEL_NAMES, weekStart, type Progress } from '../../engine';
+import { addDays, dateKey, factsSummary, GRADE_NAMES, LEVEL_NAMES, weekStart, type Progress } from '../../engine';
 import { TYPE_LABEL } from '../../dsl';
 import type { ParsedTopic, Profile, SessionMode } from '../../types';
 import { LevelChip } from '../bits';
 import { exerciseSummary } from '../exercises/logic';
 import { plural } from '../../themes';
 import { useProgress } from '../hooks';
+import { TimesGrid, TimesLegend, useTimesMap } from '../TimesTable';
 import { Icon, Stars } from '../icons';
 
 const DAY_NAMES = ['nd', 'pn', 'wt', 'śr', 'cz', 'pt', 'sb'];
@@ -108,6 +109,8 @@ export function ParentStats() {
   const profiles = store.profiles();
   const [pid, setPid] = useState(profiles[0]?.id ?? null);
   const progress = useProgress(pid);
+  const timesMap = useTimesMap(pid ?? '');
+  const times = factsSummary(timesMap);
   const [msg, setMsg] = useState('');
   const [showText, setShowText] = useState(false);
   const profile = pid ? store.get('profile', pid) : undefined;
@@ -388,6 +391,22 @@ export function ParentStats() {
         </div>
         {practiced.length === 0 && <p className="muted">Uczeń jeszcze nie ćwiczył.</p>}
       </section>
+
+      {times.known + times.learning + times.weak > 0 && (
+        <section className="card col" style={{ gap: 10 }}>
+          <h2 className="card-title" style={{ margin: 0 }}>
+            Tabliczka mnożenia
+          </h2>
+          <p style={{ fontWeight: 700 }}>
+            Na pamięć: {times.known} z {times.total} · w trakcie nauki: {times.learning} · do poprawy: {times.weak}. „Na pamięć” = dwie ostatnie odpowiedzi
+            dobre i udzielone w ciągu 6 sekund.
+          </p>
+          <div style={{ maxWidth: 460 }}>
+            <TimesGrid map={timesMap} />
+          </div>
+          <TimesLegend />
+        </section>
+      )}
 
       <section className="card">
         <h2 className="card-title">Co sprawia kłopot</h2>

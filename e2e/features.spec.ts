@@ -170,7 +170,7 @@ test('rodzic: plan, raport tygodnia, pomysły na nagrody i wspólny cel', async 
   await page.getByPlaceholder('np. Sprawdzian z ułamków').fill('Sprawdzian z czasowników');
   const d = new Date();
   d.setDate(d.getDate() + 3);
-  await page.locator('input[type=date]').fill(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
+  await page.getByLabel('Termin (opcjonalnie)').fill(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
   await page.locator('.check-row', { hasText: 'Czasownik — co robi?' }).locator('input').check();
   await page.locator('.check-row', { hasText: 'Czasownik: przeszły, teraźniejszy, przyszły' }).locator('input').check();
   await page.getByRole('button', { name: 'Zapisz plan (2)' }).click();
@@ -247,4 +247,114 @@ test('wybór wyglądu pokazuje podgląd każdego motywu', async ({ page }) => {
   await snap(page, 'f24-theme-picker');
   await dlg.getByRole('button', { name: /Pixel Quest/ }).click();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'pixel');
+});
+
+test('moje błędy i mapa tabliczki mnożenia', async ({ page }) => {
+  await onboard(page, 'Kuba', 3);
+  await expect(page.getByText('Brak błędów do poprawy — super!')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Tabliczka mnożenia' })).toBeVisible();
+
+  // Mapa tabliczki: dwie dobre odpowiedzi i jedna zła
+  await page.getByRole('button', { name: 'Zobacz mapę i ćwicz' }).click();
+  await expect(page.getByRole('heading', { name: 'Tabliczka mnożenia' })).toBeVisible();
+  await page.getByRole('button', { name: /Ćwicz najsłabsze/ }).click();
+  for (let i = 0; i < 3; i++) {
+    const text = (await page.locator('.fill-text').innerText()).trim();
+    await page.locator('.gap').first().fill(i < 2 ? String(evalText(text)) : '1');
+    await page.getByRole('button', { name: 'Sprawdź' }).click();
+    await expect(page.locator(i < 2 ? '.pr-foot.good' : '.pr-foot.bad')).toBeVisible();
+    await page.waitForTimeout(750);
+    if (i < 2) await page.getByRole('button', { name: /^(Dalej|Zakończ)$/ }).click();
+  }
+  await page.getByRole('button', { name: 'Zakończ ćwiczenie' }).click();
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Skończ' }).click();
+  await expect(page.getByRole('heading', { name: 'Tabliczka mnożenia' })).toBeVisible();
+  await expect(page.locator('.times-page .tg-cell.weak')).not.toHaveCount(0);
+  await expect(page.locator('.times-page .tg-cell.learning')).not.toHaveCount(0);
+  await snap(page, 'f25-times-map', true);
+  await page.getByRole('button', { name: 'Wróć', exact: true }).click();
+
+  // Błąd w temacie → „Moje błędy”
+  await page.locator('.subject-big', { hasText: 'Język polski' }).click();
+  await page.getByRole('button', { name: /Rzeczownik — kto\? co\?/ }).first().click();
+  await page.getByRole('dialog').getByRole('button', { name: /Graj!/ }).click();
+  for (let i = 0; i < 12; i++) {
+    if (await page.locator('.gap').count()) {
+      for (const g of await page.locator('.gap').all()) await g.fill('xyz');
+    } else if (await page.locator('.practice .opt').count()) {
+      // ostatnia z odpowiedzi — przeważnie zła
+      await page.locator('.practice .opt').last().click();
+    } else {
+      await answerAny(page);
+    }
+    await page.getByRole('button', { name: 'Sprawdź' }).click();
+    await expect(page.locator('.pr-foot.good, .pr-foot.bad')).toBeVisible();
+    if (await page.locator('.pr-foot.bad').count()) break;
+    await page.waitForTimeout(750);
+    await page.getByRole('button', { name: /^(Dalej|Zakończ)$/ }).click();
+  }
+  await page.getByRole('button', { name: 'Zakończ ćwiczenie' }).click();
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Skończ' }).click();
+  await page.getByRole('button', { name: 'Wróć', exact: true }).click();
+  await expect(page.getByRole('button', { name: /Popraw moje błędy \(1\)/ })).toBeVisible();
+  await snap(page, 'f26-home-mistakes', true);
+  await page.getByRole('button', { name: /Popraw moje błędy/ }).click();
+  await expect(page.locator('.pr-topic')).toContainText('Rzeczownik');
+  await expect(page.getByText('1 / 1')).toBeVisible();
+});
+
+test('czytanie ze zrozumieniem: tekst nad pytaniami', async ({ page }) => {
+  await onboard(page, 'Kuba', 3);
+  await page.locator('.subject-big', { hasText: 'Język polski' }).click();
+  await page.getByRole('button', { name: /Czytanie ze zrozumieniem/ }).first().click();
+  await page.getByRole('dialog').getByRole('button', { name: /Graj!/ }).click();
+  await expect(page.locator('details.passage[open]')).toBeVisible();
+  await expect(page.locator('.passage-title')).toHaveText(/Nowy kolega|Jeż w ogrodzie/);
+  await snap(page, 'f27-reading', true);
+  await answerAny(page);
+  await page.getByRole('button', { name: 'Sprawdź' }).click();
+  await page.waitForTimeout(750);
+  await page.getByRole('button', { name: /^(Dalej|Zakończ)$/ }).click();
+  // przy kolejnym pytaniu do tego samego tekstu tekst jest zwinięty, ale można go rozwinąć
+  await expect(page.locator('details.passage:not([open])')).toBeVisible();
+  await page.locator('.passage summary').click();
+  await expect(page.locator('details.passage[open]')).toBeVisible();
+});
+
+test('plan ze zdjęcia zakresu (przez czat z Claude)', async ({ page }) => {
+  await onboard(page, 'Kuba', 3);
+  await parentLogin(page);
+  await page.getByRole('button', { name: 'Plan i sprawdziany' }).click();
+  await expect(page.getByRole('heading', { name: /Sprawdzian w szkole\? Zrób zdjęcie zakresu/ })).toBeVisible();
+  await snap(page, 'f28-plan-photo', true);
+  await page.getByLabel('Odpowiedź Claude z planem').fill(
+    [
+      'PLAN: Sprawdzian: części mowy',
+      'ZAKRES: rzeczownik, czasownik i przysłówek',
+      'ISTNIEJĄCE: b-rzeczownik, b-czasownik',
+      'TYTUŁ: Przysłówek',
+      'ZASADA: Przysłówek odpowiada na pytanie: jak?',
+      'ŚCIĄGA:',
+      'Przysłówek mówi, jak ktoś coś robi: szybko, cicho.',
+      '```',
+      'wybierz: Które słowo jest przysłówkiem? | *szybko | szybki | szybkość',
+      'wybierz: Jaką częścią mowy jest wyróżnione słowo? >> Pies biegnie {szybko}. | *przysłówek | przymiotnik | czasownik',
+      '```',
+    ].join('\n'),
+  );
+  await page.getByRole('button', { name: 'Dalej: sprawdź plan' }).click();
+  await expect(page.getByLabel('Nazwa planu')).toHaveValue('Sprawdzian: części mowy');
+  await expect(page.locator('.plan-review .pill.good')).toHaveCount(2);
+  await expect(page.getByText(/Nowy temat: Przysłówek/)).toBeVisible();
+  const d = new Date();
+  d.setDate(d.getDate() + 2);
+  await page.getByLabel('Data sprawdzianu w planie').fill(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
+  await snap(page, 'f29-plan-review', true);
+  await page.getByRole('button', { name: 'Zapisz plan' }).click();
+  await expect(page.getByText(/gotowy: 3 tematy/)).toBeVisible();
+  await page.getByRole('button', { name: 'Wyjdź' }).click();
+  await expect(page.getByRole('heading', { name: 'Sprawdzian: części mowy' })).toBeVisible();
+  await expect(page.locator('.plan-topic', { hasText: 'Przysłówek' })).toBeVisible();
+  await expect(page.getByText('termin za 2 dni')).toBeVisible();
+  await snap(page, 'f30-home-plan-photo', true);
 });

@@ -25,7 +25,8 @@ export function sprintTitle(g: SprintGame): string {
 export function quizPool(profileId: string, subjectId: string): Q[] {
   const out: Q[] = [];
   for (const t of store.topicsFor(profileId).filter((x) => x.subject === subjectId)) {
-    for (const ex of t.exercises) if (ex.type === 'choice') out.push({ topicId: t.id, ex });
+    // Pytania do tekstów (czytanie ze zrozumieniem) nie nadają się do szybkiej gry.
+    for (const ex of t.exercises) if (ex.type === 'choice' && !ex.passage) out.push({ topicId: t.id, ex });
   }
   return out;
 }

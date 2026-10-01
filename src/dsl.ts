@@ -1,4 +1,4 @@
-import type { DslError, Exercise, ExerciseType } from './types';
+import type { DslError, Exercise, ExerciseType, Passage } from './types';
 
 /*
  * Prosty format tekstowy zadań — jedno zadanie w jednej linii.
@@ -9,6 +9,8 @@ import type { DslError, Exercise, ExerciseType } from './types';
  *   wpisz:   Polecenie >> Wczoraj Ola [czytała|przeczytała] książkę.
  *   pary:    Polecenie >> ja = piszę ; ty = piszesz ; oni = piszą
  *   dyktando: Polecenie >> Latem jedziemy nad [morze].   (aplikacja czyta całe zdanie na głos)
+ *   tekst:   Tytuł >> Treść tekstu. // Drugi akapit.   (czytanie ze zrozumieniem — pytania pod spodem
+ *            dotyczą tego tekstu, aż do następnej linii „tekst:”)
  *
  * Linie zaczynające się od # to komentarze. Część „>> …” w „wybierz” jest opcjonalna,
  * „!! …” (wyjaśnienie) wszędzie jest opcjonalne.
@@ -193,15 +195,49 @@ export function parseLine(raw: string, lineNo: number, idPrefix = ''): { ex?: Ex
   return { ex: { id, type, prompt: prompt.trim(), pairs, explain } };
 }
 
+const TEXT_LINE = /^tekst\s*:\s*/i;
+
+/** Linia „tekst: Tytuł >> treść” (czytanie ze zrozumieniem). */
+export function parsePassage(line: string): Passage | null {
+  if (!TEXT_LINE.test(line)) return null;
+  const [title, text] = splitOnce(line.replace(TEXT_LINE, ''), '>>');
+  if (text === null || !title.trim() || !text.trim()) return null;
+  return { title: title.trim(), text: text.trim() };
+}
+
+/** Akapity tekstu do czytania. */
+export function passageParagraphs(p: Passage): string[] {
+  return p.text
+    .split(/\s*\/\/\s*/)
+    .map((x) => x.trim())
+    .filter(Boolean);
+}
+
 export function parseDsl(dsl: string, idPrefix = ''): { exercises: Exercise[]; errors: DslError[] } {
   const exercises: Exercise[] = [];
   const errors: DslError[] = [];
   const seen = new Set<string>();
+  let passage: Passage | undefined;
   dsl.split(/\r?\n/).forEach((line, i) => {
     const t = line.trim();
     if (!t || t.startsWith('#') || t.startsWith('//')) return;
+    if (TEXT_LINE.test(t)) {
+      if (/^koniec\.?$/i.test(t.replace(TEXT_LINE, '').trim())) {
+        passage = undefined; // „tekst: koniec” — dalsze zadania już nie dotyczą tekstu
+        return;
+      }
+      const p = parsePassage(t);
+      if (!p) errors.push({ line: i + 1, text: t, message: 'Tekst do czytania zapisz tak: tekst: Tytuł >> treść tekstu' });
+      else passage = p;
+      return;
+    }
     const { ex, error } = parseLine(t, i + 1, idPrefix);
     if (error) errors.push(error);
+    if (ex && passage) {
+      // To samo pytanie przy innym tekście to inne zadanie.
+      ex.passage = passage;
+      ex.id = hashId(`${ex.id}|${passage.title}`);
+    }
     if (ex) {
       if (seen.has(ex.id)) {
         errors.push({ line: i + 1, text: t, message: 'To zadanie już jest w temacie (duplikat).' });
@@ -292,4 +328,7 @@ kliknij: Kliknij wszystkie czasowniki. >> Kasia *śpiewa* i *tańczy*.
 sortuj: Posegreguj słowa. >> rzeczownik = kot, dom ; czasownik = biega, pisze
 wpisz: Uzupełnij. >> Wczoraj Ola [czytała|przeczytała] książkę.
 pary: Połącz osobę z czasownikiem. >> ja = piszę ; ty = piszesz ; oni = piszą
-dyktando: Posłuchaj i wpisz brakujący wyraz. >> Latem jedziemy nad [morze].`;
+dyktando: Posłuchaj i wpisz brakujący wyraz. >> Latem jedziemy nad [morze].
+# Czytanie ze zrozumieniem: tekst, a pod nim pytania do niego
+tekst: Jeż w ogrodzie >> Wieczorem Zosia zobaczyła w ogrodzie jeża. Szukał jedzenia pod krzakiem.
+wybierz: Kogo Zosia zobaczyła w ogrodzie? | *jeża | kota | psa`;

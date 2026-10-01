@@ -12,6 +12,7 @@ import { Practice } from './ui/Practice';
 import { Rewards } from './ui/Rewards';
 import { Pairs } from './ui/Pairs';
 import { Sprint } from './ui/Sprint';
+import { TimesTable } from './ui/TimesTable';
 import { Summary } from './ui/Summary';
 import { ThemePicker } from './ui/ThemePicker';
 import { TopicSheet } from './ui/TopicSheet';
@@ -118,6 +119,7 @@ export function App() {
         {screen.name === 'practice' && <Practice key={screen.nonce} run={screen.run} />}
         {screen.name === 'sprint' && <Sprint key={screen.nonce} game={screen.game} />}
         {screen.name === 'pairs' && <Pairs key={screen.nonce} game={screen.game} />}
+        {screen.name === 'times' && <TimesTable />}
         {screen.name === 'summary' && <Summary result={screen.result} />}
         {screen.name === 'rewards' && <Rewards />}
         {screen.name === 'parent' && <ParentGate onExit={() => go({ name: 'home' })} />}

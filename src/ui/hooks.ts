@@ -43,7 +43,7 @@ export type Run =
   | { kind: 'review' }
   | { kind: 'test'; topicIds: string[]; title: string; subjectId: string; count: number }
   | { kind: 'diagnostic'; subjectId: string }
-  | { kind: 'gen'; genId: string }
+  | { kind: 'gen'; genId: string; facts?: [number, number][] }
   | { kind: 'fix'; items: { topicId: string; exerciseId: string }[]; subjectId: string | null };
 
 /** Błyskawica: 60 sekund z generatora (matematyka) albo szybkie pytania z tematów przedmiotu. */
@@ -55,12 +55,19 @@ export type Screen =
   | { name: 'practice'; run: Run; nonce: number }
   | { name: 'sprint'; game: SprintGame; nonce: number }
   | { name: 'pairs'; game: SprintGame; nonce: number }
+  | { name: 'times' }
   | { name: 'summary'; result: SessionResult }
   | { name: 'rewards' }
   | { name: 'parent' };
 
 export const practice = (run: Run): Screen => ({ name: 'practice', run, nonce: Date.now() });
 export const isExamRun = (run: Run) => run.kind === 'test' || run.kind === 'diagnostic';
+
+/** Dokąd wrócić po ćwiczeniu. */
+export function backScreen(run: Run, subjectId: string | null): Screen {
+  if (run.kind === 'gen' && run.facts?.length) return { name: 'times' };
+  return subjectId ? { name: 'subject', subjectId } : { name: 'home' };
+}
 
 export interface ExamMistake {
   topicId: string;

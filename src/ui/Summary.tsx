@@ -4,7 +4,7 @@ import { GRADE_NAMES, GRADE_SCALE, WEEK_BONUS } from '../engine';
 import { coinText } from '../themes';
 import { LevelChip } from './bits';
 import { withFractions } from './exercises/Exercises';
-import { practice, useApp, type SessionResult } from './hooks';
+import { backScreen, practice, useApp, type SessionResult } from './hooks';
 import { Icon, Stars } from './icons';
 
 const COLORS = ['#E0512E', '#F2B705', '#2A7F45', '#1F6FA8', '#8A4FD1', '#FF5C8A', '#A6E35A'];
@@ -47,7 +47,7 @@ export function Summary({ result }: { result: SessionResult }) {
   const acc = result.firstTotal ? result.firstCorrect / result.firstTotal : 0;
   const run = result.run;
   const exam = result.exam;
-  const back = () => (result.subjectId ? go({ name: 'subject', subjectId: result.subjectId }) : go({ name: 'home' }));
+  const back = () => go(backScreen(result.run, result.subjectId));
   const mins = Math.floor(result.seconds / 60);
   const secs = result.seconds % 60;
   const celebrate = acc >= 0.7 || !!result.milestone || result.weekDone;
@@ -241,7 +241,7 @@ export function Summary({ result }: { result: SessionResult }) {
           </button>
         )}
         <button className="btn btn-primary btn-lg" onClick={back}>
-          {result.subjectId ? 'Wróć do tematów' : 'Wróć na start'}
+          {run.kind === 'gen' && run.facts?.length ? 'Wróć do tabliczki' : result.subjectId ? 'Wróć do tematów' : 'Wróć na start'}
         </button>
       </div>
     </div>

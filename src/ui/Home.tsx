@@ -6,7 +6,9 @@ import {
   addDays,
   dateKey,
   daysUntil,
+  factsSummary,
   familyGoalProgress,
+  mistakesToFix,
   planActive,
   reviewCount,
   suggestTopic,
@@ -21,6 +23,7 @@ import { LevelChip, LevelSteps, Modal } from './bits';
 import { practice, useApp, useProgress } from './hooks';
 import { Icon, Stars } from './icons';
 import { canPlayPairs, fmtTime } from './Pairs';
+import { TimesGrid, useTimesMap } from './TimesTable';
 import { quizPool } from './Sprint';
 import { TopBar } from './TopBar';
 
@@ -52,6 +55,8 @@ export function Home() {
   const topics = store.topicsFor(profile.id);
   const subjects = SUBJECTS.filter((s) => topics.some((t) => t.subject === s.id));
   const reviewN = reviewCount(topics, progress);
+  const mistakes = mistakesToFix({ profileId: profile.id, attempts: store.list('attempt'), topics, now: Date.now(), since: profile.resetAt });
+  const grade = gradeOf(profile);
 
   return (
     <>
@@ -112,12 +117,31 @@ export function Home() {
               <Icon name="repeat" />
               Powtórz
             </button>
+            <div className="mistakes-box">
+              <b>Moje błędy</b>
+              <span className="muted" style={{ fontWeight: 700, fontSize: 15 }}>
+                {mistakes.length > 0
+                  ? `${mistakes.length} ${plural(mistakes.length, ['zadanie', 'zadania', 'zadań'])} z ostatnich 2 tygodni ${plural(mistakes.length, ['czeka', 'czekają', 'czeka'])} na poprawę.`
+                  : 'Brak błędów do poprawy — super!'}
+              </span>
+              {mistakes.length > 0 && (
+                <button
+                  className="btn btn-block"
+                  onClick={() =>
+                    go(practice({ kind: 'fix', items: mistakes.slice(0, store.settings.sessionLength).map(({ topicId, exerciseId }) => ({ topicId, exerciseId })), subjectId: null }))
+                  }
+                >
+                  <Icon name="pencil" /> Popraw moje błędy ({Math.min(mistakes.length, store.settings.sessionLength)})
+                </button>
+              )}
+            </div>
           </section>
           <DailyCard progress={progress} theme={theme} />
           <MiniGamesCard progress={progress} />
         </div>
 
         <div className="start-row">
+          {grade >= 2 && grade <= 4 && <TimesCard />}
           <WeekCard progress={progress} theme={theme} />
           <FamilyCard />
           <DiagnosticCard progress={progress} topics={topics} />
@@ -190,6 +214,28 @@ function PlanCard({ progress }: { progress: Progress }) {
 }
 
 // ─── Karty na dole ekranu startowego ─────────────────────────────────────────
+
+function TimesCard() {
+  const { profile, go } = useApp();
+  const map = useTimesMap(profile.id);
+  const sum = factsSummary(map);
+  return (
+    <section className="card col" style={{ gap: 12 }}>
+      <h2 className="card-title" style={{ margin: 0 }}>
+        Tabliczka mnożenia
+      </h2>
+      <button className="times-mini-btn" onClick={() => go({ name: 'times' })} aria-label="Otwórz mapę tabliczki mnożenia">
+        <TimesGrid map={map} mini />
+      </button>
+      <p style={{ fontWeight: 700 }}>
+        Umiesz na pamięć {sum.label(sum.known)} z {sum.total}.{sum.weak > 0 ? ` Do poprawy: ${sum.weak}.` : ''}
+      </p>
+      <button className="btn btn-primary btn-block" onClick={() => go({ name: 'times' })}>
+        <Icon name="target" /> Zobacz mapę i ćwicz
+      </button>
+    </section>
+  );
+}
 
 function MiniGamesCard({ progress }: { progress: Progress }) {
   const { profile, go } = useApp();
@@ -516,6 +562,15 @@ function Challenges({ subjectId, topics, progress, planIds }: { subjectId: strin
             <small>
               Sprawdź, co już umiesz ({Math.min(untouched, 8) * 3} {plural(Math.min(untouched, 8) * 3, ['pytanie', 'pytania', 'pytań'])})
             </small>
+          </span>
+        </button>
+      )}
+      {gens.some((g) => g.id === 'mul') && (
+        <button className="challenge" onClick={() => go({ name: 'times' })}>
+          <Icon name="target" size={28} />
+          <span>
+            <b>Mapa tabliczki mnożenia</b>
+            <small>Zobacz, które działania już umiesz</small>
           </span>
         </button>
       )}

@@ -734,6 +734,7 @@ export function shuffle<T>(arr: T[], rnd: () => number = Math.random): T[] {
 }
 
 export function buildTopicQueue(topic: ParsedTopic, progress: Progress, n: number, now: number, rnd: () => number = Math.random): QueueItem[] {
+  if (topic.exercises.some((e) => e.passage)) return buildReadingQueue(topic, progress, n, now);
   const due: { ex: Exercise; st: ItemState }[] = [];
   const fresh: Exercise[] = [];
   const rest: { ex: Exercise; st: ItemState }[] = [];
@@ -753,6 +754,32 @@ export function buildTopicQueue(topic: ParsedTopic, progress: Progress, n: numbe
   if (picked.length < n) picked.push(...due.slice(dueQuota, dueQuota + (n - picked.length)).map((d) => d.ex));
   if (picked.length < n) picked.push(...rest.slice(0, n - picked.length).map((d) => d.ex));
   return shuffle(picked, rnd).map((ex) => ({ topicId: topic.id, ex }));
+}
+
+/**
+ * Czytanie ze zrozumieniem: całe teksty z ich pytaniami (w kolejności z tekstu). Najpierw teksty
+ * z nowymi albo zaległymi pytaniami. Drugi tekst dokładamy tylko, gdy pierwszy ma mało pytań.
+ */
+export function buildReadingQueue(topic: ParsedTopic, progress: Progress, n: number, now: number): QueueItem[] {
+  const groups: { key: string; exs: Exercise[]; score: number; last: number }[] = [];
+  for (const ex of topic.exercises) {
+    const key = ex.passage?.title ?? '';
+    let g = groups.find((x) => x.key === key);
+    if (!g) groups.push((g = { key, exs: [], score: 0, last: 0 }));
+    g.exs.push(ex);
+    const st = progress.items.get(itemKey(topic.id, ex.id));
+    if (!st || st.virtual) g.score += 2;
+    else if (st.due <= now) g.score += 1;
+    else g.last = Math.max(g.last, st.last);
+  }
+  const order = groups.map((g, i) => ({ g, i })).sort((a, b) => b.g.score - a.g.score || a.g.last - b.g.last || a.i - b.i);
+  const out: QueueItem[] = [];
+  for (const { g } of order) {
+    // Kolejny tekst tylko wtedy, gdy poprzedni miał mało pytań (lekcja nie może być za długa).
+    if (out.length >= Math.ceil(n * 0.6)) break;
+    out.push(...g.exs.map((ex) => ({ topicId: topic.id, ex })));
+  }
+  return out;
 }
 
 export function buildReviewQueue(topics: ParsedTopic[], progress: Progress, n: number, now: number, rnd: () => number = Math.random): QueueItem[] {
@@ -834,4 +861,133 @@ export function planActive(plan: { until?: string } | null | undefined, now: num
 /** Ile dni do terminu (0 = dziś). */
 export function daysUntil(dk: string, now: number): number {
   return Math.round((noonOf(dk) - noonOf(dateKey(now))) / 86_400_000);
+}
+
+// ─── Moje błędy ──────────────────────────────────────────────────────────────
+
+export interface MistakeItem {
+  topicId: string;
+  exerciseId: string;
+  at: number;
+}
+
+/**
+ * Zadania z błędną odpowiedzią z ostatnich dni, których dziecko jeszcze nie poprawiło
+ * (poprawione = dobra odpowiedź w późniejszej sesji). Najnowsze najpierw.
+ */
+export function mistakesToFix(input: { profileId: string; attempts: Attempt[]; topics: ParsedTopic[]; now: number; since?: string; days?: number }): MistakeItem[] {
+  const from = new Date(input.now - (input.days ?? 14) * 86_400_000).toISOString();
+  const cutoff = input.since && input.since > from ? input.since : from;
+  const valid = new Set<string>();
+  for (const t of input.topics) for (const ex of t.exercises) valid.add(itemKey(t.id, ex.id));
+  const state = new Map<string, { at: number; session: string; fixed: boolean; topicId: string; exerciseId: string }>();
+  const list = input.attempts.filter((a) => a.profileId === input.profileId && a.at >= cutoff && !a.retry).sort(byAt);
+  for (const a of list) {
+    const key = itemKey(a.topicId, a.exerciseId);
+    if (!valid.has(key)) continue;
+    if (!a.correct) state.set(key, { at: Date.parse(a.at), session: a.sessionId, fixed: false, topicId: a.topicId, exerciseId: a.exerciseId });
+    else {
+      const s = state.get(key);
+      if (s && s.session !== a.sessionId) s.fixed = true;
+    }
+  }
+  return [...state.values()]
+    .filter((s) => !s.fixed)
+    .sort((a, b) => b.at - a.at)
+    .map(({ topicId, exerciseId, at }) => ({ topicId, exerciseId, at }));
+}
+
+// ─── Tabliczka mnożenia ──────────────────────────────────────────────────────
+
+export type FactStatus = 'none' | 'weak' | 'learning' | 'known';
+
+export interface FactState {
+  a: number;
+  b: number;
+  right: number;
+  wrong: number;
+  status: FactStatus;
+}
+
+/** Odpowiedź „umiem” = dobra i szybka (tabliczkę trzeba znać na pamięć, nie liczyć). */
+export const FACT_FAST_MS = 6000;
+
+/** Zadanie „a · b = [wynik]” z tabliczki mnożenia (a, b od 1 do 10) → [a, b]. */
+export function factOf(ex: Exercise): [number, number] | null {
+  if (ex.type !== 'fill') return null;
+  if (ex.parts.filter((p) => Array.isArray(p)).length !== 1 || !Array.isArray(ex.parts[ex.parts.length - 1])) return null;
+  const text = ex.parts.filter((p): p is string => typeof p === 'string').join('');
+  const m = text.match(/^\s*(\d+)\s*·\s*(\d+)\s*=\s*$/);
+  if (!m) return null;
+  const a = Number(m[1]);
+  const b = Number(m[2]);
+  return a >= 1 && a <= 10 && b >= 1 && b <= 10 ? [a, b] : null;
+}
+
+export const factKey = (a: number, b: number) => `${Math.min(a, b)}x${Math.max(a, b)}`;
+
+/**
+ * Stan każdego działania z tabliczki (6 · 7 i 7 · 6 to to samo działanie) — z odpowiedzi
+ * w tematach, treningu bez końca i Błyskawicy. `sources` to zadania, które mogą zawierać
+ * działania z tabliczki (tematy + zadania generatora „mul”).
+ */
+export function multiplicationMap(input: { profileId: string; attempts: Attempt[]; sources: { topicId: string; ex: Exercise }[]; since?: string }): Map<string, FactState> {
+  const byId = new Map<string, [number, number]>();
+  for (const { topicId, ex } of input.sources) {
+    const f = factOf(ex);
+    if (f) byId.set(itemKey(topicId, ex.id), f);
+  }
+  const since = input.since ?? '';
+  const hist = new Map<string, { a: number; b: number; right: number; wrong: number; recent: { ok: boolean; ms: number }[] }>();
+  for (const a of input.attempts.filter((x) => x.profileId === input.profileId && x.at >= since).sort(byAt)) {
+    const f = byId.get(itemKey(a.topicId, a.exerciseId));
+    if (!f) continue;
+    const key = factKey(f[0], f[1]);
+    const h = hist.get(key) ?? { a: Math.min(...f), b: Math.max(...f), right: 0, wrong: 0, recent: [] };
+    if (a.correct) h.right++;
+    else h.wrong++;
+    h.recent = [...h.recent, { ok: a.correct, ms: a.ms }].slice(-3);
+    hist.set(key, h);
+  }
+  const out = new Map<string, FactState>();
+  for (let a = 1; a <= 10; a++) {
+    for (let b = a; b <= 10; b++) {
+      const h = hist.get(factKey(a, b));
+      let status: FactStatus = 'none';
+      if (h) {
+        const last = h.recent[h.recent.length - 1];
+        const last2 = h.recent.slice(-2);
+        if (!last.ok || h.wrong > h.right) status = 'weak';
+        else if (last2.length === 2 && last2.every((r) => r.ok && r.ms <= FACT_FAST_MS)) status = 'known';
+        else status = 'learning';
+      }
+      out.set(factKey(a, b), { a, b, right: h?.right ?? 0, wrong: h?.wrong ?? 0, status });
+    }
+  }
+  return out;
+}
+
+/** Działania do ćwiczenia: najpierw błędne, potem w trakcie nauki, potem nowe (bez mnożenia przez 1). */
+export function weakestFacts(map: Map<string, FactState>, n: number, rnd: () => number = Math.random): [number, number][] {
+  const rank: Record<FactStatus, number> = { weak: 0, learning: 1, none: 2, known: 3 };
+  const list = shuffle(
+    [...map.values()].filter((f) => f.a > 1),
+    rnd,
+  ).sort((x, y) => rank[x.status] - rank[y.status]);
+  return list.slice(0, n).map((f) => (rnd() < 0.5 ? [f.a, f.b] : [f.b, f.a]));
+}
+
+export function factsSummary(map: Map<string, FactState>) {
+  const vals = [...map.values()];
+  return {
+    total: vals.length,
+    known: vals.filter((f) => f.status === 'known').length,
+    learning: vals.filter((f) => f.status === 'learning').length,
+    weak: vals.filter((f) => f.status === 'weak').length,
+    label: (n: number) => pluralFacts(n),
+  };
+}
+
+function pluralFacts(n: number): string {
+  return `${n} ${plural(n, ['działanie', 'działania', 'działań'])}`;
 }

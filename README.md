@@ -20,13 +20,19 @@ można ją zainstalować na ekranie głównym i używać bez internetu. Postępy
   - klasa 5 — polski: przypadki, stopniowanie przymiotnika, ó/u, „nie” z częściami mowy, części mowy odmienne
     i nieodmienne, podmiot i orzeczenie; matematyka: ułamki (skracanie, dodawanie, odejmowanie), ułamki dziesiętne,
     pole i obwód, kolejność działań, cechy podzielności;
-  - dyktanda dla klasy 3 i 5 (ó, rz, ż, ch, h).
+  - dyktanda dla klasy 3 i 5 (ó, rz, ż, ch, h);
+  - czytanie ze zrozumieniem dla klasy 3 i 5 (teksty z pytaniami; tekst jest nad każdym pytaniem).
   Wyniki zadań matematycznych są liczone w kodzie, nie wpisywane ręcznie.
 - Poziomy tematów (Nowy → Próbowany → Znany → Biegły → Opanowany) — rosną i spadają razem z pamięcią dziecka;
   po ćwiczeniu ekran „Co się zmieniło”.
 - Sprawdzian z oceną 1–6 (bez podpowiedzi, z listą błędów i „Popraw błędy”), test na start, który od razu
   zalicza znane tematy, trening matematyki bez końca (zawsze nowe liczby) oraz mini-gry na ekranie startowym:
   Błyskawica (60 sekund na rekord) i Pary na czas (połącz 6 par jak najszybciej).
+- „Moje błędy”: jednym przyciskiem dziecko poprawia zadania, w których pomyliło się w ostatnich 2 tygodniach.
+- Mapa tabliczki mnożenia 10 × 10: zielone — umie na pamięć (dobrze i szybko), żółte — uczy się, czerwone — do poprawy;
+  przycisk „Ćwicz najsłabsze”.
+- Sprawdzian w szkole? Zdjęcie zakresu (albo opis) → AI dobiera pasujące tematy, układa brakujące zadania i ustawia
+  plan z terminem. Działa też bez klucza API, przez zwykły czat z Claude.
 - Plan od rodzica (tematy przypięte np. przed sprawdzianem w szkole, z terminem i sprawdzianem próbnym),
   cel tygodnia, zamrożenie serii, kamienie milowe serii, wspólny cel rodzeństwa.
 - Powtórki rozłożone w czasie: błędne zadania wracają na końcu ćwiczenia i w kolejnych dniach (1, 2, 4, 7, 14 dni).
@@ -123,7 +129,13 @@ wpisz: Odmień czasownik „pisać”. >> ja piszę, ty [piszesz], oni [piszą]
 wpisz: Zamień na czas przeszły. >> Wczoraj [rysowałem|rysowałam].
 pary: Połącz osobę z czasownikiem. >> ja = skaczę ; ty = skaczesz ; oni = skaczą
 dyktando: Posłuchaj i wpisz brakujący wyraz. >> Latem jedziemy nad [morze]. !! Morze — rz wymienia się na r: morski.
+tekst: Jeż w ogrodzie >> Wieczorem Zosia zobaczyła jeża. // Jeż szukał jedzenia pod krzakiem.
+wybierz: Gdzie jeż szukał jedzenia? | *pod krzakiem | pod drzewem | przy furtce
+tekst: koniec
 ```
+
+Linia `tekst:` wprowadza tekst do czytania ze zrozumieniem — zadania pod nią są pytaniami do tego tekstu
+(aż do następnej linii `tekst:` albo `tekst: koniec`). `//` dzieli tekst na akapity.
 
 - `*gwiazdka*` — dobra odpowiedź (w `wybierz` przed odpowiedzią, w `kliknij` wokół słowa).
 - `{nawias}` — wyróżnione słowo w zdaniu, `___` — luka do pokazania.

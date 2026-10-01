@@ -301,6 +301,10 @@ export function TopicEditor({ seed, onClose }: { seed: EditorSeed; onClose: () =
                 <b>dyktando:</b> polecenie &gt;&gt; zdanie z wyrazem do wpisania w [nawiasie] — aplikacja przeczyta zdanie na głos.
               </p>
               <p>
+                <b>tekst:</b> Tytuł &gt;&gt; treść tekstu (akapity oddziel <code>//</code>) — czytanie ze zrozumieniem. Zadania pod tą linią są pytaniami do
+                tekstu, aż do następnej linii <code>tekst:</code> albo <code>tekst: koniec</code>.
+              </p>
+              <p>
                 Na końcu każdej linii możesz dodać wyjaśnienie po <code>!!</code> — dziecko zobaczy je po odpowiedzi.
               </p>
               <pre style={{ whiteSpace: 'pre-wrap', fontSize: 12, marginTop: 8 }}>{DSL_HELP}</pre>
@@ -326,7 +330,10 @@ export function TopicEditor({ seed, onClose }: { seed: EditorSeed; onClose: () =
             ))}
             {parsed.exercises.map((ex) => (
               <div key={ex.id} className="dsl-item">
-                <span className="type">{TYPE_LABEL[ex.type]}</span>
+                <span className="type">
+                  {TYPE_LABEL[ex.type]}
+                  {ex.passage ? ` · tekst: ${ex.passage.title}` : ''}
+                </span>
                 <b>{ex.prompt}</b>
                 <span>{exerciseSummary(ex)}</span>
                 {ex.explain && <span className="muted">Wyjaśnienie: {ex.explain}</span>}

@@ -44,10 +44,13 @@ function addSub100(rnd: () => number): string {
   return `wpisz: Oblicz. >> ${a} − ${b} = [${a - b}] !! ${a} − ${tens} = ${a - tens}, potem ${a - tens} − ${b % 10} = ${a - b}.`;
 }
 
-function mulTable(rnd: () => number): string {
-  const a = int(rnd, 2, 10);
-  const b = int(rnd, 2, 10);
+/** Jedno działanie z tabliczki — ta sama linia daje ten sam identyfikator zadania (mapa tabliczki). */
+export function mulLine(a: number, b: number): string {
   return `wpisz: Oblicz. >> ${a} · ${b} = [${a * b}] !! ${a} · ${b} = ${a * b}.`;
+}
+
+function mulTable(rnd: () => number): string {
+  return mulLine(int(rnd, 2, 10), int(rnd, 2, 10));
 }
 
 function divTable(rnd: () => number): string {
@@ -108,6 +111,25 @@ export const GENERATORS: Generator[] = [
 ];
 
 export const genTopicId = (id: string) => `gen:${id}`;
+
+/** Wszystkie działania tabliczki 1–10 jako zadania generatora „mul” (do mapy tabliczki). */
+export function allMulExercises(): { topicId: string; ex: FillExercise }[] {
+  const out: { topicId: string; ex: FillExercise }[] = [];
+  for (let a = 1; a <= 10; a++)
+    for (let b = 1; b <= 10; b++) {
+      const { ex } = parseLine(mulLine(a, b), 1);
+      if (ex?.type === 'fill') out.push({ topicId: genTopicId('mul'), ex });
+    }
+  return out;
+}
+
+/** Zadania dla wybranych działań (ćwiczenie najsłabszych z mapy tabliczki). */
+export function factExercises(facts: [number, number][]): FillExercise[] {
+  return facts.flatMap(([a, b]) => {
+    const { ex } = parseLine(mulLine(a, b), 1);
+    return ex?.type === 'fill' ? [ex] : [];
+  });
+}
 
 export function generatorById(id: string): Generator | undefined {
   return GENERATORS.find((g) => g.id === id);

@@ -1,8 +1,20 @@
-import { anthropicBody, chatPrompt, DEFAULT_MODEL, parseAnthropicResponse, type AiRequest, type AiResult } from '../supabase/functions/ai/prompt.ts';
+import {
+  anthropicBody,
+  anthropicPlanBody,
+  chatPlanPrompt,
+  chatPrompt,
+  DEFAULT_MODEL,
+  parseAnthropicPlan,
+  parseAnthropicResponse,
+  type AiPlanRequest,
+  type AiPlanResult,
+  type AiRequest,
+  type AiResult,
+} from '../supabase/functions/ai/prompt.ts';
 import { store } from './data/store';
 
-export type { AiRequest, AiResult };
-export { chatPrompt };
+export type { AiPlanRequest, AiPlanResult, AiRequest, AiResult };
+export { chatPlanPrompt, chatPrompt };
 
 const KEY_STORAGE = 'ww-anthropic-key';
 
@@ -31,6 +43,22 @@ export function aiMode(): AiMode {
   return 'none';
 }
 
+async function callDirect(body: unknown): Promise<unknown> {
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'x-api-key': getLocalApiKey(),
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true',
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+  const json = await res.json().catch(() => null);
+  if (!res.ok) throw new Error(`Błąd API Claude (${res.status}): ${json?.error?.message ?? 'nieznany'}`);
+  return json;
+}
+
 export async function generateWithAi(req: AiRequest, pin: string): Promise<AiResult> {
   const mode = aiMode();
   if (mode === 'cloud') {
@@ -38,25 +66,23 @@ export async function generateWithAi(req: AiRequest, pin: string): Promise<AiRes
     if (data?.error) throw new Error(data.error);
     return data;
   }
-  if (mode === 'direct') {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key': getLocalApiKey(),
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true',
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify(anthropicBody(req, DEFAULT_MODEL)),
-    });
-    const json = await res.json().catch(() => null);
-    if (!res.ok) throw new Error(`Błąd API Claude (${res.status}): ${json?.error?.message ?? 'nieznany'}`);
-    return parseAnthropicResponse(json);
-  }
+  if (mode === 'direct') return parseAnthropicResponse(await callDirect(anthropicBody(req, DEFAULT_MODEL)));
   throw new Error('AI nie jest skonfigurowane.');
 }
 
-const TASK_LINE = /^(wybierz|kliknij|sortuj|wpisz|pary|dyktando)\s*:/i;
+/** Plan przygotowania do sprawdzianu ze zdjęcia zakresu. */
+export async function generatePlanWithAi(req: AiPlanRequest, pin: string): Promise<AiPlanResult> {
+  const mode = aiMode();
+  if (mode === 'cloud') {
+    const data = (await store.invokeAiFunction(req, pin)) as AiPlanResult & { error?: string };
+    if (data?.error) throw new Error(data.error);
+    return data;
+  }
+  if (mode === 'direct') return parseAnthropicPlan(await callDirect(anthropicPlanBody(req, DEFAULT_MODEL)), req.existing);
+  throw new Error('AI nie jest skonfigurowane.');
+}
+
+const TASK_LINE = /^(wybierz|kliknij|sortuj|wpisz|pary|dyktando|tekst)\s*:/i;
 
 /** Rozpoznaje odpowiedź wklejoną z czatu Claude (TYTUŁ/ZASADA/ŚCIĄGA + linie zadań). */
 export function parsePastedAnswer(text: string): AiResult {
@@ -71,11 +97,31 @@ export function parsePastedAnswer(text: string): AiResult {
     const first = all[start].replace(/^\**\s*[ŚS]CI[ĄA]GA\s*:?\**\s*/i, '');
     if (first) guide.push(first);
     for (const l of all.slice(start + 1)) {
-      if (l.startsWith('```') || TASK_LINE.test(l) || /^(TYTU[ŁL]|ZASADA)\s*:/i.test(l)) break;
+      if (l.startsWith('```') || TASK_LINE.test(l) || /^(TYTU[ŁL]|ZASADA|PLAN|ZAKRES|ISTNIEJ[ĄA]CE)\s*:/i.test(l)) break;
       if (l) guide.push(l);
     }
   }
   return { title, description, guide: guide.join('\n') || undefined, dsl: lines.join('\n') };
+}
+
+/** Rozpoznaje plan wklejony z czatu Claude (PLAN/ZAKRES/ISTNIEJĄCE + opcjonalnie nowy temat). */
+export function parsePastedPlan(text: string, existing: { id: string }[]): AiPlanResult {
+  const line = (re: RegExp) => text.match(re)?.[1]?.trim() ?? '';
+  const ids = new Set(existing.map((t) => t.id));
+  const listed = line(/^\s*ISTNIEJ[ĄA]CE\s*:\s*(.+)$/im);
+  const topic = parsePastedAnswer(text);
+  const noTopic = !topic.dsl || /^brak/i.test(topic.title);
+  return {
+    planTitle: line(/^\s*PLAN\s*:\s*(.+)$/im) || 'Sprawdzian',
+    scope: line(/^\s*ZAKRES\s*:\s*(.+)$/im),
+    existingTopicIds: /^brak/i.test(listed)
+      ? []
+      : listed
+          .split(/[,;\s]+/)
+          .map((x) => x.trim())
+          .filter((x) => ids.has(x)),
+    topic: noTopic ? null : { ...topic, title: topic.title || 'Nowy temat' },
+  };
 }
 
 /** Zmniejsza zdjęcie (dłuższy bok ≤ 1600 px) i zwraca JPEG w base64. */

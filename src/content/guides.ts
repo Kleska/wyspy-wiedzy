@@ -140,6 +140,18 @@ Najpierw znajdź orzeczenie, potem zapytaj o podmiot.
 Przykład: Mama czyta gazetę. Co robi? Czyta — orzeczenie. Kto czyta? Mama — podmiot.
 Podmiot nie zawsze stoi na początku zdania: Na drzewie siedzi wiewiórka.`,
 
+  'b-czytanie-3': `Najpierw uważnie przeczytaj cały tekst. Możesz go też odsłuchać.
+Potem przeczytaj pytanie i poszukaj odpowiedzi w tekście.
+Odpowiedzi na pytania „kto?”, „gdzie?”, „kiedy?” są w tekście — znajdź właściwe zdanie.
+Prawda czy fałsz? Porównaj zdanie z tym, co jest napisane w tekście.
+Tekst jest nad pytaniem — możesz do niego wracać, ile razy chcesz.`,
+
+  'b-p5-czytanie': `Przeczytaj cały tekst, zanim zaczniesz odpowiadać.
+Szczegóły (kto, gdzie, kiedy, ile) znajdziesz w tekście — wróć do właściwego akapitu.
+Główna myśl to najważniejsza informacja całego tekstu, a nie jeden szczegół.
+Tekst informacyjny podaje wiadomości (fakty, liczby, daty). Opowiadanie przedstawia wydarzenia z udziałem bohaterów.
+Pytanie „czego uczy tekst?” dotyczy przesłania — pomyśl, co zrozumiał bohater.`,
+
   'b-dyktando-3': `Słuchaj uważnie całego zdania, potem wpisz brakujący wyraz.
 Ó: gdy wymienia się na o (król – królowa, miód – miodu, mrówka – mrowisko). Czasem trzeba zapamiętać: ogórek, góra.
 Rz: gdy wymienia się na r (morze – morski) i po literach b, p, d, t, g, k, ch, j, w (drzewo, krzesło). Są wyjątki, np. pszczoła, wszystko.

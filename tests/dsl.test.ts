@@ -58,7 +58,8 @@ describe('format tekstowy', () => {
     for (const t of BUILTIN_TOPICS) {
       for (const ex of parseDsl(t.dsl).exercises) {
         const again = parseLine(exerciseToDsl(ex), 1).ex as Exercise;
-        expect(again).toEqual(ex);
+        // Pytania do tekstu dostają tekst (i identyfikator) z linii „tekst:” nad nimi.
+        expect(ex.passage ? { ...again, id: ex.id, passage: ex.passage } : again).toEqual(ex);
       }
     }
   });
@@ -219,3 +220,49 @@ describe('dyktando, ściągi i generatory', () => {
 function gcdT(a: number, b: number): number {
   return b ? gcdT(b, a % b) : a;
 }
+
+describe('teksty do czytania i plan ze zdjęcia', () => {
+  it('linia „tekst:” dołącza tekst do pytań pod nią; to samo pytanie przy innym tekście to inne zadanie', () => {
+    const dsl = [
+      'tekst: Pierwszy >> Ala ma kota. // Kot jest czarny.',
+      'wybierz: Kto ma kota? | *Ala | Ola',
+      'tekst: Drugi >> Ola ma psa.',
+      'wybierz: Kto ma kota? | *Ala | Ola',
+      'tekst: koniec',
+      'wybierz: Które słowo jest czasownikiem? | *biega | kot',
+      'tekst: bez treści',
+    ].join('\n');
+    const { exercises, errors } = parseDsl(dsl);
+    expect(exercises).toHaveLength(3);
+    expect(exercises[0].passage?.title).toBe('Pierwszy');
+    expect(exercises[1].passage?.title).toBe('Drugi');
+    expect(exercises[0].id).not.toBe(exercises[1].id);
+    expect(exercises[2].passage).toBeUndefined();
+    expect(errors.map((e) => e.line)).toEqual([7]);
+  });
+
+  it('wklejony plan: pasujące tematy i nowy temat', async () => {
+    const { parsePastedPlan } = await import('../src/ai');
+    const existing = [{ id: 'b-rzeczownik' }, { id: 'b-czasownik' }];
+    const r = parsePastedPlan(
+      'PLAN: Sprawdzian: części mowy\nZAKRES: rzeczownik, czasownik, przysłówek\nISTNIEJĄCE: b-rzeczownik, b-czasownik, b-zmyslony\nTYTUŁ: Przysłówek\nZASADA: Jak?\n```\nwybierz: Które słowo jest przysłówkiem? | *szybko | szybki\n```',
+      existing,
+    );
+    expect(r.planTitle).toBe('Sprawdzian: części mowy');
+    expect(r.existingTopicIds).toEqual(['b-rzeczownik', 'b-czasownik']);
+    expect(r.topic?.title).toBe('Przysłówek');
+    const none = parsePastedPlan('PLAN: X\nISTNIEJĄCE: b-czasownik\nTYTUŁ: brak', existing);
+    expect(none.topic).toBeNull();
+  });
+
+  it('plan przez API: tylko id z listy', async () => {
+    const { parseAnthropicPlan, planUserText } = await import('../supabase/functions/ai/prompt');
+    expect(planUserText({ mode: 'plan', request: '', subject: 'Polski', grade: 3, existing: [{ id: 'b-rzeczownik', title: 'Rzeczownik' }] })).toContain('b-rzeczownik: Rzeczownik');
+    const r = parseAnthropicPlan(
+      { content: [{ type: 'tool_use', name: 'zapisz_plan', input: { planTitle: 'P', scope: 'S', existingTopicIds: ['b-rzeczownik', 'nie-ma'] } }] },
+      [{ id: 'b-rzeczownik' }],
+    );
+    expect(r.existingTopicIds).toEqual(['b-rzeczownik']);
+    expect(r.topic).toBeNull();
+  });
+});

@@ -4163,3 +4163,209 @@ p {
     animation: none;
   }
 }
+
+/* ───────────────────────── Moje błędy ───────────────────────── */
+
+.mistakes-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 12px;
+  margin-top: 4px;
+  border-top: 2px dashed var(--line);
+}
+
+/* ───────────────────────── Mapa tabliczki mnożenia ───────────────────────── */
+
+.times-page {
+  max-width: 720px;
+}
+
+.times-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.times-grid {
+  display: grid;
+  grid-template-columns: repeat(11, minmax(0, 1fr));
+  gap: 4px;
+  width: 100%;
+}
+
+.tg-row {
+  display: contents;
+}
+
+.tg-head,
+.tg-corner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(13px, 2.4vw, 18px);
+  color: var(--muted);
+  aspect-ratio: 1;
+}
+
+.tg-cell {
+  aspect-ratio: 1;
+  border-radius: 8px;
+  border: 2px solid transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(12px, 2.2vw, 17px);
+  padding: 0;
+  color: var(--text);
+  background: var(--surface-2);
+}
+
+.tg-cell.known {
+  background: #2f9e5b;
+  color: #fff;
+}
+
+.tg-cell.learning {
+  background: #f6cf55;
+  color: #4a3500;
+}
+
+.tg-cell.weak {
+  background: #e4572e;
+  color: #fff;
+}
+
+.tg-cell.picked {
+  border-color: var(--text);
+  transform: scale(1.08);
+}
+
+[data-theme='pixel'] .tg-cell {
+  border-radius: 0;
+}
+
+.times-grid.mini {
+  gap: 2px;
+  max-width: 260px;
+}
+
+.times-grid.mini .tg-head,
+.times-grid.mini .tg-corner {
+  font-size: 9px;
+}
+
+.times-grid.mini .tg-cell {
+  border-radius: 3px;
+  border: 0;
+}
+
+.times-mini-btn {
+  display: block;
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: left;
+}
+
+.tg-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.tg-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tg-legend i {
+  width: 18px;
+  height: 18px;
+  aspect-ratio: auto;
+  border-radius: 5px;
+  display: inline-block;
+}
+
+.tg-info {
+  font-weight: 700;
+  font-size: 16px;
+}
+
+/* ───────────────────────── Czytanie ze zrozumieniem ───────────────────────── */
+
+.passage {
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+  border: 2px solid var(--line);
+  padding: 12px 16px;
+}
+
+.passage summary {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 800;
+  list-style: none;
+}
+
+.passage summary::-webkit-details-marker {
+  display: none;
+}
+
+.passage-title {
+  font-family: var(--font-display);
+  font-size: 20px;
+}
+
+.passage[open] .passage-toggle {
+  display: none;
+}
+
+.passage-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.passage-body p {
+  font-size: clamp(18px, 2.2vw, 21px);
+  line-height: 1.6;
+  font-weight: 600;
+}
+
+.passage-body .btn {
+  align-self: flex-start;
+}
+
+[data-theme='pixel'] .passage {
+  border-radius: 0;
+  border: 3px solid #0a0d1a;
+}
+
+.new-topic-box {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  border: 2px dashed var(--line);
+  border-radius: 12px;
+}
+
+.new-topic-list {
+  margin: 0;
+  padding-left: 22px;
+  font-size: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}

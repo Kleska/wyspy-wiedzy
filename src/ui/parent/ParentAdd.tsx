@@ -18,6 +18,7 @@ export function ParentAdd({ pin, onResult }: { pin: string; onResult: (s: Editor
   const [grade, setGrade] = useState(() => store.profiles()[0]?.grade ?? 3);
   const [count, setCount] = useState(12);
   const [types, setTypes] = useState<ExerciseType[]>([]);
+  const [reading, setReading] = useState(false);
   const [request, setRequest] = useState('');
   const [photos, setPhotos] = useState<{ mediaType: string; data: string; preview: string }[]>([]);
   const [busy, setBusy] = useState(false);
@@ -34,6 +35,7 @@ export function ParentAdd({ pin, onResult }: { pin: string; onResult: (s: Editor
     grade,
     count,
     types: types.map((t) => TYPE_WORD[t]),
+    reading,
     images: mode === 'photo' ? photos.map(({ mediaType, data }) => ({ mediaType, data })) : undefined,
   });
 
@@ -152,6 +154,9 @@ export function ParentAdd({ pin, onResult }: { pin: string; onResult: (s: Editor
                 {TYPE_LABEL[t]}
               </label>
             ))}
+            <label className="pill" style={{ padding: '8px 12px', cursor: 'pointer' }}>
+              <input type="checkbox" checked={reading} onChange={(e) => setReading(e.target.checked)} /> Czytanie ze zrozumieniem (tekst + pytania)
+            </label>
           </div>
         </fieldset>
 

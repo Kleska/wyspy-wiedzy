@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { generateExercises, generatorById, genTopicId } from '../content/generators';
+import { factExercises, generateExercises, generatorById, genTopicId } from '../content/generators';
 import { subjectOf } from '../content/seed';
 import { nowIso, store, uid } from '../data/store';
 import { dictationText, speakableSentence } from '../dsl';
@@ -18,11 +18,11 @@ import {
 } from '../engine';
 import { playSound, speak, stopSpeaking } from '../speech';
 import type { Attempt, Exercise, ParsedTopic, Session } from '../types';
-import { GuideModal } from './bits';
+import { GuideModal, PassageCard } from './bits';
 import { askConfirm } from './dialogs';
 import { ExerciseView } from './exercises/Exercises';
 import { answerText, correctText, exerciseSummary, initialAnswer, isCorrect, isReady, type Answer } from './exercises/logic';
-import { isExamRun, useApp, type Run, type SessionResult } from './hooks';
+import { backScreen, isExamRun, useApp, type Run, type SessionResult } from './hooks';
 import { Icon } from './icons';
 
 type Item = QueueItem & { retry?: boolean };
@@ -65,6 +65,7 @@ function buildQueue(run: Run, topics: ParsedTopic[], before: Progress, n: number
         before,
       );
     case 'gen': {
+      if (run.facts?.length) return factExercises(run.facts).map((ex) => ({ topicId: genTopicId('mul'), ex }));
       const g = generatorById(run.genId);
       return g ? generateExercises(g, n).map((ex) => ({ topicId: genTopicId(g.id), ex })) : [];
     }
@@ -87,7 +88,7 @@ export function runTitle(run: Run, topics: ParsedTopic[]): string {
     case 'diagnostic':
       return `Test na start: ${subjectOf(run.subjectId).name}`;
     case 'gen':
-      return generatorById(run.genId)?.title ?? 'Trening';
+      return run.facts?.length ? 'Tabliczka: najsłabsze działania' : generatorById(run.genId)?.title ?? 'Trening';
     case 'fix':
       return 'Poprawa błędów';
   }
@@ -160,6 +161,16 @@ export function Practice({ run }: { run: Run }) {
   const mainCount = useRef(queue.length).current;
   const retryStats = useRef({ total: 0, correct: 0 });
   const examLog = useRef<{ item: Item; correct: boolean; given: string }[]>([]);
+  // Tekst do czytania jest rozwinięty przy pierwszym pytaniu do niego (potem można go rozwinąć).
+  const firstOfPassage = useMemo(() => {
+    const seen = new Set<string>();
+    return queue.map((q) => {
+      const t = q.ex.passage?.title;
+      if (!t || seen.has(t)) return false;
+      seen.add(t);
+      return true;
+    });
+  }, [queue]);
   const feedbackAt = useRef(0);
   const [retryQueued, setRetryQueued] = useState(false);
 
@@ -365,7 +376,7 @@ export function Practice({ run }: { run: Run }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [phase, next, check, guideOpen]);
 
-  const back = () => go(subjectId ? { name: 'subject', subjectId } : { name: 'home' });
+  const back = () => go(backScreen(run, subjectId));
 
   const exit = async () => {
     const msg = exam ? 'Przerwać? Niedokończony sprawdzian nie dostanie oceny.' : 'Skończyć teraz? To, co już zrobione, zostanie zapisane.';
@@ -421,6 +432,7 @@ export function Practice({ run }: { run: Run }) {
       </div>
 
       <div className="pr-body">
+        {ex.passage && <PassageCard key={`p${idx}`} passage={ex.passage} defaultOpen={firstOfPassage[idx] || exam} />}
         <div>
           <div className="pr-topic">
             {exam ? `${title} · ` : ''}
