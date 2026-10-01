@@ -112,6 +112,7 @@ function runSubject(run: Run, topics: ParsedTopic[]): string | null {
 /** Treść pytania w jednej linii (do listy błędów po sprawdzianie). */
 function questionText(ex: Exercise): string {
   if (ex.type === 'dictation') return ex.parts.map((p) => (Array.isArray(p) ? '___' : p)).join('');
+  if (ex.type === 'match') return ex.pairs.map((p) => p[0]).join(', ');
   return exerciseSummary(ex);
 }
 

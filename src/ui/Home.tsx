@@ -256,7 +256,7 @@ function FamilyCard() {
         ))}
       </div>
       <p className="muted" style={{ fontWeight: 700, fontSize: 14 }}>
-        {fp.done ? 'Udało się! Powiedzcie rodzicowi, że cel jest zdobyty.' : 'Każda dobra odpowiedź każdej osoby przybliża Was do celu.'}
+        {fp.done ? 'Udało się! Powiedzcie rodzicowi, że cel jest osiągnięty.' : 'Każda dobra odpowiedź — Twoja czy rodzeństwa — przybliża Was do celu.'}
       </p>
     </section>
   );
@@ -277,7 +277,7 @@ function DiagnosticCard({ progress, topics }: { progress: Progress; topics: Pars
       <p style={{ fontWeight: 700 }}>Sprawdź, co już umiesz. Tematy, które dobrze znasz, od razu dostaną poziom „Biegły” — nie trzeba ich ćwiczyć od zera.</p>
       {options.map(({ s, n }) => (
         <button key={s.id} className="btn btn-block" onClick={() => go(practice({ kind: 'diagnostic', subjectId: s.id }))}>
-          {s.name} · {Math.min(n, 8) * 3} pytań
+          {s.name} · {Math.min(n, 8) * 3} {plural(Math.min(n, 8) * 3, ['pytanie', 'pytania', 'pytań'])}
         </button>
       ))}
     </section>
@@ -354,7 +354,7 @@ export function SubjectScreen({ subjectId }: { subjectId: string }) {
                       <div className="t-meta">
                         <LevelChip level={s?.level ?? 0} small />
                         {s?.dueCount ? ` · ${s.dueCount} do powtórki` : ''}
-                        {s?.newCount ? ` · ${s.newCount} nowych` : ''}
+                        {s?.newCount ? ` · ${s.newCount} ${plural(s.newCount, ['nowe', 'nowe', 'nowych'])}` : ''}
                       </div>
                     </div>
                     <span className="bar ink" style={{ height: 8 }}>
@@ -386,7 +386,7 @@ export function SubjectScreen({ subjectId }: { subjectId: string }) {
           <div style={{ flex: 1, minWidth: 0 }}>
             <h1>{theme.layout === 'map' ? subject.island : theme.layout === 'grid' ? `ŚWIAT: ${subject.name.toUpperCase()}` : subject.name}</h1>
             <div className="subject-meta">
-              {pct(st.mastery)} opanowane · {st.stars} / {st.maxStars} gwiazdek
+              {pct(st.mastery)} opanowane · {st.stars} z {st.maxStars} gwiazdek
             </div>
           </div>
         </header>
@@ -442,7 +442,9 @@ function Challenges({ subjectId, topics, progress, planIds }: { subjectId: strin
           <Icon name="compass" size={28} />
           <span>
             <b>Test na start</b>
-            <small>Sprawdź, co już umiesz ({Math.min(untouched, 8) * 3} pytań)</small>
+            <small>
+              Sprawdź, co już umiesz ({Math.min(untouched, 8) * 3} {plural(Math.min(untouched, 8) * 3, ['pytanie', 'pytania', 'pytań'])})
+            </small>
           </span>
         </button>
       )}
@@ -568,7 +570,7 @@ function MapBoard({ topics, progress, nextId, onOpen, theme }: { topics: ParsedT
                       {theme.start}
                     </span>
                   )}
-                  <button className={`node-btn ${ns}`} onClick={() => onOpen(t.id)} aria-label={`${t.title}, ${s?.stars ?? 0} gwiazdek`}>
+                  <button className={`node-btn ${ns}`} onClick={() => onOpen(t.id)} aria-label={`${t.title}, ${s?.stars ?? 0} ${plural(s?.stars ?? 0, ['gwiazdka', 'gwiazdki', 'gwiazdek'])}`}>
                     {ns === 'next' ? (
                       <Icon name="star" size={40} fill="currentColor" stroke={1.4} />
                     ) : ns === 'done' ? (

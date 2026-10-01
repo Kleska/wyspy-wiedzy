@@ -10,21 +10,30 @@ można ją zainstalować na ekranie głównym i używać bez internetu. Postępy
 - Start od wyboru przedmiotu (Język polski, Matematyka), potem plansza z tematami dla klasy dziecka.
 
 - 4 wyglądy do przełączania przez dziecko: *Wyspy Wiedzy* (domyślny), *Akademia Pilotów*, *Pixel Quest*, *Zeszyt*.
-- 5 typów zadań: wybór odpowiedzi, klikanie słów w zdaniu, sortowanie do koszyków (przeciąganie lub stuknięcia),
-  uzupełnianie luk (z przyciskami ą ć ę ł ń ó ś ź ż), łączenie w pary.
+- 6 typów zadań: wybór odpowiedzi, klikanie słów w zdaniu, sortowanie do koszyków (przeciąganie lub stuknięcia),
+  uzupełnianie luk (z przyciskami ą ć ę ł ń ó ś ź ż), łączenie w pary i dyktando (aplikacja czyta zdanie na głos).
+- Każdy temat ma ściągę (zasada z przykładami): widać ją przed tematem i po błędnej odpowiedzi.
 - Tematy startowe:
   - klasa 3 — polski: rzeczownik, czasownik, przymiotnik, mieszanka części mowy, czasy czasownika, osoba i liczba;
     matematyka: dodawanie i odejmowanie do 100, mnożenie przez 6 i 7 oraz 8 i 9, dzielenie, zadania z treścią;
   - klasa 5 — polski: przypadki, stopniowanie przymiotnika, ó/u, „nie” z częściami mowy, części mowy odmienne
     i nieodmienne, podmiot i orzeczenie; matematyka: ułamki (skracanie, dodawanie, odejmowanie), ułamki dziesiętne,
-    pole i obwód, kolejność działań, cechy podzielności.
+    pole i obwód, kolejność działań, cechy podzielności;
+  - dyktanda dla klasy 3 i 5 (ó, rz, ż, ch, h).
   Wyniki zadań matematycznych są liczone w kodzie, nie wpisywane ręcznie.
+- Poziomy tematów (Nowy → Próbowany → Znany → Biegły → Opanowany) — rosną i spadają razem z pamięcią dziecka;
+  po ćwiczeniu ekran „Co się zmieniło”.
+- Sprawdzian z oceną 1–6 (bez podpowiedzi, z listą błędów i „Popraw błędy”), test na start, który od razu
+  zalicza znane tematy, trening matematyki bez końca (zawsze nowe liczby) i Błyskawica — 60 sekund na rekord.
+- Plan od rodzica (tematy przypięte np. przed sprawdzianem w szkole, z terminem i sprawdzianem próbnym),
+  cel tygodnia, zamrożenie serii, kamienie milowe serii, wspólny cel rodzeństwa.
 - Powtórki rozłożone w czasie: błędne zadania wracają na końcu ćwiczenia i w kolejnych dniach (1, 2, 4, 7, 14 dni).
   Gwiazdki tematu rosną dopiero, gdy dziecko pamięta zadania przez kilka dni.
 - Punkty doświadczenia i poziomy, waluta (muszelki/monety/punkty), seria dni, 3 zadania dnia i skrzynia,
-  15 odznak, sklep z bohaterami, prawdziwe nagrody zatwierdzane przez rodzica.
+  20 odznak, sklep z bohaterami, prawdziwe nagrody zatwierdzane przez rodzica (z listą gotowych pomysłów).
 - Liczenie aktywnego czasu nauki (tylko gdy ekran jest widoczny i dziecko coś robi), statystyki dla rodzica:
-  minuty dziennie, poprawność, opanowanie tematów, zadania sprawiające kłopot, historia sesji.
+  minuty dziennie, poprawność, poziomy tematów, zadania sprawiające kłopot razem z błędnymi odpowiedziami dziecka,
+  raport tygodnia do udostępnienia (np. w wiadomości), historia sesji i sprawdzianów.
 - Panel rodzica za PIN-em: dodawanie tematów ręcznie, ze zdjęcia książki (AI), z opisu (AI) albo przez zwykły
   czat z Claude (bez klucza API), import/eksport kopii zapasowej.
 - Czytanie poleceń na głos (głos systemowy pl-PL), dźwięki.
@@ -111,6 +120,7 @@ sortuj: Posegreguj słowa. >> rzeczownik = kot, dom ; czasownik = biega, pisze ;
 wpisz: Odmień czasownik „pisać”. >> ja piszę, ty [piszesz], oni [piszą]
 wpisz: Zamień na czas przeszły. >> Wczoraj [rysowałem|rysowałam].
 pary: Połącz osobę z czasownikiem. >> ja = skaczę ; ty = skaczesz ; oni = skaczą
+dyktando: Posłuchaj i wpisz brakujący wyraz. >> Latem jedziemy nad [morze]. !! Morze — rz wymienia się na r: morski.
 ```
 
 - `*gwiazdka*` — dobra odpowiedź (w `wybierz` przed odpowiedzią, w `kliknij` wokół słowa).

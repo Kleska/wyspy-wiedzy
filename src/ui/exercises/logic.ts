@@ -55,7 +55,8 @@ export function isCorrect(ex: Exercise, a: Answer): boolean {
   }
 }
 
-const clean = (t: string) => t.replace(/[^\p{L}\p{N}\s/,-]/gu, '');
+/** Słowo bez interpunkcji na brzegach („wstaję,” → „wstaję”, ale „3,5” zostaje). */
+const clean = (t: string) => t.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '');
 
 /** Krótki tekst poprawnej odpowiedzi do pokazania po błędzie (gdy nie widać go na planszy). */
 export function correctText(ex: Exercise): string {

@@ -221,13 +221,13 @@ export function Sprint({ game }: { game: SprintGame }) {
           <h1>{title}</h1>
           <p style={{ fontWeight: 700 }}>
             Masz {SPRINT_SECONDS} sekund. Odpowiadaj jak najszybciej — liczą się dobre odpowiedzi.
-            {game.kind === 'gen' ? ' Dobra odpowiedź przechodzi dalej sama.' : ''}
+            {game.kind === 'gen' ? ' Po dobrej odpowiedzi następne pytanie pojawi się samo.' : ''}
           </p>
           <div className="sprint-record">
             <Icon name="trophy" /> Twój rekord: <b>{best}</b>
           </div>
           <p className="muted" style={{ fontSize: 14, fontWeight: 700 }}>
-            Nowy rekord: +{coinText(SPRINT_RECORD_BONUS, theme)}. Za ukończenie {coinText(5, theme)} (do {SPRINT_PAID_PER_DAY} razy dziennie).
+            Nowy rekord: +{coinText(SPRINT_RECORD_BONUS, theme)}. Za ukończenie: +{coinText(5, theme)} (do {SPRINT_PAID_PER_DAY} razy dziennie).
           </p>
           {empty ? (
             <p className="error">W tym przedmiocie jest za mało pytań do Błyskawicy.</p>
@@ -292,7 +292,7 @@ export function Sprint({ game }: { game: SprintGame }) {
         <button className="btn icon-btn" onClick={exit} aria-label="Przerwij Błyskawicę">
           <Icon name="x" />
         </button>
-        <div className="bar pr-progress sprint-time" role="timer" aria-label={`Zostało ${secs} sekund`}>
+        <div className="bar pr-progress sprint-time" role="timer" aria-label={`${plural(secs, ['Została', 'Zostały', 'Zostało'])} ${secs} ${plural(secs, ['sekunda', 'sekundy', 'sekund'])}`}>
           <span style={{ width: `${(left / (SPRINT_SECONDS * 1000)) * 100}%` }} />
         </div>
         <span className="sprint-secs">{secs} s</span>

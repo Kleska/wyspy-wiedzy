@@ -169,9 +169,9 @@ wpisz: Dopisz brakujący czasownik. >> Ja jem zupę, a oni [jedzą] pierogi. !! 
     'mat',
     10,
     'Mnożenie przez 6 i 7',
-    'Mnożenie to szybkie dodawanie: 6 · 3 = 6 + 6 + 6 = 18.',
+    'Mnożenie to szybkie dodawanie: 3 · 6 = 6 + 6 + 6 = 18.',
     `
-wpisz: Oblicz. >> 6 · 3 = [18] !! 6 + 6 + 6 = 18
+wpisz: Oblicz. >> 6 · 3 = [18] !! 6 · 3 = 3 · 6 = 6 + 6 + 6 = 18
 wpisz: Oblicz. >> 6 · 7 = [42] !! 6 · 7 = 42
 wpisz: Oblicz. >> 7 · 8 = [56] !! 7 · 8 = 56
 wpisz: Oblicz. >> 7 · 6 = [42] !! Kolejność nie zmienia wyniku: 7 · 6 = 6 · 7 = 42

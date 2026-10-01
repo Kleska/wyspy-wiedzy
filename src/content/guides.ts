@@ -28,8 +28,8 @@ Przymiotnik — jaki? jaka? jakie? (duży, zielona, słodkie)
 Zadaj pytanie do słowa — pytanie podpowie, jaka to część mowy.
 Przykład: Duży pies szczeka. Duży — jaki? Przymiotnik. Pies — kto? Rzeczownik. Szczeka — co robi? Czasownik.`,
 
-  'b-czasy': `Czas przeszły — to już było: wczoraj, rano, w zeszłym roku. Pisałem, padał.
-Czas teraźniejszy — dzieje się teraz: teraz, dziś. Piszę, pada.
+  'b-czasy': `Czas przeszły — to już było: wczoraj, przedwczoraj, w zeszłym roku. Pisałem, padał.
+Czas teraźniejszy — dzieje się teraz: teraz, w tej chwili. Piszę, pada.
 Czas przyszły — dopiero będzie: jutro, za tydzień. Napiszę, będę pisać.
 Słowa „wczoraj”, „teraz” i „jutro” często podpowiadają czas.
 Przykład: Wczoraj padał deszcz, dziś świeci słońce, a jutro będzie ciepło.`,
@@ -40,7 +40,7 @@ Liczba mnoga: my piszemy, wy piszecie, oni / one piszą.
 Uważaj na końcówki: przy „ja” często jest „ę” (piszę, robię), przy „oni” — „ą” (piszą, robią).
 Przykład: My gramy w piłkę. Oni idą do szkoły.`,
 
-  'b-mnozenie-6-7': `Mnożenie to szybkie dodawanie tych samych liczb: 6 · 3 = 6 + 6 + 6 = 18.
+  'b-mnozenie-6-7': `Mnożenie to szybkie dodawanie tych samych liczb: 3 · 6 = 6 + 6 + 6 = 18.
 Kolejność nie zmienia wyniku: 6 · 7 = 7 · 6 = 42.
 Sposób: 6 · 8 = 5 · 8 + 8 = 40 + 8 = 48.
 Sposób: 7 · 8 = 7 · 4 + 7 · 4 = 28 + 28 = 56.
@@ -121,17 +121,17 @@ Stopień najwyższy zaczyna się od „naj-”.`,
   'b-p5-o-u': `Ó piszemy, gdy w innej formie wyrazu albo w wyrazie pokrewnym jest o, e lub a: wóz – wozy, siódmy – siedem, skrót – skracać.
 Ó piszemy też w zakończeniach -ów, -ówka, -ówna: domów, pocztówka.
 U piszemy na początku wyrazu (ulica, ucho; wyjątki: ósmy, ósemka) i w zakończeniach -uje, -unek, -uszek, -utki: kupuje, rysunek, kwiatuszek, malutki.
-Gdy reguła nie pomaga, pisownię trzeba zapamiętać: góra, ogórek, mrówka, żółw.`,
+Gdy reguła nie pomaga, pisownię trzeba zapamiętać: góra, ogórek, córka, żółw.`,
 
   'b-p5-nie': `„Nie” z czasownikami piszemy osobno: nie wiem, nie lubię, nie poszła.
 Wyjątki — razem: nienawidzić, niepokoić się.
 „Nie” z rzeczownikami piszemy razem: nieprawda, nieporządek, niepokój.
-„Nie” z przymiotnikami w stopniu równym piszemy razem: niemiły, niegroźny, nieciekawy.
+„Nie” z przymiotnikami piszemy razem: niemiły, niegroźny, nieciekawy. Od 2026 roku także w stopniu wyższym i najwyższym: nielepszy, nienajlepszy.
 Przykład: Nie lubię nieporządku.`,
 
   'b-p5-odmienne': `Części mowy odmienne zmieniają formę (kot – kota – kotem):
 rzeczownik (kto? co?), czasownik (co robi?), przymiotnik (jaki?), liczebnik (ile? który?), zaimek (zastępuje inne słowo: on, my, ten).
-Części mowy nieodmienne mają zawsze tę samą formę:
+Części mowy nieodmienne nie odmieniają się przez przypadki, liczby ani osoby (przysłówek można tylko stopniować: szybko – szybciej):
 przysłówek (jak? gdzie? kiedy? — szybko, wczoraj), przyimek (na, pod, w, z), spójnik (i, a, ale, lecz), wykrzyknik (ach, hej), partykuła (nie, czy, niech).`,
 
   'b-p5-podmiot': `Podmiot to wykonawca czynności. Pytamy: kto? co?
@@ -141,15 +141,15 @@ Przykład: Mama czyta gazetę. Co robi? Czyta — orzeczenie. Kto czyta? Mama �
 Podmiot nie zawsze stoi na początku zdania: Na drzewie siedzi wiewiórka.`,
 
   'b-dyktando-3': `Słuchaj uważnie całego zdania, potem wpisz brakujący wyraz.
-Ó: gdy wymienia się na o (król – królowa, miód – miodek). Czasem trzeba zapamiętać: ogórek, mrówka.
-Rz: gdy wymienia się na r (morze – morski) i po literach b, p, d, t, g, k, ch, j, w (drzewo, krzesło).
+Ó: gdy wymienia się na o (król – królowa, miód – miodu, mrówka – mrowisko). Czasem trzeba zapamiętać: ogórek, góra.
+Rz: gdy wymienia się na r (morze – morski) i po literach b, p, d, t, g, k, ch, j, w (drzewo, krzesło). Są wyjątki, np. pszczoła, wszystko.
 Ż: gdy wymienia się na g (noga – nóżka). Czasem trzeba zapamiętać: żaba, żółty.
 Ch i h: najczęściej trzeba zapamiętać (chmura, chleb, herbata, huśtawka).
 Podpowiedź pokaże wyraz z ukrytymi trudnymi literami.`,
 
-  'b-p5-dyktando': `Ó: gdy wymienia się na o, e lub a (mróz – mrozy, zachód – zachodu). Czasem trzeba zapamiętać: ołówek, wróbel.
-Rz: gdy wymienia się na r (morze – morski) i po spółgłoskach b, p, d, t, g, k, ch, j, w (brzoza, przyjaciel, trzeba, grzyb). Wyjątki: pszczoła, kształt, pszenica.
+  'b-p5-dyktando': `Ó: gdy wymienia się na o, e lub a (mróz – mrozy, zachód – zachodu, ołówek – ołowiany). Czasem trzeba zapamiętać: wróbel, córka.
+Rz: gdy wymienia się na r (morze – morski) i po spółgłoskach b, p, d, t, g, k, ch, j, w (brzoza, przyjaciel, trzeba, grzyb). Wyjątki: pszczoła, pszenica, kształt, wszystko oraz stopień wyższy przymiotników (lepszy, młodszy).
 Ż: gdy wymienia się na g, h, z, s, dz (droga – dróżka). Czasem trzeba zapamiętać: żółw.
 Ch: na końcu wyrazu (kożuch, dach; wyjątek: druh). H: najczęściej trzeba zapamiętać (hałas, hulajnoga).
-Może (być może) piszemy przez ż, a morze (woda) przez rz.`,
+„Może” (być może) piszemy przez ż, a „morze” (woda) przez rz.`,
 };

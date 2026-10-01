@@ -1,0 +1,210 @@
+import { expect, test, type Page } from '@playwright/test';
+
+const shots = process.env.SHOTS_DIR;
+
+async function snap(page: Page, name: string, fullPage = false) {
+  if (shots) await page.screenshot({ path: `${shots}/${test.info().project.name}-${name}.png`, fullPage });
+}
+
+async function onboard(page: Page, name: string, grade: number) {
+  await page.goto('/');
+  await page.getByPlaceholder('Imię').fill(name);
+  await page.getByRole('group', { name: 'Klasa' }).getByRole('button', { name: String(grade), exact: true }).click();
+  await page.getByRole('button', { name: 'Zaczynamy!' }).click();
+  await expect(page.getByText(`Cześć, ${name}!`)).toBeVisible();
+}
+
+async function parentLogin(page: Page) {
+  await page.getByRole('button', { name: 'Panel rodzica' }).click();
+  for (let k = 0; k < 2; k++) {
+    for (const d of '1234') await page.getByRole('button', { name: d, exact: true }).click();
+    await page.getByRole('button', { name: 'Zatwierdź' }).click();
+  }
+  await expect(page.getByRole('heading', { name: 'Postępy' })).toBeVisible();
+}
+
+/** Odpowiada na bieżące zadanie „jakkolwiek”. */
+async function answerAny(page: Page) {
+  if (await page.locator('.practice .opt').count()) {
+    await page.locator('.practice .opt:not([disabled])').first().click();
+  } else if (await page.locator('.word').count()) {
+    await page.locator('.word').first().click();
+  } else if (await page.locator('.token').count()) {
+    while (await page.locator('.bank .token').count()) {
+      await page.locator('.bank .token').first().click();
+      await page.locator('.basket').first().click();
+      await page.waitForTimeout(60);
+    }
+  } else if (await page.locator('.gap').count()) {
+    const gaps = page.locator('.gap');
+    for (let i = 0; i < (await gaps.count()); i++) await gaps.nth(i).fill('7');
+  } else if (await page.locator('.match-item').count()) {
+    const left = page.locator('.match-col').nth(0).locator('.match-item');
+    const right = page.locator('.match-col').nth(1).locator('.match-item');
+    for (let i = 0; i < (await left.count()); i++) {
+      await left.nth(i).click();
+      await right.nth(i).click();
+    }
+  }
+}
+
+/** Sprawdzian / test na start: odpowiada i przechodzi dalej aż do podsumowania. */
+async function runExam(page: Page, max = 30) {
+  for (let i = 0; i < max; i++) {
+    const counter = await page.locator('.pr-top .muted').innerText();
+    await answerAny(page);
+    await page.getByRole('button', { name: /^(Dalej|Zakończ sprawdzian)$/ }).click();
+    await page.waitForFunction((c) => !!document.querySelector('.summary') || document.querySelector('.pr-top .muted')?.textContent !== c, counter);
+    if (await page.locator('.summary').count()) return;
+  }
+  throw new Error('Sprawdzian się nie skończył');
+}
+
+/** Liczy wyrażenie z ekranu (· : + −), np. „7 · 8 =”. */
+function evalText(t: string): number {
+  const e = t.replace(/=.*$/, '').replace(/·/g, '*').replace(/:/g, '/').replace(/−/g, '-').replace(/\s+/g, '');
+  return Function(`return (${e})`)() as number;
+}
+
+test('sprawdzian: ocena, lista błędów i poprawa', async ({ page }) => {
+  await onboard(page, 'Kuba', 3);
+  await page.locator('.subject-big', { hasText: 'Język polski' }).click();
+  await snap(page, 'f01-subject-challenges', true);
+  await page.getByRole('button', { name: /^Sprawdzian/ }).click();
+  const dlg = page.getByRole('dialog', { name: 'Sprawdzian' });
+  await dlg.getByRole('group', { name: 'Liczba pytań' }).getByRole('button', { name: '10', exact: true }).click();
+  await snap(page, 'f02-test-setup');
+  await dlg.getByRole('button', { name: /Zaczynam sprawdzian/ }).click();
+  await expect(page.getByText('Pytanie 1 z 10')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Podpowiedź' })).toHaveCount(0);
+  await snap(page, 'f03-test-question');
+  await runExam(page);
+  await expect(page.locator('.grade-num')).toBeVisible();
+  await snap(page, 'f04-test-summary', true);
+  if (await page.getByRole('button', { name: 'Popraw błędy' }).count()) {
+    await page.getByRole('button', { name: 'Popraw błędy' }).click();
+    await expect(page.getByRole('button', { name: 'Sprawdź' })).toBeVisible();
+    await answerAny(page);
+    await page.getByRole('button', { name: 'Sprawdź' }).click();
+    await expect(page.locator('.pr-foot.good, .pr-foot.bad')).toBeVisible();
+  }
+});
+
+test('dyktando ze ściągą i test na start', async ({ page }) => {
+  await onboard(page, 'Kuba', 3);
+  await expect(page.getByRole('heading', { name: 'Cel tygodnia' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Test na start' })).toBeVisible();
+  await snap(page, 'f05-home', true);
+
+  await page.locator('.subject-big', { hasText: 'Język polski' }).click();
+  await page.getByRole('button', { name: /Dyktando: ó, rz, ż, ch, h/ }).first().click();
+  const sheet = page.getByRole('dialog');
+  await expect(sheet.getByText('Słuchaj uważnie całego zdania')).toBeVisible();
+  await snap(page, 'f06-topic-guide');
+  await sheet.getByRole('button', { name: /Graj!/ }).click();
+  await expect(page.getByRole('button', { name: /Posłuchaj/ })).toBeVisible();
+  // Bez polskiego głosu (przeglądarka testowa) luka pokazuje wyraz z ukrytymi literami.
+  await expect(page.locator('.gap').first()).toHaveAttribute('placeholder', /_/);
+  await snap(page, 'f07-dictation');
+  await page.locator('.gap').first().fill('xyz');
+  await page.getByRole('button', { name: 'Sprawdź' }).click();
+  await expect(page.getByText(/^Poprawnie:/)).toBeVisible();
+  await page.getByRole('button', { name: 'Ściąga' }).click();
+  await expect(page.getByRole('dialog', { name: /Ściąga:/ })).toBeVisible();
+  await snap(page, 'f08-guide-modal');
+  await page.getByRole('button', { name: 'Wracam do zadania' }).click();
+  await page.getByRole('button', { name: 'Zakończ ćwiczenie' }).click();
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Skończ' }).click();
+  await page.getByRole('button', { name: 'Wróć', exact: true }).click();
+
+  await page.getByRole('button', { name: /^Język polski · \d+ pytań$/ }).click();
+  await expect(page.getByText(/^Pytanie 1 z \d+$/)).toBeVisible();
+  await runExam(page, 40);
+  await expect(page.getByRole('heading', { name: 'Test na start — gotowe!' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Co już umiesz' })).toBeVisible();
+  await snap(page, 'f09-diag-summary', true);
+});
+
+test('trening bez końca i Błyskawica', async ({ page }) => {
+  await page.clock.install();
+  await onboard(page, 'Kuba', 3);
+  await page.locator('.subject-big', { hasText: 'Matematyka' }).click();
+  await page.getByRole('button', { name: /Trening bez końca i Błyskawica/ }).click();
+  const row = page.locator('.gen-row', { hasText: 'Tabliczka mnożenia' });
+  await snap(page, 'f10-gen-modal');
+  await row.getByRole('button', { name: 'Trening' }).click();
+
+  const text = (await page.locator('.fill-text').innerText()).trim();
+  await page.locator('.gap').first().fill(String(evalText(text)));
+  await page.getByRole('button', { name: 'Sprawdź' }).click();
+  await expect(page.locator('.pr-foot.good')).toBeVisible();
+  await page.getByRole('button', { name: 'Zakończ ćwiczenie' }).click();
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Skończ' }).click();
+
+  await page.getByRole('button', { name: /Trening bez końca i Błyskawica/ }).click();
+  await page.locator('.gen-row', { hasText: 'Tabliczka mnożenia' }).getByRole('button', { name: /Błyskawica/ }).click();
+  await expect(page.getByText('Twój rekord:')).toBeVisible();
+  await snap(page, 'f11-sprint-intro');
+  await page.getByRole('button', { name: /Start!/ }).click();
+  for (let i = 1; i <= 3; i++) {
+    const q = (await page.locator('.sprint-q').innerText()).replace('?', '').trim();
+    await page.keyboard.type(String(evalText(q)));
+    await expect(page.locator('.combo')).toContainText(String(i));
+    await page.clock.runFor(300);
+  }
+  await snap(page, 'f12-sprint-play');
+  await page.keyboard.type('1');
+  await page.keyboard.press('Enter');
+  await expect(page.locator('.sprint-reveal')).toBeVisible();
+  await page.clock.runFor(61_000);
+  await expect(page.getByRole('heading', { name: /Nowy rekord!|Koniec czasu!/ })).toBeVisible();
+  await expect(page.locator('.summary-stats').getByText('3', { exact: true }).first()).toBeVisible();
+  await snap(page, 'f13-sprint-done');
+});
+
+test('rodzic: plan, raport tygodnia, pomysły na nagrody i wspólny cel', async ({ page }) => {
+  await onboard(page, 'Kuba', 3);
+  await parentLogin(page);
+
+  await page.getByRole('button', { name: 'Plan i sprawdziany' }).click();
+  await page.getByPlaceholder('np. Sprawdzian z ułamków').fill('Sprawdzian z czasowników');
+  const d = new Date();
+  d.setDate(d.getDate() + 3);
+  await page.locator('input[type=date]').fill(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
+  await page.locator('.check-row', { hasText: 'Czasownik — co robi?' }).locator('input').check();
+  await page.locator('.check-row', { hasText: 'Czasownik: przeszły, teraźniejszy, przyszły' }).locator('input').check();
+  await page.getByRole('button', { name: 'Zapisz plan (2)' }).click();
+  await expect(page.getByText('Zapisano plan: Kuba.')).toBeVisible();
+  await snap(page, 'f14-parent-plan', true);
+
+  await page.getByRole('button', { name: 'Postępy' }).click();
+  await expect(page.getByRole('heading', { name: /^Ten tydzień/ })).toBeVisible();
+  await page.getByRole('button', { name: 'Pokaż tekst' }).click();
+  await expect(page.getByLabel('Tekst raportu')).toHaveValue(/Raport tygodniowy — Kuba \(klasa 3\)/);
+  await snap(page, 'f15-parent-stats', true);
+
+  await page.getByRole('button', { name: 'Nagrody' }).click();
+  await page.locator('.idea', { hasText: 'Wybieram obiad na jutro' }).getByRole('button', { name: 'Dodaj' }).click();
+  await expect(page.locator('.idea', { hasText: 'Wybieram obiad na jutro' }).getByRole('button', { name: 'Dodano' })).toBeVisible();
+  await page.getByPlaceholder('np. Wyjście do kina całą rodziną').fill('Kino całą rodziną');
+  await page.getByRole('button', { name: /Rozpocznij wspólny cel/ }).click();
+  await expect(page.getByText('Kino całą rodziną')).toBeVisible();
+  await snap(page, 'f16-parent-rewards', true);
+  await page.getByRole('button', { name: 'Wyjdź' }).click();
+
+  await expect(page.getByRole('heading', { name: 'Sprawdzian z czasowników' })).toBeVisible();
+  await expect(page.getByText('termin za 3 dni')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Wspólny cel' })).toBeVisible();
+  await snap(page, 'f17-home-plan', true);
+
+  await page.getByRole('button', { name: /Sprawdzian próbny/ }).click();
+  await expect(page.getByText('Pytanie 1 z 15')).toBeVisible();
+  await page.getByRole('button', { name: 'Przerwij sprawdzian' }).click();
+  await expect(page.getByRole('heading', { name: 'Wyspa Polskiego' })).toBeVisible();
+  await page.getByRole('button', { name: 'Wróć', exact: true }).click();
+
+  await page.getByRole('button', { name: /^Nagrody/ }).click();
+  await expect(page.getByText('Zamrożenie serii')).toBeVisible();
+  await expect(page.getByText('Wybieram obiad na jutro')).toBeVisible();
+  await snap(page, 'f18-rewards', true);
+});

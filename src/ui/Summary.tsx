@@ -38,7 +38,7 @@ function gradeComment(g: number): string {
   if (g >= 6) return 'Celująco! Nie było ani jednego błędu.';
   if (g === 5) return 'Bardzo dobrze! Popraw błędy i będzie szóstka.';
   if (g === 4) return 'Dobrze! Jeszcze trochę ćwiczeń i będzie piątka.';
-  if (g === 3) return 'Połowa za Tobą. Popraw błędy i poćwicz tematy z listy.';
+  if (g === 3) return 'Połowa drogi za Tobą. Popraw błędy i poćwicz tematy z listy.';
   return 'To dopiero początek. Zacznij od poprawy błędów — każdy trening pomaga.';
 }
 
@@ -197,7 +197,7 @@ export function Summary({ result }: { result: SessionResult }) {
       )}
       {result.newBadges.length > 0 && (
         <div className="card" style={{ fontWeight: 800 }}>
-          <Icon name="award" /> Nowa odznaka: {result.newBadges.join(', ')}
+          <Icon name="award" /> {result.newBadges.length > 1 ? 'Nowe odznaki' : 'Nowa odznaka'}: {result.newBadges.join(', ')}
         </div>
       )}
 

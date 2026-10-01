@@ -90,10 +90,10 @@ export function Rewards() {
               <span className="freeze-icon" aria-hidden="true">
                 <Icon name="snowflake" size={40} />
               </span>
-              <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ flex: '1 1 220px', minWidth: 0 }}>
                 <b style={{ fontSize: 20 }}>Zamrożenie serii</b>
                 <p className="muted" style={{ fontWeight: 700, fontSize: 15 }}>
-                  Gdy jednego dnia nie poćwiczysz, zamrożenie uratuje Twoją serię ({progress.streak} {plural(progress.streak, ['dzień', 'dni', 'dni'])}). Możesz mieć najwyżej {FREEZE_MAX}.
+                  Gdy jednego dnia nie poćwiczysz, zamrożenie uratuje Twoją serię ({progress.streak} {plural(progress.streak, ['dzień', 'dni', 'dni'])}). Możesz mieć najwyżej {FREEZE_MAX} {plural(FREEZE_MAX, ['zamrożenie', 'zamrożenia', 'zamrożeń'])}.
                 </p>
                 <div className="freeze-slots" aria-label={`Masz ${progress.freezes} z ${FREEZE_MAX}`}>
                   {Array.from({ length: FREEZE_MAX }, (_, i) => (
@@ -197,7 +197,7 @@ export function Rewards() {
                     </div>
                   </div>
                   <span className={`pill ${r.status === 'approved' ? 'good' : r.status === 'rejected' ? 'bad' : ''}`}>
-                    {r.status === 'approved' ? 'Zatwierdzona' : r.status === 'rejected' ? 'Odrzucona (punkty wróciły)' : 'Czeka na rodzica'}
+                    {r.status === 'approved' ? 'Zatwierdzona' : r.status === 'rejected' ? `Odrzucona — zwrot: ${coinText(r.cost, theme)}` : 'Czeka na rodzica'}
                   </span>
                 </div>
               ))}

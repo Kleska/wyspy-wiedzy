@@ -176,6 +176,15 @@ function Sort({ ex, answer, setAnswer, reveal, seed }: Props<SortExercise, (numb
     return v === 'bank' ? 'bank' : Number(v);
   };
 
+  // Zwykłe stuknięcie: słowo z puli zostaje zaznaczone; stuknięcie słowa w koszyku, gdy coś jest
+  // zaznaczone, wkłada zaznaczone słowo do tego koszyka; bez zaznaczenia słowo wraca do puli.
+  const tapToken = (i: number) => {
+    const cat = answer[i];
+    if (cat !== null && selected !== null && selected !== i) place(selected, cat);
+    else if (cat !== null) place(i, null);
+    else setSelected(selected === i ? null : i);
+  };
+
   const onDown = (e: React.PointerEvent<HTMLButtonElement>, i: number) => {
     if (reveal) return;
     const r = e.currentTarget.getBoundingClientRect();
@@ -199,9 +208,7 @@ function Sort({ ex, answer, setAnswer, reveal, seed }: Props<SortExercise, (numb
       else if (t !== null) place(d.i, t);
       return;
     }
-    // Zwykłe stuknięcie: słowo w koszyku wraca do puli, słowo z puli zostaje zaznaczone.
-    if (answer[d.i] !== null) place(d.i, null);
-    else setSelected(selected === d.i ? null : d.i);
+    tapToken(d.i);
   };
 
   const token = (i: number) => {
@@ -225,8 +232,7 @@ function Sort({ ex, answer, setAnswer, reveal, seed }: Props<SortExercise, (numb
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
-            if (answer[i] !== null) place(i, null);
-            else setSelected(selected === i ? null : i);
+            tapToken(i);
           }
         }}
         disabled={reveal}

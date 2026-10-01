@@ -79,17 +79,17 @@ wybierz: Dlaczego w wyrazie „gotuje” piszemy u? | *bo końcówka -uje | bo g
     'pl',
     40,
     '„Nie” z czasownikami, rzeczownikami i przymiotnikami',
-    'Nie z czasownikami piszemy osobno (nie wiem). Wyjątki: nienawidzić, niepokoić. Nie z rzeczownikami i przymiotnikami (w stopniu równym) piszemy razem (nieprawda, niemiły).',
+    'Nie z czasownikami piszemy osobno (nie wiem). Wyjątki: nienawidzić, niepokoić. Nie z rzeczownikami i przymiotnikami piszemy razem (nieprawda, niemiły).',
     `
 wybierz: Uzupełnij zdanie. >> Ja ___ tego zadania. | *nie rozumiem | nierozumiem !! Nie z czasownikami piszemy osobno.
 wybierz: Uzupełnij zdanie. >> Ola ___ dziś do szkoły. | *nie poszła | nieposzła !! Nie z czasownikami piszemy osobno.
 wybierz: Uzupełnij zdanie. >> Mój brat ___ szpinaku. | *nienawidzi | nie nawidzi !! To wyjątek: nienawidzić piszemy razem.
 wybierz: Uzupełnij zdanie. >> Tata się ___, gdy późno wracam. | *niepokoi | nie pokoi !! To wyjątek: niepokoić piszemy razem.
-wybierz: Uzupełnij zdanie. >> To jest ___ pies. | *niegroźny | nie groźny !! Nie z przymiotnikami w stopniu równym piszemy razem.
-wybierz: Uzupełnij zdanie. >> To był bardzo ___ dzień. | *nieudany | nie udany !! Nie z przymiotnikami w stopniu równym piszemy razem.
+wybierz: Uzupełnij zdanie. >> To jest ___ pies. | *niegroźny | nie groźny !! Nie z przymiotnikami piszemy razem.
+wybierz: Uzupełnij zdanie. >> To był bardzo ___ dzień. | *nieudany | nie udany !! Nie z przymiotnikami piszemy razem.
 wybierz: Uzupełnij zdanie. >> W pokoju panował ___. | *nieporządek | nie porządek !! Nie z rzeczownikami piszemy razem.
 wybierz: Uzupełnij zdanie. >> Kasia powiedziała ___. | *nieprawdę | nie prawdę !! Nie z rzeczownikami piszemy razem.
-wybierz: Uzupełnij zdanie. >> Ten film był ___. | *nieciekawy | nie ciekawy !! Nie z przymiotnikami w stopniu równym piszemy razem.
+wybierz: Uzupełnij zdanie. >> Ten film był ___. | *nieciekawy | nie ciekawy !! Nie z przymiotnikami piszemy razem.
 sortuj: Razem czy osobno? >> razem = nieprawda, niemiły, nienawidzić, niepokój ; osobno = nie wiem, nie lubię, nie chcę, nie pływa !! Czasowniki osobno (z wyjątkami), rzeczowniki i przymiotniki razem.
 wybierz: Jak piszemy „nie” z czasownikami? | *osobno | razem !! Nie wiem, nie lubię, nie chcę — osobno.
 wybierz: Jak piszemy „nie” z rzeczownikami? | *razem | osobno !! Nieprawda, niepokój, nieporządek — razem.

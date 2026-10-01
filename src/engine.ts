@@ -1,3 +1,4 @@
+import { plural } from './themes';
 import type { Attempt, Exercise, ExerciseType, FamilyGoal, ParsedTopic, Redemption, Session, SessionMode, Settings } from './types';
 
 /*
@@ -216,7 +217,7 @@ export function questsFor(day: DayStats, goalMinutes: number): Quest[] {
     { id: 'answers', title: 'Odpowiedz na 20 pytań', progress: Math.min(day.answered, 20), target: 20, done: day.answered >= 20 },
     {
       id: 'minutes',
-      title: `Ćwicz ${goalMinutes} minut`,
+      title: `Ćwicz ${goalMinutes} ${plural(goalMinutes, ['minutę', 'minuty', 'minut'])}`,
       progress: Math.min(Math.floor(day.seconds / 60), goalMinutes),
       target: goalMinutes,
       done: day.seconds >= goalMinutes * 60,

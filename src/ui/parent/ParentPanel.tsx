@@ -3,15 +3,17 @@ import { store } from '../../data/store';
 import { useStoreVersion } from '../hooks';
 import { Icon, type IconName } from '../icons';
 import { ParentAdd } from './ParentAdd';
+import { ParentPlan } from './ParentPlan';
 import { ParentRewards } from './ParentRewards';
 import { ParentSettings } from './ParentSettings';
 import { ParentStats } from './ParentStats';
 import { ParentTopics, TopicEditor, type EditorSeed } from './ParentTopics';
 
-type Tab = 'stats' | 'topics' | 'add' | 'rewards' | 'settings';
+type Tab = 'stats' | 'plan' | 'topics' | 'add' | 'rewards' | 'settings';
 
 const TABS: [Tab, string, IconName][] = [
   ['stats', 'Postępy', 'chart'],
+  ['plan', 'Plan i sprawdziany', 'pin'],
   ['topics', 'Tematy', 'book'],
   ['add', 'Dodaj z AI / zdjęcia', 'sparkles'],
   ['rewards', 'Nagrody', 'gift'],
@@ -66,6 +68,7 @@ export function ParentPanel({ pin, onExit }: { pin: string; onExit: () => void }
           ) : (
             <>
               {tab === 'stats' && <ParentStats />}
+              {tab === 'plan' && <ParentPlan />}
               {tab === 'topics' && <ParentTopics onEdit={openEditor} />}
               {tab === 'add' && <ParentAdd pin={pin} onResult={openEditor} />}
               {tab === 'rewards' && <ParentRewards />}

@@ -174,6 +174,15 @@ describe('dyktando, ściągi i generatory', () => {
     expect(maskSpelling('ogórek')).toBe('og_rek');
   });
 
+  it('poprawna odpowiedź i odpowiedź dziecka bez interpunkcji na brzegach słów', async () => {
+    const { answerText } = await import('../src/ui/exercises/logic');
+    const ex = parseLine('kliknij: K >> Rano *wstaję*, *myję* zęby i „*jem*” śniadanie.', 1).ex!;
+    expect(correctText(ex)).toBe('wstaję, myję, jem');
+    expect(answerText(ex, [0, 1])).toBe('Rano, wstaję');
+    const ch = parseLine('wybierz: W? | *a | b', 1).ex!;
+    expect(answerText(ch, 1)).toBe('b');
+  });
+
   it('każdy temat wbudowany ma ściągę', () => {
     for (const t of BUILTIN_TOPICS) expect(t.guide, t.id).toBeTruthy();
   });
