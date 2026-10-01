@@ -98,6 +98,7 @@ describe('logika odpowiedzi', () => {
           good = ex.items.map((i) => i.cat);
           break;
         case 'fill':
+        case 'dictation':
           good = ex.parts.filter((p) => Array.isArray(p)).map((p) => (p as string[])[0]);
           break;
         case 'match':
@@ -144,8 +145,68 @@ describe('AI', () => {
     expect(r).toEqual({ title: 'Czasowniki', description: 'Co robi?', dsl: 'wybierz: A? | *a | b\nkliknij: K >> *x* y' });
   });
 
+  it('wklejona odpowiedź ze ściągą i dyktandem', () => {
+    const r = parsePastedAnswer('TYTUŁ: Ó i u\nZASADA: Ó wymienne.\nŚCIĄGA:\nWóz – wozy.\nKupuje — końcówka -uje.\n```\ndyktando: P >> Mamy nowy [wóz].\n```');
+    expect(r.guide).toBe('Wóz – wozy.\nKupuje — końcówka -uje.');
+    expect(r.dsl).toBe('dyktando: P >> Mamy nowy [wóz].');
+  });
+
   it('funkcja w chmurze i aplikacja używają tego samego pliku z poleceniem', () => {
     const fn = readFileSync(new URL('../supabase/functions/ai/index.ts', import.meta.url), 'utf8');
     expect(fn).toContain("from './prompt.ts'");
   });
 });
+
+describe('dyktando, ściągi i generatory', () => {
+  it('dyktando: parsowanie, sprawdzanie, zapis i maska podpowiedzi', async () => {
+    const { maskSpelling, dictationText } = await import('../src/dsl');
+    const { ex } = parseLine('dyktando: Posłuchaj. >> Latem jedziemy nad [morze]. !! Bo morski.', 1);
+    expect(ex?.type).toBe('dictation');
+    if (ex?.type !== 'dictation') return;
+    expect(dictationText(ex.parts)).toBe('Latem jedziemy nad morze.');
+    expect(isCorrect(ex, ['morze'])).toBe(true);
+    expect(isCorrect(ex, ['może'])).toBe(false);
+    expect(isCorrect(ex, ['Morze'])).toBe(true);
+    expect(correctText(ex)).toBe('morze');
+    expect(parseLine(exerciseToDsl(ex), 1).ex).toEqual(ex);
+    expect(maskSpelling('żółw')).toBe('__łw');
+    expect(maskSpelling('chrząszcz')).toBe('__ąszcz');
+    expect(maskSpelling('ogórek')).toBe('og_rek');
+  });
+
+  it('każdy temat wbudowany ma ściągę', () => {
+    for (const t of BUILTIN_TOPICS) expect(t.guide, t.id).toBeTruthy();
+  });
+
+  it('generatory: poprawne zadania z dobrym wynikiem', async () => {
+    const { GENERATORS, generateExercises } = await import('../src/content/generators');
+    let seed = 7;
+    const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+    for (const g of GENERATORS) {
+      const exs = generateExercises(g, 40, rnd);
+      expect(exs.length, g.id).toBe(40);
+      for (const ex of exs) {
+        const text = ex.parts.filter((p) => typeof p === 'string').join('').replace(/=\s*$/, '').trim();
+        const ans = (ex.parts.find((p) => Array.isArray(p)) as string[])[0];
+        if (g.id === 'frac') {
+          const [a, b] = text.split('/').map(Number);
+          const [c, d] = ans.split('/').map(Number);
+          expect(a * d, text).toBe(b * c);
+          expect(gcdT(c, d)).toBe(1);
+        } else if (g.id === 'dec') {
+          const v = text.split(/\s+/);
+          const x = Number(v[0].replace(',', '.'));
+          const y = Number(v[2].replace(',', '.'));
+          const r = v[1] === '+' ? x + y : x - y;
+          expect(Number(ans.replace(',', '.')), text).toBeCloseTo(r, 6);
+        } else {
+          expect(String(evalSchool(text)), text).toBe(ans);
+        }
+      }
+    }
+  });
+});
+
+function gcdT(a: number, b: number): number {
+  return b ? gcdT(b, a % b) : a;
+}

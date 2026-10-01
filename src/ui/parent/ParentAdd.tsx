@@ -9,8 +9,8 @@ import type { EditorSeed } from './ParentTopics';
 
 type Mode = 'text' | 'photo' | 'paste';
 
-const TYPES: ExerciseType[] = ['choice', 'tap', 'sort', 'fill', 'match'];
-const TYPE_WORD: Record<ExerciseType, string> = { choice: 'wybierz', tap: 'kliknij', sort: 'sortuj', fill: 'wpisz', match: 'pary' };
+const TYPES: ExerciseType[] = ['choice', 'tap', 'sort', 'fill', 'match', 'dictation'];
+const TYPE_WORD: Record<ExerciseType, string> = { choice: 'wybierz', tap: 'kliknij', sort: 'sortuj', fill: 'wpisz', match: 'pary', dictation: 'dyktando' };
 
 export function ParentAdd({ pin, onResult }: { pin: string; onResult: (s: EditorSeed) => void }) {
   const [mode, setMode] = useState<Mode>('photo');
@@ -60,6 +60,7 @@ export function ParentAdd({ pin, onResult }: { pin: string; onResult: (s: Editor
         title: r.title,
         subject,
         description: r.description,
+        guide: r.guide,
         dsl: r.dsl,
         source,
         grades: [grade],
@@ -87,7 +88,7 @@ export function ParentAdd({ pin, onResult }: { pin: string; onResult: (s: Editor
   const usePasted = () => {
     const r = parsePastedAnswer(pasted);
     if (!r.dsl) return setErr('Nie znalazłem zadań w wklejonym tekście. Linie powinny zaczynać się od „wybierz:”, „kliknij:” itd.');
-    onResult({ title: r.title || 'Nowy temat', subject, description: r.description, dsl: r.dsl, source: 'import', grades: [grade], note: 'Sprawdź zadania przed zapisaniem.' });
+    onResult({ title: r.title || 'Nowy temat', subject, description: r.description, guide: r.guide, dsl: r.dsl, source: 'import', grades: [grade], note: 'Sprawdź zadania przed zapisaniem.' });
   };
 
   return (
@@ -222,7 +223,7 @@ export function ParentAdd({ pin, onResult }: { pin: string; onResult: (s: Editor
             </div>
             <label className="field">
               <span>Wklej odpowiedź Claude</span>
-              <textarea className="textarea" value={pasted} onChange={(e) => setPasted(e.target.value)} placeholder={'TYTUŁ: …\nZASADA: …\nwybierz: …'} />
+              <textarea className="textarea" value={pasted} onChange={(e) => setPasted(e.target.value)} placeholder={'TYTUŁ: …\nZASADA: …\nŚCIĄGA: …\nwybierz: …'} />
             </label>
             <div className="row">
               <button className="btn btn-primary" onClick={usePasted} disabled={!pasted.trim()}>

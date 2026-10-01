@@ -1,7 +1,7 @@
 import { store, nowIso } from '../data/store';
 import { THEME_ORDER, THEMES } from '../themes';
 import { useApp } from './hooks';
-import { Modal } from './TopicSheet';
+import { Modal } from './bits';
 
 export function ThemePicker({ onClose }: { onClose: () => void }) {
   const { profile } = useApp();

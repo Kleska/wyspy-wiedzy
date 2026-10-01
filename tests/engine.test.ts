@@ -125,3 +125,113 @@ describe('układanie sesji', () => {
     expect(suggestTopic(topics, p)?.id).toBe('b-rzeczownik');
   });
 });
+
+describe('seria z zamrożeniem', () => {
+  const freeze = (at: string) => ({ id: `f${n++}`, profileId: P, rewardId: 'freeze', title: 'Zamrożenie', cost: 50, status: 'approved' as const, real: false, at });
+
+  it('zamrożenie ratuje dzień bez nauki', () => {
+    const s = [sess('a', '2026-09-28T10:00:00'), sess('b', '2026-09-29T10:00:00'), sess('c', '2026-10-01T10:00:00')];
+    const p = computeProgress({ profileId: P, attempts: [], sessions: s, redemptions: [freeze('2026-09-29T15:00:00')], topics, settings: DEFAULT_SETTINGS, now: Date.parse('2026-10-01T18:00:00') });
+    expect(p.streak).toBe(3);
+    expect(p.freezes).toBe(0);
+    expect([...p.frozenDays]).toEqual(['2026-09-30']);
+  });
+
+  it('zamrożenie kupione po opuszczonym dniu go nie ratuje, ale zostaje w zapasie', () => {
+    const s = [sess('a', '2026-09-28T10:00:00'), sess('c', '2026-09-30T10:00:00')];
+    const p = computeProgress({ profileId: P, attempts: [], sessions: s, redemptions: [freeze('2026-09-30T15:00:00')], topics, settings: DEFAULT_SETTINGS, now: Date.parse('2026-10-01T09:00:00') });
+    expect(p.streak).toBe(1);
+    expect(p.freezes).toBe(1);
+    expect(p.streakAtRisk).toBe(true);
+  });
+
+  it('premia za kamień milowy serii (3 dni)', () => {
+    const s3 = [sess('a', '2026-09-28T10:00:00'), sess('b', '2026-09-29T10:00:00'), sess('c', '2026-09-30T10:00:00')];
+    const p2 = progress([], s3.slice(0, 2), '2026-09-29T18:00:00');
+    const p3 = progress([], s3, '2026-09-30T18:00:00');
+    expect(p3.coins - p2.coins).toBe(5 + 10);
+  });
+});
+
+describe('poziomy tematów i test na start', () => {
+  const diag = (id: string, at: string, end: string): Session => ({ ...sess(id, at), mode: 'diagnostic', endedAt: end, topicIds: [noun.id] });
+
+  it('3 z 3 w teście na start → temat od razu „Biegły”', () => {
+    const a = [0, 1, 2].map((i) => att(noun, i, true, `2026-10-01T10:00:0${i}`, 'd1'));
+    const p = progress(a, [diag('d1', '2026-10-01T10:00:00', '2026-10-01T10:05:00')], '2026-10-01T12:00:00');
+    const t = p.topics.get(noun.id)!;
+    expect(t.level).toBe(3);
+    expect(t.placed).toBe(true);
+    expect(t.seen).toBe(3);
+    expect(t.newCount).toBe(0);
+    expect(t.dueCount).toBe(0);
+    expect(p.exams[0]).toMatchObject({ mode: 'diagnostic', correct: 3, total: 3, grade: 6 });
+  });
+
+  it('2 z 3 — bez zaliczenia', () => {
+    const a = [att(noun, 0, true, '2026-10-01T10:00:00', 'd1'), att(noun, 1, true, '2026-10-01T10:00:01', 'd1'), att(noun, 2, false, '2026-10-01T10:00:02', 'd1')];
+    const p = progress(a, [diag('d1', '2026-10-01T10:00:00', '2026-10-01T10:05:00')], '2026-10-01T12:00:00');
+    expect(p.topics.get(noun.id)!.level).toBe(1);
+    expect(p.topics.get(noun.id)!.placed).toBe(false);
+  });
+
+  it('poziom spada po błędach', () => {
+    const ok = noun.exercises.map((_, i) => att(noun, i, true, `2026-10-01T10:00:${String(10 + i).padStart(2, '0')}`));
+    expect(progress(ok, [], '2026-10-01T12:00:00').topics.get(noun.id)!.level).toBe(2);
+    const bad = [0, 1, 2].map((i) => att(noun, i, false, `2026-10-01T11:00:0${i}`, 's2'));
+    expect(progress([...ok, ...bad], [], '2026-10-01T12:00:00').topics.get(noun.id)!.level).toBe(1);
+  });
+
+  it('cel tygodnia: 4 dni nauki i 2 tematy na wyższym poziomie', () => {
+    const verb = topics.find((t) => t.id === 'b-czasownik')!;
+    const a = [...noun.exercises.map((_, i) => att(noun, i, true, `2026-09-28T10:${String(i).padStart(2, '0')}:00`)), ...verb.exercises.map((_, i) => att(verb, i, true, `2026-09-28T11:${String(i).padStart(2, '0')}:00`))];
+    const s = ['2026-09-28', '2026-09-29', '2026-09-30', '2026-10-01'].map((d, i) => sess(`w${i}`, `${d}T10:00:00`));
+    const p = progress(a, s, '2026-10-01T18:00:00');
+    expect(p.week).toMatchObject({ start: '2026-09-28', days: 4, levelUps: 2, done: true });
+    expect(p.weeksDone).toBe(1);
+    expect(p.badges.find((b) => b.id === 'week')?.earned).toBe(true);
+  });
+});
+
+describe('oceny, Błyskawica, cel rodziny, kolejki', () => {
+  it('skala ocen', async () => {
+    const { schoolGrade } = await import('../src/engine');
+    expect([15, 14, 13, 11, 8, 5, 4].map((c) => schoolGrade(c, 15))).toEqual([6, 5, 5, 4, 3, 2, 1]);
+  });
+
+  it('Błyskawica: monety za ukończenie 3 razy dziennie, premia za rekord', () => {
+    const s = [6, 8, 7, 9].map((c, i): Session => ({ ...sess(`sp${i}`, `2026-10-01T10:0${i}:00`), mode: 'sprint', genId: 'mul', correct: c, answered: c }));
+    const p = progress([], s, '2026-10-01T12:00:00');
+    expect(p.coins).toBe(3 * 5 + 3 * 10);
+    expect(p.sprintBest.get('mul')).toBe(9);
+  });
+
+  it('cel rodziny liczy dobre odpowiedzi rodzeństwa (bez poprawek i Błyskawicy)', async () => {
+    const { familyGoalProgress } = await import('../src/engine');
+    const goal = { id: 'g', title: 'Kino', target: 3, startAt: '2026-10-01T00:00:00' };
+    const a: Attempt[] = [
+      { ...att(noun, 0, true, '2026-10-01T10:00:00'), profileId: 'a' },
+      { ...att(noun, 1, true, '2026-10-01T10:00:01'), profileId: 'b' },
+      { ...att(noun, 2, true, '2026-10-01T10:00:02', 's1', true), profileId: 'b' },
+      { ...att(noun, 3, true, '2026-09-30T10:00:00'), profileId: 'a' },
+      { ...att(noun, 4, true, '2026-10-01T10:00:03', 'spr'), profileId: 'a' },
+    ];
+    const r = familyGoalProgress(goal, a, [{ ...sess('spr', '2026-10-01T10:00:00'), mode: 'sprint' }], ['a', 'b']);
+    expect(r.total).toBe(2);
+    expect(r.per.get('a')).toBe(1);
+    expect(r.done).toBe(false);
+  });
+
+  it('sprawdzian bierze zadania po równo z tematów; test na start po 3 z nieruszonych', async () => {
+    const { buildExamQueue, buildDiagnosticQueue } = await import('../src/engine');
+    const verb = topics.find((t) => t.id === 'b-czasownik')!;
+    const q = buildExamQueue([noun, verb], 10);
+    expect(q).toHaveLength(10);
+    expect(q.filter((x) => x.topicId === noun.id)).toHaveLength(5);
+    const p = progress([att(noun, 0, true, '2026-10-01T10:00:00')], [], '2026-10-01T12:00:00');
+    const pl = topics.filter((t) => t.subject === 'pl' && t.grades?.includes(3));
+    const d = buildDiagnosticQueue(pl, p);
+    expect(d.some((x) => x.topicId === noun.id)).toBe(false);
+    expect(new Set(d.map((x) => x.topicId)).size * 3).toBe(d.length);
+  });
+});

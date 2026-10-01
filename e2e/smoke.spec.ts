@@ -50,7 +50,7 @@ test('pełna ścieżka: profil → przedmiot → ćwiczenie → podsumowanie →
   await snap(page, '02-start-wyspy');
 
   // Przedmiot → temat → ćwiczenie
-  await page.getByRole('button', { name: /Język polski/ }).click();
+  await page.locator('.subject-big', { hasText: 'Język polski' }).click();
   await expect(page.getByRole('heading', { name: 'Wyspa Polskiego' })).toBeVisible();
   await page.waitForTimeout(300);
   await snap(page, '02b-subject-wyspy');
@@ -106,7 +106,7 @@ test('pełna ścieżka: profil → przedmiot → ćwiczenie → podsumowanie →
     await page.getByRole('dialog').getByRole('button', { name: new RegExp(name) }).click();
     await page.waitForTimeout(500);
     await snap(page, `08-start-${file}`);
-    await page.getByRole('button', { name: /Matematyka/ }).click();
+    await page.locator('.subject-big', { hasText: 'Matematyka' }).click();
     await page.waitForTimeout(300);
     await snap(page, `08b-subject-${file}`);
     await page.getByRole('button', { name: 'Wróć', exact: true }).click();
@@ -114,7 +114,7 @@ test('pełna ścieżka: profil → przedmiot → ćwiczenie → podsumowanie →
   // Ćwiczenie w stylu Pixel
   await page.getByRole('button', { name: 'Wygląd' }).click();
   await page.getByRole('dialog').getByRole('button', { name: /Pixel Quest/ }).click();
-  await page.getByRole('button', { name: /Język polski/ }).click();
+  await page.locator('.subject-big', { hasText: 'Język polski' }).click();
   await page.getByRole('button', { name: /GRAJ/ }).last().click();
   if (await page.getByRole('dialog').count()) await page.getByRole('dialog').getByRole('button', { name: /GRAJ/ }).click();
   await answerAny(page);
@@ -154,13 +154,13 @@ test('pełna ścieżka: profil → przedmiot → ćwiczenie → podsumowanie →
   await page.getByRole('button', { name: 'Wyjdź' }).click();
 
   // Nowy temat widoczny dla ucznia
-  await page.getByRole('button', { name: /Język polski/ }).click();
+  await page.locator('.subject-big', { hasText: 'Język polski' }).click();
   await expect(page.getByText('Test: czasowniki').first()).toBeVisible();
 
   // Dane przetrwały przeładowanie (IndexedDB)
   await page.reload();
   await expect(page.getByText('Cześć, Kuba!')).toBeVisible();
-  await page.getByRole('button', { name: /Język polski/ }).click();
+  await page.locator('.subject-big', { hasText: 'Język polski' }).click();
   await expect(page.getByText('Test: czasowniki').first()).toBeVisible();
 
   expect(errors.filter((e) => !/favicon|manifest/i.test(e))).toEqual([]);
@@ -174,7 +174,7 @@ test('dwie osoby: każda ma swoją klasę, tematy i postępy', async ({ page }) 
   await expect(page.getByText('Cześć, Kuba!')).toBeVisible();
 
   // Kuba robi jedno ćwiczenie z matematyki
-  await page.getByRole('button', { name: /Matematyka/ }).click();
+  await page.locator('.subject-big', { hasText: 'Matematyka' }).click();
   await expect(page.getByText('Mnożenie przez 6 i 7').first()).toBeVisible();
   await expect(page.getByText('Ułamki: skracanie i rozszerzanie')).toHaveCount(0);
   await page.getByRole('button', { name: 'Wróć', exact: true }).click();
@@ -188,12 +188,12 @@ test('dwie osoby: każda ma swoją klasę, tematy i postępy', async ({ page }) 
   await page.getByRole('button', { name: 'Dodaj', exact: true }).click();
   await expect(page.getByText('Cześć, Ola!')).toBeVisible();
   await snap(page, '15-start-ola');
-  await page.getByRole('button', { name: /Matematyka/ }).click();
+  await page.locator('.subject-big', { hasText: 'Matematyka' }).click();
   await expect(page.getByText('Ułamki: skracanie i rozszerzanie').first()).toBeVisible();
   await expect(page.getByText('Mnożenie przez 6 i 7')).toHaveCount(0);
   await snap(page, '16-subject-ola-mat');
   await page.getByRole('button', { name: 'Wróć', exact: true }).click();
-  await page.getByRole('button', { name: /Język polski/ }).click();
+  await page.locator('.subject-big', { hasText: 'Język polski' }).click();
   await expect(page.getByText('Przypadki rzeczownika').first()).toBeVisible();
   await expect(page.getByText('Rzeczownik — kto? co?')).toHaveCount(0);
 

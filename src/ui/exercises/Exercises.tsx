@@ -1,6 +1,7 @@
-import { Fragment, useMemo, useRef, useState } from 'react';
-import type { ChoiceExercise, Exercise, FillExercise, MatchExercise, SortExercise, TapExercise } from '../../types';
-import { isFillAnswerCorrect } from '../../dsl';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
+import type { ChoiceExercise, DictationExercise, Exercise, FillExercise, MatchExercise, SortExercise, TapExercise } from '../../types';
+import { dictationText, isFillAnswerCorrect, maskSpelling } from '../../dsl';
+import { hasPolishVoice, speak } from '../../speech';
 import { plural } from '../../themes';
 import { Icon } from '../icons';
 import { seededOrder, type Answer } from './logic';
@@ -63,7 +64,8 @@ export function ExerciseView(p: Props<Exercise, Answer>) {
     case 'sort':
       return <Sort {...(p as unknown as Props<SortExercise, (number | null)[]>)} />;
     case 'fill':
-      return <Fill {...(p as unknown as Props<FillExercise, string[]>)} />;
+    case 'dictation':
+      return <Fill {...(p as unknown as Props<FillExercise | DictationExercise, string[]>)} />;
     case 'match':
       return <Match {...(p as unknown as Props<MatchExercise, number[]>)} />;
   }
@@ -287,9 +289,48 @@ const coarsePointer = () => typeof matchMedia !== 'undefined' && matchMedia('(po
 
 type Slot = { gap: number; part: 'x' | 'n' | 'd' };
 
-function Fill({ ex, answer, setAnswer, reveal, hint, onEnter }: Props<FillExercise, string[]>) {
+/** Głosy w przeglądarce ładują się asynchronicznie — odświeżamy, gdy się pojawią. */
+function usePolishVoice(): boolean {
+  const [ok, setOk] = useState(hasPolishVoice);
+  useEffect(() => {
+    if (ok || typeof speechSynthesis === 'undefined') return;
+    const on = () => setOk(hasPolishVoice());
+    speechSynthesis.addEventListener('voiceschanged', on);
+    const t = setTimeout(on, 1500);
+    return () => {
+      speechSynthesis.removeEventListener('voiceschanged', on);
+      clearTimeout(t);
+    };
+  }, [ok]);
+  return ok;
+}
+
+function Listen({ ex, voice }: { ex: DictationExercise; voice: boolean }) {
+  const text = dictationText(ex.parts);
+  useEffect(() => {
+    // Próba odczytu od razu (na iPadzie może wymagać stuknięcia — wtedy działa przycisk).
+    const t = setTimeout(() => speak(text), 250);
+    return () => clearTimeout(t);
+  }, [text]);
+  return (
+    <div className="listen">
+      <button type="button" className="btn btn-primary btn-lg listen-btn" onClick={() => speak(text)}>
+        <Icon name="volume" size={30} /> Posłuchaj
+      </button>
+      <button type="button" className="btn" onClick={() => speak(text, 0.6)}>
+        Wolniej
+      </button>
+      {!voice && <p className="muted listen-note">To urządzenie nie ma polskiego głosu — w lukach widać wyraz z ukrytymi trudnymi literami.</p>}
+    </div>
+  );
+}
+
+function Fill({ ex, answer, setAnswer, reveal, hint, onEnter }: Props<FillExercise | DictationExercise, string[]>) {
+  const dictation = ex.type === 'dictation';
+  const voice = usePolishVoice();
+  const maskAlways = dictation && !voice;
   const gaps = ex.parts.filter((p): p is string[] => Array.isArray(p));
-  const mathy = gaps.every((g) => g.every(isMathAnswer));
+  const mathy = !dictation && gaps.every((g) => g.every(isMathAnswer));
   const hasComma = gaps.some((g) => g.some((a) => a.includes(',')));
   const hasSlash = gaps.some((g, i) => !isFracGap(g) && g.some((a) => a.includes('/'))) && !gaps.every(isFracGap);
   const slotOrder: Slot[] = gaps.flatMap((g, i): Slot[] => (isFracGap(g) ? [{ gap: i, part: 'n' }, { gap: i, part: 'd' }] : [{ gap: i, part: 'x' }]));
@@ -394,7 +435,8 @@ function Fill({ ex, answer, setAnswer, reveal, hint, onEnter }: Props<FillExerci
   let gi = -1;
   return (
     <>
-      <p className="fill-text">
+      {ex.type === 'dictation' && <Listen ex={ex} voice={voice} />}
+      <p className={`fill-text ${dictation ? 'dictation-text' : ''}`}>
         {ex.parts.map((p, k) => {
           if (!Array.isArray(p)) return <Fragment key={k}>{withFractions(p)}</Fragment>;
           gi++;
@@ -417,7 +459,13 @@ function Fill({ ex, answer, setAnswer, reveal, hint, onEnter }: Props<FillExerci
           return (
             <Fragment key={k}>
               {reveal && ok === false && <span className="fix">{withFractions(p[0])}</span>}
-              {input({ gap: i, part: 'x' }, p, Math.max(3, Math.max(...p.map((a) => a.length)) + 1), cls, hint ? p[0].slice(0, 1) + '…' : '')}
+              {input(
+                { gap: i, part: 'x' },
+                p,
+                dictation ? Math.max(8, p[0].length + 3) : Math.max(3, Math.max(...p.map((a) => a.length)) + 1),
+                cls,
+                dictation ? (hint || maskAlways ? maskSpelling(p[0]) : '') : hint ? p[0].slice(0, 1) + '…' : '',
+              )}
             </Fragment>
           );
         })}

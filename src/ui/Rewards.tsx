@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { askConfirm } from './dialogs';
 import { nowIso, store, uid } from '../data/store';
+import { FREEZE_COST, FREEZE_ID, FREEZE_MAX } from '../engine';
 import { coinText, plural } from '../themes';
 import { useApp, useProgress } from './hooks';
 import { Icon } from './icons';
@@ -51,6 +52,13 @@ export function Rewards() {
 
   const setAvatar = (emoji: string) => void store.put('profile', { ...profile, avatar: emoji, updatedAt: nowIso() });
 
+  const buyFreeze = async () => {
+    if (progress.coins < FREEZE_COST || progress.freezes >= FREEZE_MAX) return;
+    if (!(await askConfirm(`Kupić zamrożenie serii za ${coinText(FREEZE_COST, theme)}?`, { ok: 'Kupuję' }))) return;
+    await store.put('redemption', { id: uid(), profileId: profile.id, rewardId: FREEZE_ID, title: 'Zamrożenie serii', cost: FREEZE_COST, status: 'approved', real: false, at: nowIso(), decidedAt: nowIso() });
+    toast('Zamrożenie gotowe! Uratuje serię, gdy opuścisz dzień.');
+  };
+
   return (
     <>
       <TopBar back={() => go({ name: 'home' })} />
@@ -78,6 +86,27 @@ export function Rewards() {
 
         {tab === 'shop' && (
           <>
+            <section className="card freeze-card">
+              <span className="freeze-icon" aria-hidden="true">
+                <Icon name="snowflake" size={40} />
+              </span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <b style={{ fontSize: 20 }}>Zamrożenie serii</b>
+                <p className="muted" style={{ fontWeight: 700, fontSize: 15 }}>
+                  Gdy jednego dnia nie poćwiczysz, zamrożenie uratuje Twoją serię ({progress.streak} {plural(progress.streak, ['dzień', 'dni', 'dni'])}). Możesz mieć najwyżej {FREEZE_MAX}.
+                </p>
+                <div className="freeze-slots" aria-label={`Masz ${progress.freezes} z ${FREEZE_MAX}`}>
+                  {Array.from({ length: FREEZE_MAX }, (_, i) => (
+                    <span key={i} className={i < progress.freezes ? 'on' : ''}>
+                      <Icon name="snowflake" size={18} />
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <button className="btn btn-primary" disabled={progress.coins < FREEZE_COST || progress.freezes >= FREEZE_MAX} onClick={buyFreeze}>
+                {progress.freezes >= FREEZE_MAX ? 'Masz komplet' : progress.coins < FREEZE_COST ? `Brakuje ${FREEZE_COST - progress.coins}` : `Kup za ${FREEZE_COST}`}
+              </button>
+            </section>
             <h2 style={{ fontSize: 22 }}>Prawdziwe nagrody</h2>
             {settings.rewards.length === 0 ? (
               <p className="muted" style={{ fontWeight: 700 }}>

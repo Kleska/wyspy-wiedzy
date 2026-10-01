@@ -28,7 +28,7 @@ test('sortowanie (przeciąganie), luki i pary działają i dają poprawny wynik'
   await page.getByRole('button', { name: 'Zapisz' }).click();
   await page.getByRole('button', { name: 'Wyjdź' }).click();
 
-  await page.getByRole('button', { name: /Język polski/ }).click();
+  await page.locator('.subject-big', { hasText: 'Język polski' }).click();
   await page.getByRole('button', { name: /Test typów/ }).first().click();
   await page.getByRole('dialog').getByRole('button', { name: /Graj!/ }).click();
 
@@ -100,7 +100,7 @@ test('zadania liczbowe: klawiatura z cyframi i ułamek piętrowy zamiast polskic
   await page.locator('textarea.textarea').fill('wpisz: Skróć ułamek. >> 6/8 = [3/4]\nwpisz: Oblicz. >> 2,5 + 1,25 = [3,75]');
   await page.getByRole('button', { name: 'Zapisz' }).click();
   await page.getByRole('button', { name: 'Wyjdź' }).click();
-  await page.getByRole('button', { name: /Matematyka/ }).click();
+  await page.locator('.subject-big', { hasText: 'Matematyka' }).click();
   await page.getByRole('button', { name: /Test liczb/ }).first().click();
   await page.getByRole('dialog').getByRole('button', { name: /Graj!/ }).click();
 

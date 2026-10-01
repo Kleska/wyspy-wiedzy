@@ -56,15 +56,26 @@ export async function generateWithAi(req: AiRequest, pin: string): Promise<AiRes
   throw new Error('AI nie jest skonfigurowane.');
 }
 
-/** Rozpoznaje odpowiedź wklejoną z czatu Claude (TYTUŁ/ZASADA + linie zadań). */
+const TASK_LINE = /^(wybierz|kliknij|sortuj|wpisz|pary|dyktando)\s*:/i;
+
+/** Rozpoznaje odpowiedź wklejoną z czatu Claude (TYTUŁ/ZASADA/ŚCIĄGA + linie zadań). */
 export function parsePastedAnswer(text: string): AiResult {
   const title = text.match(/^\s*TYTU[ŁL]\s*:\s*(.+)$/im)?.[1]?.trim() ?? '';
   const description = text.match(/^\s*ZASADA\s*:\s*(.+)$/im)?.[1]?.trim() ?? '';
-  const lines = text
-    .split(/\r?\n/)
-    .map((l) => l.trim())
-    .filter((l) => /^(wybierz|kliknij|sortuj|wpisz|pary)\s*:/i.test(l));
-  return { title, description, dsl: lines.join('\n') };
+  const all = text.split(/\r?\n/).map((l) => l.trim());
+  const lines = all.filter((l) => TASK_LINE.test(l));
+  // Ściąga: od „ŚCIĄGA:” do bloku kodu albo pierwszej linii z zadaniem.
+  const guide: string[] = [];
+  const start = all.findIndex((l) => /^\**\s*[ŚS]CI[ĄA]GA\s*:?/i.test(l));
+  if (start >= 0) {
+    const first = all[start].replace(/^\**\s*[ŚS]CI[ĄA]GA\s*:?\**\s*/i, '');
+    if (first) guide.push(first);
+    for (const l of all.slice(start + 1)) {
+      if (l.startsWith('```') || TASK_LINE.test(l) || /^(TYTU[ŁL]|ZASADA)\s*:/i.test(l)) break;
+      if (l) guide.push(l);
+    }
+  }
+  return { title, description, guide: guide.join('\n') || undefined, dsl: lines.join('\n') };
 }
 
 /** Zmniejsza zdjęcie (dłuższy bok ≤ 1600 px) i zwraca JPEG w base64. */

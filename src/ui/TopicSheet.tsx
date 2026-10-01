@@ -1,31 +1,12 @@
-import { useEffect } from 'react';
 import { subjectOf } from '../content/seed';
 import { store } from '../data/store';
-import { speak } from '../speech';
+import { LEVEL_NAMES } from '../engine';
 import { plural } from '../themes';
-import { useApp, useProgress } from './hooks';
+import { GuideCard, LevelChip, LevelSteps, Modal } from './bits';
+import { practice, useApp, useProgress } from './hooks';
 import { Icon, Stars } from './icons';
 
-export function Modal({ title, onClose, children, wide }: { title: string; onClose: () => void; children: React.ReactNode; wide?: boolean }) {
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
-  return (
-    <div className="modal-backdrop" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className={`modal ${wide ? 'modal-wide' : ''}`} role="dialog" aria-modal="true" aria-label={title}>
-        <div className="modal-head">
-          <h2>{title}</h2>
-          <button className="btn icon-btn" onClick={onClose} aria-label="Zamknij">
-            <Icon name="x" />
-          </button>
-        </div>
-        {children}
-      </div>
-    </div>
-  );
-}
+export { Modal };
 
 export function TopicSheet({ topicId, onClose }: { topicId: string; onClose: () => void }) {
   const { profile, theme, go } = useApp();
@@ -33,21 +14,35 @@ export function TopicSheet({ topicId, onClose }: { topicId: string; onClose: () 
   const topic = store.topicsFor(profile.id).find((t) => t.id === topicId);
   if (!topic) return null;
   const s = progress.topics.get(topic.id);
+  const level = s?.level ?? 0;
   const n = Math.min(store.settings.sessionLength, topic.exercises.length);
+  const testN = Math.min(10, topic.exercises.length);
+  const inPlan = !!profile.plan?.topicIds.includes(topic.id);
   return (
     <Modal title={topic.title} onClose={onClose}>
       <div className="row" style={{ justifyContent: 'space-between', flexWrap: 'wrap' }}>
-        <span className="label">{subjectOf(topic.subject).name}</span>
+        <span className="label">
+          {subjectOf(topic.subject).name}
+          {inPlan ? ' · w planie od rodzica' : ''}
+        </span>
         <Stars n={s?.stars ?? 0} size={26} />
       </div>
-      {topic.description && (
-        <div className="hint-box">
-          <Icon name="book" />
-          <span style={{ flex: 1 }}>{topic.description}</span>
-          <button className="btn icon-btn btn-sm" onClick={() => speak(topic.description!)} aria-label="Przeczytaj zasadę na głos">
-            <Icon name="volume" size={20} />
-          </button>
-        </div>
+      <div className="level-line">
+        <LevelChip level={level} />
+        <LevelSteps level={level} />
+        {s?.placed && <span className="muted" style={{ fontSize: 14, fontWeight: 700 }}>zaliczony testem</span>}
+      </div>
+      {level === 0 ? (
+        <GuideCard description={topic.description} guide={topic.guide} />
+      ) : (
+        (topic.guide || topic.description) && (
+          <details className="guide-details">
+            <summary>
+              <Icon name="book" size={20} /> Ściąga
+            </summary>
+            <GuideCard description={topic.description} guide={topic.guide} />
+          </details>
+        )
       )}
       <div className="stat-tiles">
         <div className="stat-tile">
@@ -64,11 +59,19 @@ export function TopicSheet({ topicId, onClose }: { topicId: string; onClose: () 
         </div>
       </div>
       <p className="muted" style={{ fontWeight: 700, fontSize: 14 }}>
-        Gwiazdki rosną, gdy odpowiadasz dobrze kilka dni z rzędu — tak mózg zapamiętuje najlepiej.
+        Poziomy: {LEVEL_NAMES.slice(1).join(' → ')}. Rosną, gdy odpowiadasz dobrze kilka dni z rzędu, a spadają, gdy coś się zapomina.
       </p>
-      <button className="btn btn-primary btn-lg btn-block" onClick={() => go({ name: 'practice', topicId: topic.id, nonce: Date.now() })}>
+      <button className="btn btn-primary btn-lg btn-block" onClick={() => go(practice({ kind: 'topic', topicId: topic.id }))}>
         {theme.start} ({n} {plural(n, ['zadanie', 'zadania', 'zadań'])})
       </button>
+      {testN >= 5 && (
+        <button
+          className="btn btn-block"
+          onClick={() => go(practice({ kind: 'test', topicIds: [topic.id], title: `Sprawdzian: ${topic.title}`, subjectId: topic.subject, count: testN }))}
+        >
+          <Icon name="test" /> Sprawdzian z tego tematu ({testN} pytań)
+        </button>
+      )}
     </Modal>
   );
 }

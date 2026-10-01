@@ -1,6 +1,6 @@
 // ─── Ćwiczenia ────────────────────────────────────────────────────────────────
 
-export type ExerciseType = 'choice' | 'tap' | 'sort' | 'fill' | 'match';
+export type ExerciseType = 'choice' | 'tap' | 'sort' | 'fill' | 'match' | 'dictation';
 
 interface ExerciseBase {
   id: string;
@@ -45,7 +45,16 @@ export interface MatchExercise extends ExerciseBase {
   pairs: [string, string][];
 }
 
-export type Exercise = ChoiceExercise | TapExercise | SortExercise | FillExercise | MatchExercise;
+/**
+ * Dyktando: aplikacja czyta cały tekst na głos (z odpowiedziami), a dziecko wpisuje
+ * brakujące wyrazy. Budowa jak w uzupełnianiu luk.
+ */
+export interface DictationExercise extends ExerciseBase {
+  type: 'dictation';
+  parts: (string | string[])[];
+}
+
+export type Exercise = ChoiceExercise | TapExercise | SortExercise | FillExercise | MatchExercise | DictationExercise;
 
 // ─── Tematy ───────────────────────────────────────────────────────────────────
 
@@ -55,8 +64,10 @@ export interface Topic {
   id: string;
   subject: string;
   title: string;
-  /** Krótka zasada / ściągawka pokazywana przed ćwiczeniem. */
+  /** Krótka zasada (1–2 zdania) — podpowiedź w trakcie ćwiczenia. */
   description?: string;
+  /** Ściąga: dłuższe wyjaśnienie z przykładami, pokazywane przed tematem i po błędzie. */
+  guide?: string;
   order: number;
   source: TopicSource;
   /** Dla których klas (puste/brak = dla wszystkich). */
@@ -102,13 +113,26 @@ export interface Attempt {
   hint: boolean;
   ms: number;
   at: string;
+  /** Co dziecko odpowiedziało (zapisujemy tylko błędne odpowiedzi — do raportu dla rodzica). */
+  answer?: string;
 }
+
+/**
+ * topic — ćwiczenie tematu, review — powtórka, test — sprawdzian z oceną,
+ * diagnostic — test na start, gen — trening bez końca (zadania losowane),
+ * fix — poprawa błędów ze sprawdzianu, sprint — Błyskawica (60 sekund).
+ */
+export type SessionMode = 'topic' | 'review' | 'test' | 'diagnostic' | 'gen' | 'fix' | 'sprint';
 
 export interface Session {
   id: string;
   profileId: string;
   topicId: string | null;
-  mode: 'topic' | 'review';
+  mode: SessionMode;
+  /** Tematy sprawdzianu / testu na start. */
+  topicIds?: string[];
+  /** Generator zadań (trening bez końca, Błyskawica). */
+  genId?: string;
   startedAt: string;
   endedAt: string | null;
   activeSeconds: number;
@@ -151,8 +175,28 @@ export interface Profile {
   deleted?: boolean;
   /** Postępy liczone od tej chwili („Zacznij od nowa”). */
   resetAt?: string;
+  /** Plan od rodzica: tematy na najbliższy czas (np. przed sprawdzianem). */
+  plan?: Plan | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface Plan {
+  topicIds: string[];
+  /** Termin (RRRR-MM-DD), np. dzień sprawdzianu w szkole. */
+  until?: string;
+  /** Np. „Sprawdzian z ułamków”. */
+  title?: string;
+  setAt: string;
+}
+
+/** Wspólny cel rodzeństwa: razem zbierają dobre odpowiedzi na jedną nagrodę. */
+export interface FamilyGoal {
+  id: string;
+  title: string;
+  /** Ile dobrych odpowiedzi trzeba zebrać razem. */
+  target: number;
+  startAt: string;
 }
 
 export interface Settings {
@@ -165,6 +209,7 @@ export interface Settings {
   sounds: boolean;
   hiddenBuiltins: string[];
   rewards: Reward[];
+  familyGoal?: FamilyGoal | null;
   updatedAt: string;
 }
 

@@ -18,12 +18,18 @@ export function canSpeak() {
   return typeof speechSynthesis !== 'undefined';
 }
 
-export function speak(text: string) {
+/** Czy przeglądarka ma polski głos (bez niego dyktando pokazuje wyraz z ukrytymi literami). */
+export function hasPolishVoice(): boolean {
+  if (!canSpeak()) return false;
+  return !!(voice ?? pickVoice());
+}
+
+export function speak(text: string, rate = 0.92) {
   if (!canSpeak() || !text.trim()) return;
   speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(text);
   u.lang = 'pl-PL';
-  u.rate = 0.92;
+  u.rate = rate;
   const v = voice ?? pickVoice();
   if (v) u.voice = v;
   speechSynthesis.speak(u);

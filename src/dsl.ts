@@ -8,6 +8,7 @@ import type { DslError, Exercise, ExerciseType } from './types';
  *   sortuj:  Polecenie >> rzeczownik = kot, dom ; czasownik = biega, pisze
  *   wpisz:   Polecenie >> Wczoraj Ola [czytała|przeczytała] książkę.
  *   pary:    Polecenie >> ja = piszę ; ty = piszesz ; oni = piszą
+ *   dyktando: Polecenie >> Latem jedziemy nad [morze].   (aplikacja czyta całe zdanie na głos)
  *
  * Linie zaczynające się od # to komentarze. Część „>> …” w „wybierz” jest opcjonalna,
  * „!! …” (wyjaśnienie) wszędzie jest opcjonalne.
@@ -19,11 +20,13 @@ const KEYWORDS: Record<string, ExerciseType> = {
   sortuj: 'sort',
   wpisz: 'fill',
   pary: 'match',
+  dyktando: 'dictation',
   choice: 'choice',
   tap: 'tap',
   sort: 'sort',
   fill: 'fill',
   match: 'match',
+  dictation: 'dictation',
 };
 
 const TYPE_KEYWORD: Record<ExerciseType, string> = {
@@ -32,6 +35,7 @@ const TYPE_KEYWORD: Record<ExerciseType, string> = {
   sort: 'sortuj',
   fill: 'wpisz',
   match: 'pary',
+  dictation: 'dyktando',
 };
 
 export const TYPE_LABEL: Record<ExerciseType, string> = {
@@ -40,6 +44,7 @@ export const TYPE_LABEL: Record<ExerciseType, string> = {
   sort: 'Sortowanie',
   fill: 'Uzupełnianie luk',
   match: 'Łączenie w pary',
+  dictation: 'Dyktando',
 };
 
 /** FNV-1a 32-bit → base36. Stabilny identyfikator zadania z jego treści. */
@@ -92,9 +97,9 @@ export function parseLine(raw: string, lineNo: number, idPrefix = ''): { ex?: Ex
   const text = raw.trim();
   const fail = (message: string) => ({ error: { line: lineNo, text, message } });
   const kw = text.match(/^([a-ząćęłńóśźż]+)\s*:\s*/i);
-  if (!kw) return fail('Linia musi zaczynać się od typu: wybierz:, kliknij:, sortuj:, wpisz: albo pary:');
+  if (!kw) return fail('Linia musi zaczynać się od typu: wybierz:, kliknij:, sortuj:, wpisz:, pary: albo dyktando:');
   const type = KEYWORDS[kw[1].toLowerCase()];
-  if (!type) return fail(`Nieznany typ „${kw[1]}”. Użyj: wybierz, kliknij, sortuj, wpisz, pary.`);
+  if (!type) return fail(`Nieznany typ „${kw[1]}”. Użyj: wybierz, kliknij, sortuj, wpisz, pary, dyktando.`);
   let rest = text.slice(kw[0].length);
 
   let explain: string | undefined;
@@ -158,7 +163,7 @@ export function parseLine(raw: string, lineNo: number, idPrefix = ''): { ex?: Ex
     return { ex: { id, type, prompt: prompt.trim(), categories, items, explain } };
   }
 
-  if (type === 'fill') {
+  if (type === 'fill' || type === 'dictation') {
     const parts: (string | string[])[] = [];
     const re = /\[([^\]]*)\]/g;
     let last = 0;
@@ -233,6 +238,7 @@ export function exerciseToDsl(ex: Exercise): string {
       return `${kw}: ${ex.prompt} >> ${groups.join(' ; ')}${tail}`;
     }
     case 'fill':
+    case 'dictation':
       return `${kw}: ${ex.prompt} >> ${ex.parts.map((p) => (Array.isArray(p) ? `[${p.join('|')}]` : p)).join('')}${tail}`;
     case 'match':
       return `${kw}: ${ex.prompt} >> ${ex.pairs.map(([l, r]) => `${l} = ${r}`).join(' ; ')}${tail}`;
@@ -266,10 +272,24 @@ export function speakableSentence(s: string): string {
   return s.replace(/[{}]/g, '').replace(/_{2,}/g, ' … ');
 }
 
+/** Pełny tekst dyktanda (z pierwszą akceptowaną odpowiedzią w każdej luce) — do czytania na głos. */
+export function dictationText(parts: (string | string[])[]): string {
+  return parts.map((p) => (Array.isArray(p) ? p[0] : p)).join('');
+}
+
+/**
+ * Podpowiedź do dyktanda: wyraz z ukrytymi „trudnymi” miejscami (ó/u, rz/ż, ch/h),
+ * np. „żaba” → „_aba”, „ogórek” → „og_rek”. Dziecko widzi wyraz, ale samo decyduje o pisowni.
+ */
+export function maskSpelling(word: string): string {
+  return word.replace(/rz|ch|ó|u|ż|h/gi, '_');
+}
+
 export const DSL_HELP = `# Każde zadanie w jednej linii. Linie z # to komentarze.
 wybierz: Które słowo jest czasownikiem? | *biega | kot | szybki | bardzo !! Biega — co robi? To czasownik.
 wybierz: W jakim czasie jest czasownik? >> Wczoraj {pojechałem} rowerem. | *przeszłym | teraźniejszym | przyszłym
 kliknij: Kliknij wszystkie czasowniki. >> Kasia *śpiewa* i *tańczy*.
 sortuj: Posegreguj słowa. >> rzeczownik = kot, dom ; czasownik = biega, pisze
 wpisz: Uzupełnij. >> Wczoraj Ola [czytała|przeczytała] książkę.
-pary: Połącz osobę z czasownikiem. >> ja = piszę ; ty = piszesz ; oni = piszą`;
+pary: Połącz osobę z czasownikiem. >> ja = piszę ; ty = piszesz ; oni = piszą
+dyktando: Posłuchaj i wpisz brakujący wyraz. >> Latem jedziemy nad [morze].`;

@@ -15,6 +15,7 @@ export interface EditorSeed {
   title: string;
   subject: string;
   description: string;
+  guide?: string;
   dsl: string;
   source: TopicSource;
   grades?: number[];
@@ -116,7 +117,7 @@ export function ParentTopics({ onEdit }: { onEdit: (s: EditorSeed) => void }) {
                               <button
                                 className="btn btn-sm"
                                 onClick={() =>
-                                  onEdit({ title: `${t.title} (moja wersja)`, subject: t.subject, description: t.description ?? '', dsl: t.dsl, source: 'manual', grades: t.grades })
+                                  onEdit({ title: `${t.title} (moja wersja)`, subject: t.subject, description: t.description ?? '', guide: t.guide, dsl: t.dsl, source: 'manual', grades: t.grades })
                                 }
                               >
                                 <Icon name="copy" size={16} /> Kopiuj i zmień
@@ -126,7 +127,7 @@ export function ParentTopics({ onEdit }: { onEdit: (s: EditorSeed) => void }) {
                             <>
                               <button
                                 className="btn btn-sm"
-                                onClick={() => onEdit({ topicId: t.id, title: t.title, subject: t.subject, description: t.description ?? '', dsl: t.dsl, source: t.source, grades: t.grades })}
+                                onClick={() => onEdit({ topicId: t.id, title: t.title, subject: t.subject, description: t.description ?? '', guide: t.guide, dsl: t.dsl, source: t.source, grades: t.grades })}
                               >
                                 <Icon name="pencil" size={16} /> Edytuj
                               </button>
@@ -158,6 +159,7 @@ export function TopicEditor({ seed, onClose }: { seed: EditorSeed; onClose: () =
   const [title, setTitle] = useState(seed.title);
   const [subject, setSubject] = useState(seed.subject);
   const [description, setDescription] = useState(seed.description);
+  const [guide, setGuide] = useState(seed.guide ?? '');
   const [grades, setGrades] = useState<number[]>(seed.grades ?? [...new Set(store.profiles().map((p) => p.grade ?? 3))]);
   const [dsl, setDsl] = useState(seed.dsl);
   const [target, setTarget] = useState<string>(seed.topicId ?? 'new');
@@ -186,6 +188,7 @@ export function TopicEditor({ seed, onClose }: { seed: EditorSeed; onClose: () =
       subject,
       title: title.trim(),
       description: description.trim() || undefined,
+      guide: guide.trim() || undefined,
       order: existing?.subject === subject ? existing.order : maxOrder + 10,
       source: existing?.source ?? seed.source,
       grades: grades.length ? [...grades].sort((a, b) => a - b) : undefined,
@@ -256,8 +259,18 @@ export function TopicEditor({ seed, onClose }: { seed: EditorSeed; onClose: () =
                 </div>
               </fieldset>
               <label className="field">
-                <span>Zasada / ściągawka dla dziecka (pokazuje się jako podpowiedź)</span>
-                <textarea className="input" style={{ minHeight: 80 }} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="np. Czasownik mówi, co ktoś robi. Pytamy: co robi?" />
+                <span>Zasada dla dziecka — 1–2 zdania (pokazuje się jako podpowiedź)</span>
+                <textarea className="input" style={{ minHeight: 70 }} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="np. Czasownik mówi, co ktoś robi. Pytamy: co robi?" />
+              </label>
+              <label className="field">
+                <span>Ściąga — dłuższe wyjaśnienie z przykładami (dziecko widzi ją przed tematem i po błędzie)</span>
+                <textarea
+                  className="input"
+                  style={{ minHeight: 110 }}
+                  value={guide}
+                  onChange={(e) => setGuide(e.target.value)}
+                  placeholder={'Każda myśl w nowej linii, np.\nCzasownik mówi, co ktoś robi.\nPytamy: co robi?\nPrzykład: Mama piecze ciasto. Co robi? Piecze.'}
+                />
               </label>
             </>
           ) : null}
@@ -283,6 +296,9 @@ export function TopicEditor({ seed, onClose }: { seed: EditorSeed; onClose: () =
               </p>
               <p>
                 <b>pary:</b> polecenie &gt;&gt; lewa = prawa ; lewa = prawa
+              </p>
+              <p>
+                <b>dyktando:</b> polecenie &gt;&gt; zdanie z wyrazem do wpisania w [nawiasie] — aplikacja przeczyta zdanie na głos.
               </p>
               <p>
                 Na końcu każdej linii możesz dodać wyjaśnienie po <code>!!</code> — dziecko zobaczy je po odpowiedzi.

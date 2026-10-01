@@ -16,6 +16,8 @@ export interface AiRequest {
 export interface AiResult {
   title: string;
   description: string;
+  /** Ściąga: dłuższe wyjaśnienie z przykładami. */
+  guide?: string;
   dsl: string;
 }
 
@@ -36,6 +38,9 @@ FORMAT
    W nawiasie kwadratowym WSZYSTKIE akceptowane odpowiedzi rozdzielone znakiem |. Może być kilka luk.
 5) pary: Polecenie >> lewa = prawa ; lewa = prawa ; lewa = prawa !! wyjaśnienie
    3–5 par, elementy się nie powtarzają.
+6) dyktando: Polecenie >> Zdanie z wyrazem do wpisania w [nawiasie]. !! wyjaśnienie
+   Aplikacja czyta całe zdanie na głos, a dziecko wpisuje wyraz z nawiasu. Luka nie może stać na początku zdania.
+   Wyraz musi być jednoznaczny po usłyszeniu zdania (uważaj na wyrazy brzmiące tak samo: może / morze).
 
 PRZYKŁADY
 wybierz: Które słowo jest czasownikiem? | *biega | kot | szybki | bardzo !! Biega — co robi? To czasownik.
@@ -44,6 +49,7 @@ kliknij: Kliknij wszystkie rzeczowniki. >> *Kot* śpi na *kanapie*. !! Kto śpi?
 sortuj: Posegreguj słowa. >> rzeczownik = żaba, kredka ; czasownik = rysuje, śpi ; przymiotnik = zielona, szary !! Kto? co? — rzeczownik. Co robi? — czasownik. Jaki? — przymiotnik.
 wpisz: Odmień czasownik „pisać”. >> ja piszę, ty [piszesz], oni [piszą] !! Oni piszą — na końcu „ą”.
 pary: Połącz osobę z czasownikiem. >> ja = skaczę ; ty = skaczesz ; oni = skaczą !! Końcówka pokazuje, kto skacze.
+dyktando: Posłuchaj i wpisz brakujący wyraz. >> Latem jedziemy nad [morze]. !! Morze — rz wymienia się na r: morski.
 
 ZASADY
 - Bezbłędna polszczyzna: ortografia, interpunkcja, odmiana. Sprawdź każde zadanie dwa razy, zanim je zapiszesz.
@@ -52,7 +58,9 @@ ZASADY
 - Wyjaśnienie po „!!” to jedno krótkie zdanie, które uczy, DLACZEGO tak jest (np. pytanie pomocnicze).
 - Mieszaj typy zadań, chyba że prośba mówi inaczej.
 - Wewnątrz treści nie używaj znaków | >> !! ; = inaczej niż wymaga format.
-- Pole „description” to zasada/ściągawka dla dziecka: 1–2 proste zdania.
+- Pole „description” to zasada dla dziecka: 1–2 proste zdania (pokazuje się jako podpowiedź).
+- Pole „guide” to ściąga: 3–6 krótkich linii — reguła, sposób na zapamiętanie i 1–2 przykłady. Każda myśl w osobnej linii.
+- Typ „dyktando” stosuj tylko do ćwiczeń z pisowni (ó/u, rz/ż, ch/h itp.) albo gdy prośba o to prosi.
 - Tytuł krótki (do 40 znaków).`;
 }
 
@@ -78,7 +86,8 @@ export const TOOL = {
     type: 'object',
     properties: {
       title: { type: 'string', description: 'Krótki tytuł tematu' },
-      description: { type: 'string', description: 'Zasada/ściągawka dla dziecka (1–2 zdania)' },
+      description: { type: 'string', description: 'Zasada dla dziecka (1–2 zdania)' },
+      guide: { type: 'string', description: 'Ściąga: 3–6 krótkich linii z regułą i przykładami' },
       dsl: { type: 'string', description: 'Zadania w formacie tekstowym, jedno w linii' },
     },
     required: ['title', 'description', 'dsl'],
@@ -111,6 +120,7 @@ export function parseAnthropicResponse(json: unknown): AiResult {
   return {
     title: String(i.title ?? 'Nowy temat').slice(0, 80),
     description: String(i.description ?? ''),
+    guide: i.guide ? String(i.guide) : undefined,
     dsl: String(i.dsl ?? ''),
   };
 }
@@ -124,6 +134,8 @@ ${userText(r)}
 Odpowiedz w dokładnie takim układzie (bez niczego więcej):
 TYTUŁ: ...
 ZASADA: ...
+ŚCIĄGA:
+(3–6 krótkich linii)
 \`\`\`
 (tu zadania, jedno w linii)
 \`\`\``;

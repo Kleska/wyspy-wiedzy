@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { store } from '../data/store';
-import { computeProgress, type Progress } from '../engine';
+import { computeProgress, type Progress, type TopicLevel } from '../engine';
 import type { ThemeDef } from '../themes';
 import type { Profile } from '../types';
 
@@ -37,16 +37,43 @@ export function useProgress(profileId: string | null): Progress | null {
   }, [v, profileId, minute]);
 }
 
+/** Co ćwiczymy: temat, powtórkę, sprawdzian, test na start, trening z generatora albo poprawę błędów. */
+export type Run =
+  | { kind: 'topic'; topicId: string }
+  | { kind: 'review' }
+  | { kind: 'test'; topicIds: string[]; title: string; subjectId: string; count: number }
+  | { kind: 'diagnostic'; subjectId: string }
+  | { kind: 'gen'; genId: string }
+  | { kind: 'fix'; items: { topicId: string; exerciseId: string }[]; subjectId: string | null };
+
+/** Błyskawica: 60 sekund z generatora (matematyka) albo szybkie pytania z tematów przedmiotu. */
+export type SprintGame = { kind: 'gen'; genId: string } | { kind: 'quiz'; subjectId: string };
+
 export type Screen =
   | { name: 'home' }
   | { name: 'subject'; subjectId: string }
-  | { name: 'practice'; topicId: string | null; nonce: number }
+  | { name: 'practice'; run: Run; nonce: number }
+  | { name: 'sprint'; game: SprintGame; nonce: number }
   | { name: 'summary'; result: SessionResult }
   | { name: 'rewards' }
   | { name: 'parent' };
 
+export const practice = (run: Run): Screen => ({ name: 'practice', run, nonce: Date.now() });
+export const isExamRun = (run: Run) => run.kind === 'test' || run.kind === 'diagnostic';
+
+export interface ExamMistake {
+  topicId: string;
+  exerciseId: string;
+  prompt: string;
+  given: string;
+  correct: string;
+}
+
 export interface SessionResult {
-  topicId: string | null;
+  run: Run;
+  title: string;
+  /** Dokąd wrócić po podsumowaniu. */
+  subjectId: string | null;
   answered: number;
   firstCorrect: number;
   firstTotal: number;
@@ -57,10 +84,19 @@ export interface SessionResult {
   coinsGained: number;
   levelBefore: number;
   levelAfter: number;
-  starsBefore: number;
   starsAfter: number;
+  levelChanges: { topicId: string; title: string; from: TopicLevel; to: TopicLevel }[];
   newBadges: string[];
-  completed: boolean;
+  streakAfter: number;
+  /** Nowy kamień milowy serii (np. 7 dni) — świętujemy. */
+  milestone: { days: number; bonus: number } | null;
+  /** Cel tygodnia właśnie wykonany. */
+  weekDone: boolean;
+  exam?: {
+    grade: number;
+    perTopic: { topicId: string; title: string; correct: number; total: number; placed: boolean }[];
+    mistakes: ExamMistake[];
+  };
 }
 
 export interface AppCtx {

@@ -6,7 +6,7 @@ import { builtin } from './util';
  * Testy dodatkowo sprawdzają odpowiedzi do wyboru.
  */
 
-const gcd = (a: number, b: number): number => (b ? gcd(b, a % b) : Math.abs(a));
+export const gcd = (a: number, b: number): number => (b ? gcd(b, a % b) : Math.abs(a));
 const lcm = (a: number, b: number) => (a / gcd(a, b)) * b;
 
 /** Akceptowane odpowiedzi dla ułamka: najpierw najprostsza postać. */
@@ -20,7 +20,7 @@ function fracAnswers(n: number, d: number): string {
 }
 
 /** Liczba w setnych → zapis z przecinkiem, bez zbędnych zer (325 → „3,25”, 500 → „5”). */
-function dec(hundredths: number): string {
+export function dec(hundredths: number): string {
   const neg = hundredths < 0;
   const h = Math.abs(hundredths);
   const whole = Math.floor(h / 100);

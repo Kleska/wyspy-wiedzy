@@ -3,6 +3,8 @@ import type { Exercise } from '../../types';
 
 export type Answer = number | null | number[] | (number | null)[] | string[];
 
+const gapsOf = (parts: (string | string[])[]) => parts.filter((p): p is string[] => Array.isArray(p));
+
 export function initialAnswer(ex: Exercise): Answer {
   switch (ex.type) {
     case 'choice':
@@ -12,7 +14,8 @@ export function initialAnswer(ex: Exercise): Answer {
     case 'sort':
       return ex.items.map(() => null);
     case 'fill':
-      return ex.parts.filter((p) => Array.isArray(p)).map(() => '');
+    case 'dictation':
+      return gapsOf(ex.parts).map(() => '');
     case 'match':
       return ex.pairs.map(() => -1);
   }
@@ -27,6 +30,7 @@ export function isReady(ex: Exercise, a: Answer): boolean {
     case 'sort':
       return (a as (number | null)[]).every((v) => v !== null);
     case 'fill':
+    case 'dictation':
       return (a as string[]).every((v) => v.trim().length > 0);
     case 'match':
       return (a as number[]).every((v) => v >= 0);
@@ -43,14 +47,15 @@ export function isCorrect(ex: Exercise, a: Answer): boolean {
     }
     case 'sort':
       return ex.items.every((it, i) => (a as (number | null)[])[i] === it.cat);
-    case 'fill': {
-      const gaps = ex.parts.filter((p): p is string[] => Array.isArray(p));
-      return gaps.every((g, i) => isFillAnswerCorrect((a as string[])[i] ?? '', g));
-    }
+    case 'fill':
+    case 'dictation':
+      return gapsOf(ex.parts).every((g, i) => isFillAnswerCorrect((a as string[])[i] ?? '', g));
     case 'match':
       return ex.pairs.every((_, i) => (a as number[])[i] === i);
   }
 }
+
+const clean = (t: string) => t.replace(/[^\p{L}\p{N}\s/,-]/gu, '');
 
 /** Krótki tekst poprawnej odpowiedzi do pokazania po błędzie (gdy nie widać go na planszy). */
 export function correctText(ex: Exercise): string {
@@ -58,10 +63,10 @@ export function correctText(ex: Exercise): string {
     case 'choice':
       return ex.options[ex.correct];
     case 'tap':
-      return ex.correct.map((i) => ex.tokens[i].replace(/[^\p{L}\p{N}\s-]/gu, '')).join(', ');
+      return ex.correct.map((i) => clean(ex.tokens[i])).join(', ');
     case 'fill':
-      return ex.parts
-        .filter((p): p is string[] => Array.isArray(p))
+    case 'dictation':
+      return gapsOf(ex.parts)
         .map((g) => g[0])
         .join(', ');
     case 'sort':
@@ -69,6 +74,38 @@ export function correctText(ex: Exercise): string {
     case 'match':
       return ex.pairs.map(([l, r]) => `${l} – ${r}`).join(' · ');
   }
+}
+
+/** Co dziecko odpowiedziało — krótko, do raportu dla rodzica i przeglądu sprawdzianu. */
+export function answerText(ex: Exercise, a: Answer): string {
+  let s = '';
+  switch (ex.type) {
+    case 'choice':
+      s = typeof a === 'number' ? ex.options[a] ?? '' : '';
+      break;
+    case 'tap':
+      s = (a as number[]).map((i) => clean(ex.tokens[i] ?? '')).join(', ');
+      break;
+    case 'fill':
+    case 'dictation':
+      s = (a as string[]).map((v) => v.trim() || '…').join(', ');
+      break;
+    case 'sort':
+      s = ex.items
+        .map((it, i) => ({ it, cat: (a as (number | null)[])[i] }))
+        .filter(({ it, cat }) => cat !== it.cat)
+        .map(({ it, cat }) => `${it.text} → ${cat === null || cat === undefined ? '?' : ex.categories[cat]}`)
+        .join(', ');
+      break;
+    case 'match':
+      s = ex.pairs
+        .map(([l], i) => ({ l, r: (a as number[])[i] }))
+        .filter(({ r }, i) => r !== i)
+        .map(({ l, r }) => `${l} – ${r >= 0 ? ex.pairs[r][1] : '?'}`)
+        .join(', ');
+      break;
+  }
+  return s.slice(0, 200);
 }
 
 /** Deterministyczne tasowanie (to samo zadanie = ta sama kolejność w trakcie odpowiedzi). */
@@ -98,6 +135,8 @@ export function exerciseSummary(ex: Exercise): string {
       return ex.tokens.join(' ');
     case 'fill':
       return ex.parts.map((p) => (Array.isArray(p) ? '___' : p)).join('');
+    case 'dictation':
+      return ex.parts.map((p) => (Array.isArray(p) ? `[${p[0]}]` : p)).join('');
     case 'sort':
       return ex.items.map((i) => i.text).join(', ');
     case 'match':
