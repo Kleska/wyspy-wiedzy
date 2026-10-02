@@ -68,6 +68,8 @@ ZASADY
 - Wewnątrz treści nie używaj znaków | >> !! ; = // inaczej niż wymaga format.
 - Pole „description” to zasada dla dziecka: 1–2 proste zdania (pokazuje się jako podpowiedź).
 - Pole „guide” to ściąga: 3–6 krótkich linii — reguła, sposób na zapamiętanie i 1–2 przykłady. Każda myśl w osobnej linii.
+- Język obcy (np. angielski): polecenia, wyjaśnienia i ściąga po polsku, a zdania i odpowiedzi w języku obcym. W lukach podaj wszystkie poprawne warianty, np. [isn't|is not]. Przed wyjaśnieniem dodaj podpowiedź po „??” — tłumaczenie zdania: ... ?? Po polsku: Moja siostra ma dziesięć lat. !! She → is.
+- Podpowiedź po „??” jest opcjonalna (dziecko widzi ją po stuknięciu „Podpowiedź”). Nie może zdradzać odpowiedzi.
 - Typ „dyktando” stosuj tylko do ćwiczeń z pisowni (ó/u, rz/ż, ch/h itp.) albo gdy rodzic o to prosi.
 - Linię „tekst:” stosuj tylko do czytania ze zrozumieniem (gdy rodzic o to prosi). Długość tekstu dopasuj do wieku: klasy 1–3: 5–8 krótkich zdań; klasy 4–6: 8–14 zdań; starsze klasy: dłuższy tekst.
 - Tytuł krótki (do 40 znaków).`;

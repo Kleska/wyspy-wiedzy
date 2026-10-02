@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { SUBJECTS } from '../../content/seed';
 import { nowIso, store } from '../../data/store';
-import { dateKey, GRADE_NAMES, planActive } from '../../engine';
+import { dateKey, GRADE_NAMES, planActive, planExamCount, planStatus } from '../../engine';
 import type { Profile } from '../../types';
 import { LevelChip } from '../bits';
 import { useProgress, useStoreVersion } from '../hooks';
@@ -31,8 +31,8 @@ export function ParentPlan({ pin }: { pin: string }) {
         )}
       </div>
       <p className="muted">
-        Przypnij tematy, które dziecko ma teraz ćwiczyć (np. przed sprawdzianem w szkole). Zobaczy je na górze ekranu startowego, a aplikacja będzie je polecać w
-        pierwszej kolejności. Cel: poziom „Biegły” w każdym temacie.
+        Przypnij tematy, które dziecko ma teraz ćwiczyć (np. przed sprawdzianem w szkole). Zobaczy je na górze ekranu startowego, a aplikacja będzie je polecać w pierwszej
+        kolejności. Cel: poziom „Biegły” w każdym temacie.
       </p>
       <PlanFromPhoto key={`photo-${p.id}`} p={p} pin={pin} onPlanSaved={() => setVer((v) => v + 1)} />
       <PlanEditor key={`${p.id}:${ver}`} p={p} />
@@ -49,9 +49,18 @@ function PlanEditor({ p }: { p: Profile }) {
   const [title, setTitle] = useState(p.plan?.title ?? '');
   const [msg, setMsg] = useState('');
   const active = planActive(p.plan, Date.now());
+  const planIds = (p.plan?.topicIds ?? []).filter((id) => topics.some((t) => t.id === id));
+  const status = p.plan && progress && planIds.length ? planStatus(p.plan, planIds, progress) : null;
 
   const save = async () => {
-    const plan = sel.length ? { topicIds: sel, until: until || undefined, title: title.trim() || undefined, setAt: nowIso() } : null;
+    const plan = sel.length
+      ? {
+          topicIds: sel,
+          until: until || undefined,
+          title: title.trim() || undefined,
+          setAt: nowIso(),
+        }
+      : null;
     await store.put('profile', { ...p, plan, updatedAt: nowIso() });
     setMsg(plan ? `Zapisano plan: ${p.name}.` : 'Plan usunięty.');
     setTimeout(() => setMsg(''), 2500);
@@ -72,7 +81,9 @@ function PlanEditor({ p }: { p: Profile }) {
           Plan: {p.name}
         </h2>
         {p.plan && (
-          <span className={`pill ${active ? 'good' : ''}`}>{active ? 'aktywny' : `minął termin ${p.plan.until ? new Date(p.plan.until + 'T12:00:00').toLocaleDateString('pl-PL') : ''}`}</span>
+          <span className={`pill ${active ? 'good' : ''}`}>
+            {active ? 'aktywny' : `minął termin ${p.plan.until ? new Date(p.plan.until + 'T12:00:00').toLocaleDateString('pl-PL') : ''}`}
+          </span>
         )}
       </div>
       {msg && (
@@ -80,7 +91,23 @@ function PlanEditor({ p }: { p: Profile }) {
           {msg}
         </div>
       )}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
+      {status && (
+        <div className={`note ${status.confirmed ? 'good' : ''}`}>
+          <b>{status.confirmed ? 'Materiał opanowany — potwierdził to sprawdzian próbny.' : 'Opanowanie materiału jeszcze niepotwierdzone.'}</b> Tematy na poziomie „Biegły”:{' '}
+          {status.fluent} z {status.total}.{' '}
+          {status.lastExam
+            ? `Ostatni sprawdzian próbny (${new Date(status.lastExam.at).toLocaleDateString('pl-PL')}): ${status.lastExam.grade} — ${GRADE_NAMES[status.lastExam.grade]}, ${status.lastExam.correct}/${status.lastExam.total}.`
+            : `Sprawdzianu próbnego jeszcze nie było (${planExamCount(status.total)} pytań bez podpowiedzi, dziecko uruchamia go z karty planu).`}{' '}
+          {!status.confirmed && 'Potwierdzeniem jest ocena 5 lub 6.'}
+        </div>
+      )}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+          gap: 12,
+        }}
+      >
         <label className="field">
           <span>Nazwa (opcjonalnie)</span>
           <input className="input" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={50} placeholder="np. Sprawdzian z ułamków" />
@@ -90,22 +117,35 @@ function PlanEditor({ p }: { p: Profile }) {
           <input className="input" type="date" value={until} min={dateKey(Date.now())} onChange={(e) => setUntil(e.target.value)} />
         </label>
       </div>
-      {SUBJECTS.filter((s) => topics.some((t) => t.subject === s.id)).map((s) => (
-        <fieldset key={s.id} className="field" style={{ border: 0, padding: 0, margin: 0 }}>
-          <span>{s.name}</span>
-          <div className="col" style={{ gap: 6 }}>
-            {topics
-              .filter((t) => t.subject === s.id)
-              .map((t) => (
-                <label key={t.id} className="check-row">
-                  <input type="checkbox" checked={sel.includes(t.id)} onChange={(e) => setSel((cur) => (e.target.checked ? [...cur, t.id] : cur.filter((x) => x !== t.id)))} />
-                  <span style={{ flex: 1 }}>{t.title}</span>
-                  <LevelChip level={progress?.topics.get(t.id)?.level ?? 0} small />
-                </label>
-              ))}
-          </div>
-        </fieldset>
-      ))}
+      {SUBJECTS.filter((s) => topics.some((t) => t.subject === s.id)).map((s) => {
+        const ids = topics.filter((t) => t.subject === s.id).map((t) => t.id);
+        const all = ids.every((id) => sel.includes(id));
+        return (
+          <fieldset key={s.id} className="field" style={{ border: 0, padding: 0, margin: 0 }}>
+            <span className="row" style={{ justifyContent: 'space-between', flexWrap: 'wrap' }}>
+              {s.name}
+              <button
+                type="button"
+                className="btn btn-sm"
+                onClick={() => setSel((cur) => (all ? cur.filter((x) => !ids.includes(x)) : [...cur, ...ids.filter((x) => !cur.includes(x))]))}
+              >
+                {all ? 'Odznacz wszystkie' : `Zaznacz wszystkie (${ids.length})`}
+              </button>
+            </span>
+            <div className="col" style={{ gap: 6 }}>
+              {topics
+                .filter((t) => t.subject === s.id)
+                .map((t) => (
+                  <label key={t.id} className="check-row">
+                    <input type="checkbox" checked={sel.includes(t.id)} onChange={(e) => setSel((cur) => (e.target.checked ? [...cur, t.id] : cur.filter((x) => x !== t.id)))} />
+                    <span style={{ flex: 1 }}>{t.title}</span>
+                    <LevelChip level={progress?.topics.get(t.id)?.level ?? 0} small />
+                  </label>
+                ))}
+            </div>
+          </fieldset>
+        );
+      })}
       <div className="row" style={{ flexWrap: 'wrap' }}>
         <button className="btn btn-primary" onClick={save} disabled={!sel.length && !p.plan}>
           <Icon name="pin" size={18} /> {sel.length ? `Zapisz plan (${sel.length})` : 'Zapisz'}
@@ -144,7 +184,12 @@ function ExamHistory({ profileId }: { profileId: string }) {
             <tbody>
               {exams.map((e) => (
                 <tr key={e.sessionId}>
-                  <td>{new Date(e.at).toLocaleString('pl-PL', { dateStyle: 'short', timeStyle: 'short' })}</td>
+                  <td>
+                    {new Date(e.at).toLocaleString('pl-PL', {
+                      dateStyle: 'short',
+                      timeStyle: 'short',
+                    })}
+                  </td>
                   <td>{e.mode === 'test' ? 'Sprawdzian' : 'Test na start'}</td>
                   <td style={{ maxWidth: 320 }}>{e.topicIds.map((id) => all.find((t) => t.id === id)?.title ?? '?').join(', ')}</td>
                   <td>

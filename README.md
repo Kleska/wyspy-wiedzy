@@ -7,13 +7,16 @@ można ją zainstalować na ekranie głównym i używać bez internetu. Postępy
 
 - Kilka osób na jednym koncie: każde dziecko ma swój profil, klasę, postępy, punkty i wygląd.
   Przy uruchomieniu aplikacja pyta „Kto się dziś uczy?”.
-- Start od wyboru przedmiotu (Język polski, Matematyka), potem plansza z tematami dla klasy dziecka.
+- Start od wyboru przedmiotu (Język polski, Matematyka, Angielski), potem plansza z tematami dla klasy dziecka.
 
 - 4 wyglądy do przełączania przez dziecko: *Wyspy Wiedzy* (domyślny), *Akademia Pilotów*, *Pixel Quest*, *Zeszyt* —
   przy wyborze widać miniaturę każdego.
 - 6 typów zadań: wybór odpowiedzi, klikanie słów w zdaniu, sortowanie do koszyków (przeciąganie lub stuknięcia),
   uzupełnianie luk (z przyciskami ą ć ę ł ń ó ś ź ż), łączenie w pary i dyktando (aplikacja czyta zdanie na głos).
 - Każdy temat ma ściągę (zasada z przykładami): widać ją przed tematem i po błędnej odpowiedzi.
+- Język obcy: „Podpowiedź” pokazuje polskie tłumaczenie zdania i znaczenie słówek, które w nim występują;
+  temat ma listę słówek z wymową (głośnik) i trybem „ukryj tłumaczenia”; pod tekstem do czytania są „Słówka z tekstu”.
+  Zdania czyta angielski głos, przy wpisywaniu jest klawisz apostrofu (isn't), a apostrof z iPada (’) liczy się jak zwykły.
 - Tematy startowe:
   - klasa 3 — polski: rzeczownik, czasownik, przymiotnik, mieszanka części mowy, czasy czasownika, osoba i liczba;
     matematyka: dodawanie i odejmowanie do 100, mnożenie przez 6 i 7 oraz 8 i 9, dzielenie, zadania z treścią;
@@ -21,7 +24,9 @@ można ją zainstalować na ekranie głównym i używać bez internetu. Postępy
     i nieodmienne, podmiot i orzeczenie; matematyka: ułamki (skracanie, dodawanie, odejmowanie), ułamki dziesiętne,
     pole i obwód, kolejność działań, cechy podzielności;
   - dyktanda dla klasy 3 i 5 (ó, rz, ż, ch, h);
-  - czytanie ze zrozumieniem dla klasy 3 i 5 (teksty z pytaniami; tekst jest nad każdym pytaniem).
+  - czytanie ze zrozumieniem dla klasy 3 i 5 (teksty z pytaniami; tekst jest nad każdym pytaniem);
+  - klasa 5 — angielski, dział powtórzeniowy „Unit 0”: to be, kraje i narodowości, miesiące, have got, can,
+    there is / there are, this / that / these / those, zaimki dzierżawcze i przymiotniki, czytanie po angielsku.
   Wyniki zadań matematycznych są liczone w kodzie, nie wpisywane ręcznie.
 - Poziomy tematów (Nowy → Próbowany → Znany → Biegły → Opanowany) — rosną i spadają razem z pamięcią dziecka;
   po ćwiczeniu ekran „Co się zmieniło”.
@@ -141,6 +146,10 @@ Linia `tekst:` wprowadza tekst do czytania ze zrozumieniem — zadania pod nią 
 - `{nawias}` — wyróżnione słowo w zdaniu, `___` — luka do pokazania.
 - `[a|b]` — luka do wpisania; wszystkie akceptowane odpowiedzi rozdzielone `|`. Wielkość liter i kropka na końcu
   nie mają znaczenia, polskie znaki mają.
+- `?? podpowiedź` — przed wyjaśnieniem (`!!`): dziecko widzi ją po stuknięciu „Podpowiedź”, np. tłumaczenie
+  zdania: `wybierz: Wybierz formę. >> My sister ___ ten. | *is | are ?? Po polsku: Moja siostra ma dziesięć lat. !! She → is.`
+- Słówka tematu (pole „Słówka” w edytorze, przy języku obcym): linie `wardrobe = szafa` — lista do nauki z wymową
+  i źródło podpowiedzi do słów w zdaniach.
 
 Edytor w panelu rodzica pokazuje podgląd i błędy linia po linii.
 

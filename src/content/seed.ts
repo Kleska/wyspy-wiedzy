@@ -1,5 +1,6 @@
-import type { Subject, Topic } from '../types';
+import type { Lang, Subject, Topic } from '../types';
 import { DICTATION_GRADE3, DICTATION_GRADE5 } from './dictation';
+import { ENGLISH_GRADE5 } from './english5';
 import { GUIDES } from './guides';
 import { MATH_GRADE3, MATH_GRADE5 } from './math';
 import { READING_GRADE3, READING_GRADE5 } from './reading';
@@ -9,13 +10,18 @@ import { builtin } from './util';
 export const SUBJECTS: Subject[] = [
   { id: 'pl', name: 'Język polski', short: 'Aa', island: 'Wyspa Polskiego' },
   { id: 'mat', name: 'Matematyka', short: '123', island: 'Wyspa Matematyki' },
-  { id: 'ang', name: 'Angielski', short: 'ENG', island: 'Wyspa Angielskiego' },
+  { id: 'ang', name: 'Angielski', short: 'ENG', island: 'Wyspa Angielskiego', lang: 'en' },
   { id: 'prz', name: 'Przyroda', short: 'PRZ', island: 'Wyspa Przyrody' },
   { id: 'inne', name: 'Inne', short: 'INNE', island: 'Wyspa Różności' },
 ];
 
 export function subjectOf(id: string): Subject {
   return SUBJECTS.find((s) => s.id === id) ?? { id, name: id, short: id.slice(0, 4).toUpperCase(), island: `Wyspa: ${id}` };
+}
+
+/** Język treści zadań w przedmiocie (angielski → zdania czyta angielski głos). */
+export function subjectLang(id: string | null | undefined): Lang {
+  return SUBJECTS.find((s) => s.id === id)?.lang ?? 'pl';
 }
 
 export function subjectName(id: string): string {
@@ -188,7 +194,7 @@ wpisz: W pudełku jest 6 rzędów po 7 cukierków. Ile cukierków jest w pudełk
   ),
 ];
 
-export const BUILTIN_TOPICS: Topic[] = [...GRADE3_BASE, DICTATION_GRADE3, READING_GRADE3, ...MATH_GRADE3, ...POLISH_GRADE5, DICTATION_GRADE5, READING_GRADE5, ...MATH_GRADE5].map((t) => ({
+export const BUILTIN_TOPICS: Topic[] = [...GRADE3_BASE, DICTATION_GRADE3, READING_GRADE3, ...MATH_GRADE3, ...POLISH_GRADE5, DICTATION_GRADE5, READING_GRADE5, ...MATH_GRADE5, ...ENGLISH_GRADE5].map((t) => ({
   ...t,
   guide: GUIDES[t.id],
 }));

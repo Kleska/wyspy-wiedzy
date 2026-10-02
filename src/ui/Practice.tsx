@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { factExercises, generateExercises, generatorById, genTopicId } from '../content/generators';
-import { subjectOf } from '../content/seed';
+import { subjectLang, subjectOf } from '../content/seed';
 import { nowIso, store, uid } from '../data/store';
-import { dictationText, speakableSentence } from '../dsl';
+import { dictationText, parseWords, speakableSentence, wordHints } from '../dsl';
 import {
   buildDiagnosticQueue,
   buildExamQueue,
@@ -16,7 +16,7 @@ import {
   type Progress,
   type QueueItem,
 } from '../engine';
-import { playSound, speak, stopSpeaking } from '../speech';
+import { playSound, speak, speakParts, stopSpeaking } from '../speech';
 import type { Attempt, Exercise, ParsedTopic, Session } from '../types';
 import { GuideModal, PassageCard } from './bits';
 import { askConfirm } from './dialogs';
@@ -117,6 +117,9 @@ function questionText(ex: Exercise): string {
   return exerciseSummary(ex);
 }
 
+/** Polecenie w całości po angielsku zaczyna się jak pytanie: „Who…?”, „Where…?”, „True or false?”. */
+const FOREIGN_PROMPT = /^(who|whose|what|where|when|which|how|true|is|are|can|has|have|do|does)\b/i;
+
 export function Practice({ run }: { run: Run }) {
   const { profile, theme, go } = useApp();
   const settings = store.settings;
@@ -214,15 +217,19 @@ export function Practice({ run }: { run: Run }) {
   const readAloud = useCallback(() => {
     if (!item) return;
     const ex = item.ex;
-    let text = ex.prompt;
-    if (ex.type === 'choice') text += '. ' + (ex.sentence ? speakableSentence(ex.sentence) + '. ' : '') + ex.options.join(', ');
-    if (ex.type === 'tap') text += '. ' + ex.tokens.join(' ');
-    if (ex.type === 'fill') text += '. ' + ex.parts.map((p) => (Array.isArray(p) ? ' … ' : p)).join('');
-    if (ex.type === 'dictation') text += '. ' + dictationText(ex.parts);
-    if (ex.type === 'sort') text += '. ' + ex.items.map((i) => i.text).join(', ');
-    if (ex.type === 'match') text += '. ' + ex.pairs.map((p) => p[0]).join(', ');
-    speak(text);
-  }, [item]);
+    let body = '';
+    if (ex.type === 'choice') body = (ex.sentence ? speakableSentence(ex.sentence) + '. ' : '') + ex.options.join(', ');
+    if (ex.type === 'tap') body = ex.tokens.join(' ');
+    if (ex.type === 'fill') body = ex.parts.map((p) => (Array.isArray(p) ? ' … ' : p)).join('');
+    if (ex.type === 'dictation') body = dictationText(ex.parts);
+    if (ex.type === 'sort') body = ex.items.map((i) => i.text).join(', ');
+    if (ex.type === 'match') body = ex.pairs.map((p) => p[0]).join(', ');
+    const lang = subjectLang(topics.find((t) => t.id === item.topicId)?.subject);
+    // Język obcy: polecenie czyta polski głos, a zdanie i odpowiedzi — głos w języku zadania.
+    // Pytania do tekstu bywają w całości w języku obcym („Where is…?”) — wtedy czyta je głos obcy.
+    if (lang === 'pl') speak(`${ex.prompt}. ${body}`);
+    else speakParts([{ text: ex.prompt, lang: FOREIGN_PROMPT.test(ex.prompt) ? lang : 'pl' }, { text: body, lang }]);
+  }, [item, topics]);
 
   useEffect(() => {
     itemStart.current = Date.now();
@@ -405,6 +412,14 @@ export function Practice({ run }: { run: Run }) {
   const ex = item.ex;
   const exTopic = topics.find((t) => t.id === item.topicId);
   const itemTitle = exTopic?.title ?? title;
+  const lang = subjectLang(exTopic?.subject);
+  // Słowniczek przedmiotu (słówka ze wszystkich tematów) — źródło podpowiedzi do słów w zdaniu.
+  const glossary = lang === 'pl' ? [] : topics.filter((t) => t.subject === exTopic?.subject).flatMap((t) => parseWords(t.words));
+  // Podpowiadamy słowa ze zdania, nigdy z odpowiedzi do wyboru ani z luk.
+  const visibleText =
+    ex.type === 'choice' ? speakableSentence(ex.sentence ?? '') : ex.type === 'fill' || ex.type === 'dictation' ? ex.parts.filter((p) => typeof p === 'string').join(' … ') : '';
+  const hintWords = glossary.length ? wordHints(visibleText, glossary) : [];
+  const hasHint = !!(ex.hint || hintWords.length || exTopic?.description);
   const ready = isReady(ex, answer);
   const inRetry = idx >= mainCount;
   const pctDone = inRetry ? 100 : Math.round(((idx + (phase === 'feedback' ? 1 : 0)) / mainCount) * 100);
@@ -432,7 +447,15 @@ export function Practice({ run }: { run: Run }) {
       </div>
 
       <div className="pr-body">
-        {ex.passage && <PassageCard key={`p${idx}`} passage={ex.passage} defaultOpen={firstOfPassage[idx] || exam} />}
+        {ex.passage && (
+          <PassageCard
+            key={`p${idx}`}
+            passage={ex.passage}
+            defaultOpen={firstOfPassage[idx] || exam}
+            lang={lang}
+            words={exam || !glossary.length ? undefined : wordHints(ex.passage.text, glossary, 40)}
+          />
+        )}
         <div>
           <div className="pr-topic">
             {exam ? `${title} · ` : ''}
@@ -457,12 +480,26 @@ export function Practice({ run }: { run: Run }) {
           hint={hint}
           seed={`${session.current.id}:${ex.id}:${item.retry ? 1 : 0}`}
           onEnter={check}
+          lang={lang}
         />
 
-        {hint && phase === 'answer' && exTopic?.description && (
+        {hint && phase === 'answer' && hasHint && (
           <div className="hint-box">
             <Icon name="bulb" />
-            <span>{exTopic.description}</span>
+            <div className="hint-lines">
+              {ex.hint && <span className="hint-main">{ex.hint}</span>}
+              {hintWords.length > 0 && (
+                <span className="hint-words">
+                  <span className="hint-label">Słówka:</span>
+                  {hintWords.map(([w, t]) => (
+                    <span key={w} className="hint-word">
+                      <b lang={lang}>{w}</b> – {t}
+                    </span>
+                  ))}
+                </span>
+              )}
+              {exTopic?.description && <span className={ex.hint || hintWords.length ? 'hint-rule' : ''}>{exTopic.description}</span>}
+            </div>
           </div>
         )}
       </div>
@@ -491,6 +528,7 @@ export function Practice({ run }: { run: Run }) {
               <div className="fb-title">{ok ? praise : theme.oops}</div>
               {showCorrectText && <div className="fb-text">Poprawnie: {correctText(ex)}</div>}
               {ex.explain && <div className="fb-text">{ex.explain}</div>}
+              {lang !== 'pl' && ex.hint && <div className="fb-text fb-translation">{ex.hint}</div>}
               {!ok && !item.retry && (
                 <div className="fb-text muted">{retryQueued ? 'To zadanie wróci jeszcze raz na końcu.' : 'To zadanie wróci w powtórce w kolejnych dniach.'}</div>
               )}
@@ -509,7 +547,7 @@ export function Practice({ run }: { run: Run }) {
           </div>
         </div>
       )}
-      {guideOpen && exTopic && <GuideModal topicTitle={exTopic.title} description={exTopic.description} guide={exTopic.guide} onClose={() => setGuideOpen(false)} />}
+      {guideOpen && exTopic && <GuideModal topicTitle={exTopic.title} description={exTopic.description} guide={exTopic.guide} words={exTopic.words} lang={lang} onClose={() => setGuideOpen(false)} />}
     </div>
   );
 }

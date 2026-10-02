@@ -1,38 +1,67 @@
 // Czytanie na głos (Web Speech API) i krótkie dźwięki (Web Audio).
 
-let voice: SpeechSynthesisVoice | null = null;
+import type { Lang } from './types';
 
-function pickVoice() {
+const LOCALE: Record<Lang, string> = { pl: 'pl-PL', en: 'en-GB' };
+/** Ulubione głosy: polskie oraz brytyjskie (podręczniki uczą pisowni i wymowy brytyjskiej). */
+const PREFERRED: Record<Lang, RegExp> = {
+  pl: /zosia|paulina|ewa|maja|google/i,
+  en: /daniel|serena|kate|martha|libby|sonia|hazel|uk english|google/i,
+};
+const voices: Partial<Record<Lang, SpeechSynthesisVoice | null>> = {};
+
+function pickVoice(lang: Lang): SpeechSynthesisVoice | null {
   if (typeof speechSynthesis === 'undefined') return null;
-  const voices = speechSynthesis.getVoices().filter((v) => v.lang?.toLowerCase().startsWith('pl'));
-  voice = voices.find((v) => /zosia|paulina|ewa|maja|google/i.test(v.name)) ?? voices[0] ?? null;
-  return voice;
+  const all = speechSynthesis.getVoices().filter((v) => v.lang?.toLowerCase().replace('_', '-').startsWith(lang));
+  // Po angielsku najpierw głosy brytyjskie, potem pozostałe.
+  const local = lang === 'en' ? all.filter((v) => /^en[-_]gb/i.test(v.lang)) : all;
+  const v = local.find((x) => PREFERRED[lang].test(x.name)) ?? local[0] ?? all.find((x) => PREFERRED[lang].test(x.name)) ?? all[0] ?? null;
+  voices[lang] = v;
+  return v;
 }
 
 if (typeof speechSynthesis !== 'undefined') {
-  pickVoice();
-  speechSynthesis.onvoiceschanged = () => pickVoice();
+  pickVoice('pl');
+  pickVoice('en');
+  speechSynthesis.onvoiceschanged = () => {
+    pickVoice('pl');
+    pickVoice('en');
+  };
 }
 
 export function canSpeak() {
   return typeof speechSynthesis !== 'undefined';
 }
 
-/** Czy przeglądarka ma polski głos (bez niego dyktando pokazuje wyraz z ukrytymi literami). */
-export function hasPolishVoice(): boolean {
+/** Czy przeglądarka ma głos w tym języku (bez niego dyktando pokazuje wyraz z ukrytymi literami). */
+export function hasVoice(lang: Lang = 'pl'): boolean {
   if (!canSpeak()) return false;
-  return !!(voice ?? pickVoice());
+  return !!(voices[lang] ?? pickVoice(lang));
 }
 
-export function speak(text: string, rate = 0.92) {
-  if (!canSpeak() || !text.trim()) return;
+export interface SpeechPart {
+  text: string;
+  lang?: Lang;
+}
+
+/** Czyta kolejno kilka fragmentów — każdy głosem w swoim języku (polecenie po polsku, zdanie po angielsku). */
+export function speakParts(parts: SpeechPart[], rate = 0.92) {
+  if (!canSpeak()) return;
   speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(text);
-  u.lang = 'pl-PL';
-  u.rate = rate;
-  const v = voice ?? pickVoice();
-  if (v) u.voice = v;
-  speechSynthesis.speak(u);
+  for (const p of parts) {
+    if (!p.text.trim()) continue;
+    const lang = p.lang ?? 'pl';
+    const u = new SpeechSynthesisUtterance(p.text);
+    const v = voices[lang] ?? pickVoice(lang);
+    u.lang = v?.lang ?? LOCALE[lang];
+    u.rate = rate;
+    if (v) u.voice = v;
+    speechSynthesis.speak(u);
+  }
+}
+
+export function speak(text: string, rate = 0.92, lang: Lang = 'pl') {
+  speakParts([{ text, lang }], rate);
 }
 
 export function stopSpeaking() {

@@ -1,8 +1,8 @@
-import { subjectOf } from '../content/seed';
+import { subjectLang, subjectOf } from '../content/seed';
 import { store } from '../data/store';
 import { LEVEL_NAMES } from '../engine';
 import { plural } from '../themes';
-import { GuideCard, LevelChip, LevelSteps, Modal } from './bits';
+import { GuideCard, LevelChip, LevelSteps, Modal, WordsDetails } from './bits';
 import { practice, useApp, useProgress } from './hooks';
 import { Icon, Stars } from './icons';
 
@@ -33,17 +33,18 @@ export function TopicSheet({ topicId, onClose }: { topicId: string; onClose: () 
         {s?.placed && <span className="muted" style={{ fontSize: 14, fontWeight: 700 }}>zaliczony testem</span>}
       </div>
       {level === 0 ? (
-        <GuideCard description={topic.description} guide={topic.guide} />
+        <GuideCard description={topic.description} guide={topic.guide} lang={subjectLang(topic.subject)} />
       ) : (
         (topic.guide || topic.description) && (
           <details className="guide-details">
             <summary>
               <Icon name="book" size={20} /> Ściąga
             </summary>
-            <GuideCard description={topic.description} guide={topic.guide} />
+            <GuideCard description={topic.description} guide={topic.guide} lang={subjectLang(topic.subject)} />
           </details>
         )
       )}
+      <WordsDetails words={topic.words} lang={subjectLang(topic.subject)} />
       <div className="stat-tiles">
         <div className="stat-tile">
           <b>{Math.round((s?.mastery ?? 0) * 100)}%</b>

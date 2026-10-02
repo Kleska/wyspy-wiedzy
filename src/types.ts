@@ -9,6 +9,8 @@ interface ExerciseBase {
   prompt: string;
   /** Wyjaśnienie pokazywane po odpowiedzi (i jako podpowiedź). */
   explain?: string;
+  /** Podpowiedź do tego zadania (po „??”), np. tłumaczenie zdania. Widać ją po stuknięciu „Podpowiedź”. */
+  hint?: string;
   /** Czytanie ze zrozumieniem: tekst, którego dotyczy pytanie (linia „tekst:” nad pytaniami). */
   passage?: Passage;
 }
@@ -76,6 +78,8 @@ export interface Topic {
   description?: string;
   /** Ściąga: dłuższe wyjaśnienie z przykładami, pokazywane przed tematem i po błędzie. */
   guide?: string;
+  /** Słówka (język obcy): linie „english = polski”. Lista do nauki i źródło podpowiedzi do słów w zdaniach. */
+  words?: string;
   order: number;
   source: TopicSource;
   /** Dla których klas (puste/brak = dla wszystkich). */
@@ -100,11 +104,16 @@ export interface DslError {
   message: string;
 }
 
+/** Język treści zadań: decyduje o głosie do czytania i o pomocniczych klawiszach przy wpisywaniu. */
+export type Lang = 'pl' | 'en';
+
 export interface Subject {
   id: string;
   name: string;
   short: string;
   island: string;
+  /** Język obcy: zdania czyta głos w tym języku (polecenia nadal po polsku). */
+  lang?: Lang;
 }
 
 // ─── Postępy (dziennik zdarzeń — synchronizuje się bez konfliktów) ────────────

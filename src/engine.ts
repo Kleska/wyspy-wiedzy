@@ -863,6 +863,42 @@ export function daysUntil(dk: string, now: number): number {
   return Math.round((noonOf(dk) - noonOf(dateKey(now))) / 86_400_000);
 }
 
+/** Sprawdzian próbny z planu: po 3 pytania na temat, najmniej 15, najwięcej 30. */
+export function planExamCount(topicCount: number): number {
+  return Math.min(30, Math.max(15, topicCount * 3));
+}
+
+/** Ocena ze sprawdzianu próbnego, która potwierdza opanowanie materiału (5 = co najmniej 85%). */
+export const PLAN_PASS_GRADE = 5;
+
+export interface PlanStatus {
+  total: number;
+  /** Tematy na poziomie „Biegły” lub wyższym. */
+  fluent: number;
+  /** Ostatni ukończony sprawdzian próbny z całego planu (od ustawienia planu). */
+  lastExam: ExamResult | null;
+  /** Materiał opanowany: ostatni sprawdzian próbny na ocenę 5 lub 6. */
+  confirmed: boolean;
+}
+
+/**
+ * Stan planu: ile tematów jest na poziomie „Biegły” i czy opanowanie potwierdził sprawdzian próbny
+ * (bez podpowiedzi) obejmujący wszystkie tematy planu.
+ */
+export function planStatus(plan: { topicIds: string[]; setAt?: string }, topicIds: string[], progress: Progress): PlanStatus {
+  const since = plan.setAt ? Date.parse(plan.setAt) : 0;
+  const lastExam =
+    progress.exams
+      .filter((e) => e.mode === 'test' && e.total >= 10 && e.at >= since && topicIds.every((id) => e.topicIds.includes(id)))
+      .sort((a, b) => b.at - a.at)[0] ?? null;
+  return {
+    total: topicIds.length,
+    fluent: topicIds.filter((id) => (progress.topics.get(id)?.level ?? 0) >= 3).length,
+    lastExam,
+    confirmed: !!lastExam && lastExam.grade >= PLAN_PASS_GRADE,
+  };
+}
+
 // ─── Moje błędy ──────────────────────────────────────────────────────────────
 
 export interface MistakeItem {

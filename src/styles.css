@@ -2454,6 +2454,10 @@ p {
   line-height: 1.5;
 }
 
+.note.good {
+  background: var(--good-bg);
+}
+
 .emoji-grid {
   display: flex;
   flex-wrap: wrap;
@@ -3520,6 +3524,16 @@ p {
   color: var(--good);
 }
 
+.plan-check {
+  font-weight: 700;
+  color: var(--muted);
+  font-size: 15px;
+}
+
+.plan-check b {
+  color: var(--text);
+}
+
 .week-days {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
@@ -4368,4 +4382,117 @@ p {
   display: flex;
   flex-direction: column;
   gap: 2px;
+}
+
+/* ───────────────────────── Język obcy: podpowiedzi i słówka ───────────────────────── */
+
+.hint-box > svg {
+  flex-shrink: 0;
+}
+
+.hint-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.hint-words {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  align-items: center;
+}
+
+.hint-label {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.hint-word {
+  background: var(--surface);
+  border: 2px solid var(--line);
+  border-radius: 999px;
+  padding: 3px 12px;
+  font-weight: 600;
+}
+
+.hint-rule {
+  color: var(--muted);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.fb-translation {
+  opacity: 0.85;
+  font-style: italic;
+}
+
+.word-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.word-list ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 6px 14px;
+}
+
+.word-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-size: 16px;
+}
+
+.word-list li b {
+  white-space: nowrap;
+}
+
+.word-pl {
+  color: var(--muted);
+  font-weight: 600;
+  min-width: 0;
+}
+
+.word-reveal {
+  border: 2px dashed var(--line);
+  background: transparent;
+  color: var(--muted);
+  border-radius: 999px;
+  padding: 2px 12px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.words-details .word-list {
+  padding: 4px 2px 8px;
+}
+
+.passage-words {
+  margin-top: 12px;
+  border-top: 2px solid var(--line);
+  padding-top: 10px;
+}
+
+.passage-words summary {
+  cursor: pointer;
+  font-weight: 800;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+[data-theme='pixel'] .hint-word,
+[data-theme='pixel'] .word-reveal {
+  border-radius: 0;
 }

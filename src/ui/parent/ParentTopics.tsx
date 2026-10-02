@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { askConfirm } from '../dialogs';
-import { SUBJECTS, subjectOf } from '../../content/seed';
+import { SUBJECTS, subjectLang, subjectOf } from '../../content/seed';
 import { nowIso, store, uid } from '../../data/store';
 import { DSL_HELP, parseDsl, TYPE_LABEL } from '../../dsl';
 import type { Topic, TopicSource } from '../../types';
@@ -16,6 +16,7 @@ export interface EditorSeed {
   subject: string;
   description: string;
   guide?: string;
+  words?: string;
   dsl: string;
   source: TopicSource;
   grades?: number[];
@@ -117,7 +118,7 @@ export function ParentTopics({ onEdit }: { onEdit: (s: EditorSeed) => void }) {
                               <button
                                 className="btn btn-sm"
                                 onClick={() =>
-                                  onEdit({ title: `${t.title} (moja wersja)`, subject: t.subject, description: t.description ?? '', guide: t.guide, dsl: t.dsl, source: 'manual', grades: t.grades })
+                                  onEdit({ title: `${t.title} (moja wersja)`, subject: t.subject, description: t.description ?? '', guide: t.guide, words: t.words, dsl: t.dsl, source: 'manual', grades: t.grades })
                                 }
                               >
                                 <Icon name="copy" size={16} /> Kopiuj i zmień
@@ -127,7 +128,7 @@ export function ParentTopics({ onEdit }: { onEdit: (s: EditorSeed) => void }) {
                             <>
                               <button
                                 className="btn btn-sm"
-                                onClick={() => onEdit({ topicId: t.id, title: t.title, subject: t.subject, description: t.description ?? '', guide: t.guide, dsl: t.dsl, source: t.source, grades: t.grades })}
+                                onClick={() => onEdit({ topicId: t.id, title: t.title, subject: t.subject, description: t.description ?? '', guide: t.guide, words: t.words, dsl: t.dsl, source: t.source, grades: t.grades })}
                               >
                                 <Icon name="pencil" size={16} /> Edytuj
                               </button>
@@ -160,6 +161,7 @@ export function TopicEditor({ seed, onClose }: { seed: EditorSeed; onClose: () =
   const [subject, setSubject] = useState(seed.subject);
   const [description, setDescription] = useState(seed.description);
   const [guide, setGuide] = useState(seed.guide ?? '');
+  const [words, setWords] = useState(seed.words ?? '');
   const [grades, setGrades] = useState<number[]>(seed.grades ?? [...new Set(store.profiles().map((p) => p.grade ?? 3))]);
   const [dsl, setDsl] = useState(seed.dsl);
   const [target, setTarget] = useState<string>(seed.topicId ?? 'new');
@@ -189,6 +191,7 @@ export function TopicEditor({ seed, onClose }: { seed: EditorSeed; onClose: () =
       title: title.trim(),
       description: description.trim() || undefined,
       guide: guide.trim() || undefined,
+      words: words.trim() || undefined,
       order: existing?.subject === subject ? existing.order : maxOrder + 10,
       source: existing?.source ?? seed.source,
       grades: grades.length ? [...grades].sort((a, b) => a - b) : undefined,
@@ -272,6 +275,12 @@ export function TopicEditor({ seed, onClose }: { seed: EditorSeed; onClose: () =
                   placeholder={'Każda myśl w nowej linii, np.\nCzasownik mówi, co ktoś robi.\nPytamy: co robi?\nPrzykład: Mama piecze ciasto. Co robi? Piecze.'}
                 />
               </label>
+              {(subjectLang(subject) !== 'pl' || words) && (
+                <label className="field">
+                  <span>Słówka — po jednym w linii: wyraz = tłumaczenie (lista do nauki z wymową i podpowiedzi do słów w zdaniach)</span>
+                  <textarea className="input" style={{ minHeight: 110 }} value={words} onChange={(e) => setWords(e.target.value)} spellCheck={false} placeholder={'wardrobe = szafa\nnext to = obok\ntrousers = spodnie'} />
+                </label>
+              )}
             </>
           ) : null}
           <label className="field">
@@ -305,7 +314,8 @@ export function TopicEditor({ seed, onClose }: { seed: EditorSeed; onClose: () =
                 tekstu, aż do następnej linii <code>tekst:</code> albo <code>tekst: koniec</code>.
               </p>
               <p>
-                Na końcu każdej linii możesz dodać wyjaśnienie po <code>!!</code> — dziecko zobaczy je po odpowiedzi.
+                Na końcu każdej linii możesz dodać wyjaśnienie po <code>!!</code> — dziecko zobaczy je po odpowiedzi. Przed nim może stać podpowiedź po{' '}
+                <code>??</code> (np. tłumaczenie zdania) — dziecko zobaczy ją po stuknięciu „Podpowiedź”.
               </p>
               <pre style={{ whiteSpace: 'pre-wrap', fontSize: 12, marginTop: 8 }}>{DSL_HELP}</pre>
               <button className="btn btn-sm" onClick={() => setDsl((d) => (d.trim() ? d.trim() + '\n' : '') + DSL_HELP.split('\n').slice(1).join('\n'))}>

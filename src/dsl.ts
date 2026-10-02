@@ -1,4 +1,4 @@
-import type { DslError, Exercise, ExerciseType, Passage } from './types';
+import type { DslError, Exercise, ExerciseType, Lang, Passage } from './types';
 
 /*
  * Prosty format tekstowy zadań — jedno zadanie w jednej linii.
@@ -9,6 +9,7 @@ import type { DslError, Exercise, ExerciseType, Passage } from './types';
  *   wpisz:   Polecenie >> Wczoraj Ola [czytała|przeczytała] książkę.
  *   pary:    Polecenie >> ja = piszę ; ty = piszesz ; oni = piszą
  *   dyktando: Polecenie >> Latem jedziemy nad [morze].   (aplikacja czyta całe zdanie na głos)
+ *   Na końcu linii można dodać podpowiedź i wyjaśnienie:  ... ?? podpowiedź !! wyjaśnienie
  *   tekst:   Tytuł >> Treść tekstu. // Drugi akapit.   (czytanie ze zrozumieniem — pytania pod spodem
  *            dotyczą tego tekstu, aż do następnej linii „tekst:”)
  *
@@ -105,9 +106,14 @@ export function parseLine(raw: string, lineNo: number, idPrefix = ''): { ex?: Ex
   let rest = text.slice(kw[0].length);
 
   let explain: string | undefined;
+  let hint: string | undefined;
   const [body, ex] = splitOnce(rest, '!!');
-  rest = body.trim();
-  if (ex !== null && ex.trim()) explain = ex.trim();
+  // Podpowiedź po „??” (przed albo po wyjaśnieniu). Tak jak wyjaśnienie nie wpływa na identyfikator zadania.
+  const [task, h1] = splitOnce(body, '??');
+  const [exText, h2] = ex === null ? [null, null] : splitOnce(ex, '??');
+  rest = task.trim();
+  if (exText !== null && exText.trim()) explain = exText.trim();
+  if ((h1 ?? h2)?.trim()) hint = (h1 ?? h2)!.trim();
 
   const id = idPrefix + hashId(type + '|' + rest.replace(/\s+/g, ' '));
 
@@ -131,6 +137,7 @@ export function parseLine(raw: string, lineNo: number, idPrefix = ''): { ex?: Ex
         options,
         correct: correctIdx[0],
         explain,
+        hint,
       },
     };
   }
@@ -145,7 +152,7 @@ export function parseLine(raw: string, lineNo: number, idPrefix = ''): { ex?: Ex
     if (tokens.length < 2) return fail('Zdanie jest za krótkie.');
     if (correct.length === 0) return fail('Oznacz dobre słowa gwiazdkami, np. Mama *piecze* ciasto.');
     if (correct.length === tokens.length) return fail('Wszystkie słowa są oznaczone — zostaw też słowa „do ominięcia”.');
-    return { ex: { id, type, prompt: prompt.trim(), tokens, correct, explain } };
+    return { ex: { id, type, prompt: prompt.trim(), tokens, correct, explain, hint } };
   }
 
   if (type === 'sort') {
@@ -162,7 +169,7 @@ export function parseLine(raw: string, lineNo: number, idPrefix = ''): { ex?: Ex
     }
     if (categories.length < 2) return fail('Potrzebne są co najmniej 2 grupy rozdzielone średnikiem ;');
     if (new Set(items.map((i) => i.text.toLowerCase())).size !== items.length) return fail('Słowa w grupach się powtarzają.');
-    return { ex: { id, type, prompt: prompt.trim(), categories, items, explain } };
+    return { ex: { id, type, prompt: prompt.trim(), categories, items, explain, hint } };
   }
 
   if (type === 'fill' || type === 'dictation') {
@@ -179,7 +186,7 @@ export function parseLine(raw: string, lineNo: number, idPrefix = ''): { ex?: Ex
     }
     if (last < c.length) parts.push(c.slice(last));
     if (!parts.some((p) => Array.isArray(p))) return fail('Dodaj lukę w nawiasie kwadratowym, np. Ola [czyta] książkę.');
-    return { ex: { id, type, prompt: prompt.trim(), parts, explain } };
+    return { ex: { id, type, prompt: prompt.trim(), parts, explain, hint } };
   }
 
   // match
@@ -192,7 +199,7 @@ export function parseLine(raw: string, lineNo: number, idPrefix = ''): { ex?: Ex
   if (pairs.length < 2) return fail('Potrzebne są co najmniej 2 pary rozdzielone średnikiem ;');
   if (new Set(pairs.map((p) => p[0].toLowerCase())).size !== pairs.length || new Set(pairs.map((p) => p[1].toLowerCase())).size !== pairs.length)
     return fail('Elementy par muszą być różne (bez powtórzeń po lewej i po prawej).');
-  return { ex: { id, type, prompt: prompt.trim(), pairs, explain } };
+  return { ex: { id, type, prompt: prompt.trim(), pairs, explain, hint } };
 }
 
 const TEXT_LINE = /^tekst\s*:\s*/i;
@@ -258,7 +265,7 @@ function wrapTapToken(tok: string): string {
 
 export function exerciseToDsl(ex: Exercise): string {
   const kw = TYPE_KEYWORD[ex.type];
-  const tail = ex.explain ? ` !! ${ex.explain}` : '';
+  const tail = (ex.hint ? ` ?? ${ex.hint}` : '') + (ex.explain ? ` !! ${ex.explain}` : '');
   switch (ex.type) {
     case 'choice': {
       const head = ex.sentence ? `${ex.prompt} >> ${ex.sentence}` : ex.prompt;
@@ -285,6 +292,8 @@ export function normalizeAnswer(s: string): string {
   let r = s
     .normalize('NFC')
     .toLowerCase()
+    // iPad wstawia „ozdobny” apostrof (isn’t) — liczy się tak samo jak zwykły (isn't).
+    .replace(/[’‘ʼ`´′]/g, "'")
     .replace(/[×*]/g, '·')
     .replace(/−/g, '-')
     .replace(/\s+/g, ' ')
@@ -296,6 +305,57 @@ export function normalizeAnswer(s: string): string {
   // 3,50 = 3,5 · 5,0 = 5
   if (/^-?\d+,\d+$/.test(r)) r = r.replace(/0+$/, '').replace(/,$/, '');
   return r;
+}
+
+/** Słówka tematu: linie „english = polski” (puste linie i komentarze # pomijamy). */
+export function parseWords(text: string | undefined): [string, string][] {
+  const out: [string, string][] = [];
+  for (const raw of (text ?? '').split(/\r?\n/)) {
+    const line = raw.trim();
+    if (!line || line.startsWith('#')) continue;
+    const [l, r] = splitOnce(line, '=');
+    if (r !== null && l.trim() && r.trim()) out.push([l.trim(), r.trim()]);
+  }
+  return out;
+}
+
+const wordKey = (w: string) => w.toLowerCase().replace(/[’‘ʼ`´′]/g, "'");
+
+/**
+ * Podpowiedzi do słów: które słówka ze słowniczka występują w tekście (najpierw dłuższe wyrażenia,
+ * np. „next to” przed „next”). Liczbę mnogą na -s/-es rozpoznajemy po formie podstawowej.
+ * Wynik w kolejności występowania w tekście.
+ */
+export function wordHints(text: string, glossary: [string, string][], max = 8): [string, string][] {
+  const tokens = wordKey(text).match(/[\p{L}\p{N}']+/gu) ?? [];
+  if (!tokens.length) return [];
+  const dict = new Map<string, [string, string]>();
+  let longest = 1;
+  for (const [en, pl] of glossary) {
+    const k = (wordKey(en).match(/[\p{L}\p{N}']+/gu) ?? []).join(' ');
+    if (!k || dict.has(k)) continue;
+    dict.set(k, [en, pl]);
+    longest = Math.max(longest, k.split(' ').length);
+  }
+  const out: [string, string][] = [];
+  const seen = new Set<string>();
+  for (let i = 0; i < tokens.length; ) {
+    let hit = 0;
+    for (let len = Math.min(longest, tokens.length - i); len >= 1 && !hit; len--) {
+      const phrase = tokens.slice(i, i + len).join(' ');
+      // Formę podstawową sprawdzamy tylko dla dłuższych słów („is” to nie liczba mnoga od „I”).
+      const forms = [phrase, phrase.replace(/'s$/, ''), phrase.replace(/s$/, ''), phrase.replace(/es$/, '')];
+      const k = forms.find((f, n) => (n === 0 || f.length >= 3) && dict.has(f));
+      if (!k) continue;
+      hit = len;
+      if (!seen.has(k)) {
+        seen.add(k);
+        out.push(dict.get(k)!);
+      }
+    }
+    i += hit || 1;
+  }
+  return out.slice(0, max);
 }
 
 export function isFillAnswerCorrect(given: string, accepted: string[]): boolean {
@@ -317,8 +377,9 @@ export function dictationText(parts: (string | string[])[]): string {
  * Podpowiedź do dyktanda: wyraz z ukrytymi „trudnymi” miejscami (ó/u, rz/ż, ch/h),
  * np. „żaba” → „_aba”, „ogórek” → „og_rek”. Dziecko widzi wyraz, ale samo decyduje o pisowni.
  */
-export function maskSpelling(word: string): string {
-  return word.replace(/rz|ch|ó|u|ż|h/gi, '_');
+export function maskSpelling(word: string, lang: Lang = 'pl'): string {
+  // Po angielsku nie ma „trudnych miejsc” jak w polskim — ukrywamy samogłoski (February → F_br__ry).
+  return lang === 'en' ? word.replace(/[aeiou]/gi, '_') : word.replace(/rz|ch|ó|u|ż|h/gi, '_');
 }
 
 export const DSL_HELP = `# Każde zadanie w jednej linii. Linie z # to komentarze.
@@ -329,6 +390,8 @@ sortuj: Posegreguj słowa. >> rzeczownik = kot, dom ; czasownik = biega, pisze
 wpisz: Uzupełnij. >> Wczoraj Ola [czytała|przeczytała] książkę.
 pary: Połącz osobę z czasownikiem. >> ja = piszę ; ty = piszesz ; oni = piszą
 dyktando: Posłuchaj i wpisz brakujący wyraz. >> Latem jedziemy nad [morze].
+# Na końcu linii: ?? podpowiedź (dziecko widzi ją po stuknięciu „Podpowiedź”) i !! wyjaśnienie (po odpowiedzi)
+wybierz: Wybierz poprawną formę. >> My sister ___ ten. | *is | are | am ?? Po polsku: Moja siostra ma dziesięć lat. !! She → is.
 # Czytanie ze zrozumieniem: tekst, a pod nim pytania do niego
 tekst: Jeż w ogrodzie >> Wieczorem Zosia zobaczyła w ogrodzie jeża. Szukał jedzenia pod krzakiem.
 wybierz: Kogo Zosia zobaczyła w ogrodzie? | *jeża | kota | psa`;

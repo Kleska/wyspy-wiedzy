@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
-import type { ChoiceExercise, DictationExercise, Exercise, FillExercise, MatchExercise, SortExercise, TapExercise } from '../../types';
+import type { ChoiceExercise, DictationExercise, Exercise, FillExercise, Lang, MatchExercise, SortExercise, TapExercise } from '../../types';
 import { dictationText, isFillAnswerCorrect, maskSpelling } from '../../dsl';
-import { hasPolishVoice, speak } from '../../speech';
+import { hasVoice, speak } from '../../speech';
 import { plural } from '../../themes';
 import { Icon } from '../icons';
 import { seededOrder, type Answer } from './logic';
@@ -14,6 +14,8 @@ interface Props<E extends Exercise, A extends Answer> {
   hint: boolean;
   seed: string;
   onEnter?: () => void;
+  /** Język treści zadania (angielski: głos angielski, klawisz apostrofu zamiast polskich liter). */
+  lang?: Lang;
 }
 
 /** Zamienia zapis 3/4 na ułamek „piętrowy”. */
@@ -296,44 +298,50 @@ const coarsePointer = () => typeof matchMedia !== 'undefined' && matchMedia('(po
 type Slot = { gap: number; part: 'x' | 'n' | 'd' };
 
 /** Głosy w przeglądarce ładują się asynchronicznie — odświeżamy, gdy się pojawią. */
-function usePolishVoice(): boolean {
-  const [ok, setOk] = useState(hasPolishVoice);
+function useVoice(lang: Lang): boolean {
+  const [ok, setOk] = useState(() => hasVoice(lang));
   useEffect(() => {
     if (ok || typeof speechSynthesis === 'undefined') return;
-    const on = () => setOk(hasPolishVoice());
+    const on = () => setOk(hasVoice(lang));
     speechSynthesis.addEventListener('voiceschanged', on);
     const t = setTimeout(on, 1500);
     return () => {
       speechSynthesis.removeEventListener('voiceschanged', on);
       clearTimeout(t);
     };
-  }, [ok]);
+  }, [ok, lang]);
   return ok;
 }
 
-function Listen({ ex, voice }: { ex: DictationExercise; voice: boolean }) {
+function Listen({ ex, voice, lang }: { ex: DictationExercise; voice: boolean; lang: Lang }) {
   const text = dictationText(ex.parts);
   useEffect(() => {
     // Próba odczytu od razu (na iPadzie może wymagać stuknięcia — wtedy działa przycisk).
-    const t = setTimeout(() => speak(text), 250);
+    const t = setTimeout(() => speak(text, undefined, lang), 250);
     return () => clearTimeout(t);
-  }, [text]);
+  }, [text, lang]);
   return (
     <div className="listen">
-      <button type="button" className="btn btn-primary btn-lg listen-btn" onClick={() => speak(text)}>
+      <button type="button" className="btn btn-primary btn-lg listen-btn" onClick={() => speak(text, undefined, lang)}>
         <Icon name="volume" size={30} /> Posłuchaj
       </button>
-      <button type="button" className="btn" onClick={() => speak(text, 0.6)}>
+      <button type="button" className="btn" onClick={() => speak(text, 0.6, lang)}>
         Wolniej
       </button>
-      {!voice && <p className="muted listen-note">To urządzenie nie ma polskiego głosu — w lukach widać wyraz z ukrytymi trudnymi literami.</p>}
+      {!voice && (
+        <p className="muted listen-note">
+          {lang === 'en'
+            ? 'To urządzenie nie ma angielskiego głosu — w lukach widać wyraz z ukrytymi samogłoskami.'
+            : 'To urządzenie nie ma polskiego głosu — w lukach widać wyraz z ukrytymi trudnymi literami.'}
+        </p>
+      )}
     </div>
   );
 }
 
-function Fill({ ex, answer, setAnswer, reveal, hint, onEnter }: Props<FillExercise | DictationExercise, string[]>) {
+function Fill({ ex, answer, setAnswer, reveal, hint, onEnter, lang = 'pl' }: Props<FillExercise | DictationExercise, string[]>) {
   const dictation = ex.type === 'dictation';
-  const voice = usePolishVoice();
+  const voice = useVoice(lang);
   const maskAlways = dictation && !voice;
   const gaps = ex.parts.filter((p): p is string[] => Array.isArray(p));
   const mathy = !dictation && gaps.every((g) => g.every(isMathAnswer));
@@ -441,7 +449,7 @@ function Fill({ ex, answer, setAnswer, reveal, hint, onEnter }: Props<FillExerci
   let gi = -1;
   return (
     <>
-      {ex.type === 'dictation' && <Listen ex={ex} voice={voice} />}
+      {ex.type === 'dictation' && <Listen ex={ex} voice={voice} lang={lang} />}
       <p className={`fill-text ${dictation ? 'dictation-text' : ''}`}>
         {ex.parts.map((p, k) => {
           if (!Array.isArray(p)) return <Fragment key={k}>{withFractions(p)}</Fragment>;
@@ -470,7 +478,7 @@ function Fill({ ex, answer, setAnswer, reveal, hint, onEnter }: Props<FillExerci
                 p,
                 dictation ? Math.max(8, p[0].length + 3) : Math.max(3, Math.max(...p.map((a) => a.length)) + 1),
                 cls,
-                dictation ? (hint || maskAlways ? maskSpelling(p[0]) : '') : hint ? p[0].slice(0, 1) + '…' : '',
+                dictation ? (hint || maskAlways ? maskSpelling(p[0], lang) : '') : hint ? p[0].slice(0, 1) + '…' : '',
               )}
             </Fragment>
           );
@@ -507,7 +515,17 @@ function Fill({ ex, answer, setAnswer, reveal, hint, onEnter }: Props<FillExerci
           )}
         </div>
       )}
-      {!reveal && !mathy && (
+      {!reveal && !mathy && lang === 'en' && (
+        <div className="pl-keys-wrap">
+          <span className="pl-keys-label">Apostrof (jak w isn&apos;t) — stuknij tutaj, a wpisze się w okienko:</span>
+          <div className="pl-keys" aria-label="Apostrof">
+            <button type="button" onPointerDown={(e) => e.preventDefault()} onClick={() => press("'")} aria-label="Wstaw apostrof">
+              &apos;
+            </button>
+          </div>
+        </div>
+      )}
+      {!reveal && !mathy && lang !== 'en' && (
         <div className="pl-keys-wrap">
           <span className="pl-keys-label">Nie ma tej litery na klawiaturze? Stuknij tutaj, a wpisze się w okienko:</span>
           <div className="pl-keys" aria-label="Polskie litery">

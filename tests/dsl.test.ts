@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { BUILTIN_TOPICS } from '../src/content/seed';
 import { evalSchool } from '../src/content/math';
-import { exerciseToDsl, isFillAnswerCorrect, parseDsl, parseLine, parseTapSentence } from '../src/dsl';
+import { exerciseToDsl, isFillAnswerCorrect, maskSpelling, parseDsl, parseLine, parseTapSentence, parseWords, wordHints } from '../src/dsl';
 import { parsePastedAnswer } from '../src/ai';
 import { correctText, initialAnswer, isCorrect, isReady } from '../src/ui/exercises/logic';
 import type { Exercise } from '../src/types';
@@ -266,3 +266,63 @@ describe('teksty do czytania i plan ze zdjęcia', () => {
     expect(r.topic).toBeNull();
   });
 });
+
+describe('język obcy: podpowiedzi, słówka, apostrofy', () => {
+  const english = BUILTIN_TOPICS.filter((t) => t.subject === 'ang');
+
+  it('podpowiedź po „??” nie zmienia identyfikatora zadania i wraca przy zapisie', () => {
+    const plain = parseLine('wybierz: Wybierz formę. >> She ___ ten. | *is | are !! She → is.', 1).ex!;
+    const hinted = parseLine('wybierz: Wybierz formę. >> She ___ ten. | *is | are ?? Po polsku: Ona ma dziesięć lat. !! She → is.', 1).ex!;
+    expect(hinted.id).toBe(plain.id);
+    expect(hinted.hint).toBe('Po polsku: Ona ma dziesięć lat.');
+    expect(hinted.explain).toBe('She → is.');
+    expect(plain.hint).toBeUndefined();
+    expect(exerciseToDsl(hinted)).toBe('wybierz: Wybierz formę. >> She ___ ten. | *is | are ?? Po polsku: Ona ma dziesięć lat. !! She → is.');
+    // Kolejność odwrotna (najpierw wyjaśnienie) też działa; pytajnik na końcu zdania nie przeszkadza.
+    const swapped = parseLine('wpisz: Uzupełnij. >> [Are] you ten? !! You → are. ?? Po polsku: Czy masz dziesięć lat?', 1).ex!;
+    expect(swapped).toMatchObject({ explain: 'You → are.', hint: 'Po polsku: Czy masz dziesięć lat?' });
+    expect(swapped.type === 'fill' && swapped.parts).toEqual([['Are'], ' you ten?']);
+  });
+
+  it('apostrof z iPada (’) liczy się jak zwykły, wielkość liter nie przeszkadza', () => {
+    expect(isFillAnswerCorrect('isn’t', ["isn't", 'is not'])).toBe(true);
+    expect(isFillAnswerCorrect('Is not', ["isn't", 'is not'])).toBe(true);
+    expect(isFillAnswerCorrect('Marek’s', ["Marek's"])).toBe(true);
+    expect(isFillAnswerCorrect('february', ['February'])).toBe(true);
+    expect(isFillAnswerCorrect('isnt', ["isn't"])).toBe(false);
+  });
+
+  it('słówka: lista i podpowiedzi do słów w zdaniu (najdłuższe wyrażenie, liczba mnoga)', () => {
+    const words = parseWords('# komentarz\nwardrobe = szafa\nnext to = obok\n\nhat = czapka\nhe\'s = on jest\nhe\'s got = on ma\nI = ja\nhi = cześć');
+    expect(words[0]).toEqual(['wardrobe', 'szafa']);
+    expect(words).toHaveLength(7);
+    expect(wordHints('There is a big wardrobe next to the door.', words)).toEqual([['wardrobe', 'szafa'], ['next to', 'obok']]);
+    expect(wordHints('He’s got two new hats.', words)).toEqual([["he's got", 'on ma'], ['hat', 'czapka']]);
+    // „is” i „his” to nie liczba mnoga od „I” ani „hi”.
+    expect(wordHints('This is his room.', words)).toEqual([]);
+    expect(maskSpelling('February', 'en')).toBe('F_br__ry');
+    expect(maskSpelling('żaba')).toBe('_aba');
+  });
+
+  it('każdy temat z angielskiego ma słówka, a zdania do uzupełniania mają podpowiedź', () => {
+    expect(english.length).toBeGreaterThanOrEqual(9);
+    for (const t of english) {
+      expect(parseWords(t.words).length, t.title).toBeGreaterThanOrEqual(10);
+      expect(t.grades).toEqual([5]);
+      for (const ex of parseDsl(t.dsl).exercises) {
+        const sentence = ex.type === 'choice' ? ex.sentence ?? '' : ex.type === 'fill' ? ex.parts.filter((p) => typeof p === 'string').join('') : '';
+        // Zdanie po angielsku (co najmniej 3 wyrazy) — musi mieć tłumaczenie albo wskazówkę; polecenia z tłumaczeniem w treści są zwolnione.
+        if (sentence.trim().split(/\s+/).length >= 3 && !/[ąćęłńóśźż]/i.test(ex.prompt.split('.')[0])) expect(ex.hint, `${t.title}: ${sentence}`).toBeTruthy();
+        expect(ex.explain ?? (ex.type === 'match' ? 'x' : ''), `${t.title}: brak wyjaśnienia`).toBeTruthy();
+      }
+    }
+  });
+
+  it('słówka ze słowniczka nie mają powtórzonych wyrażeń w jednym temacie', () => {
+    for (const t of english) {
+      const keys = parseWords(t.words).map(([w]) => w.toLowerCase());
+      expect(new Set(keys).size, t.title).toBe(keys.length);
+    }
+  });
+});
+

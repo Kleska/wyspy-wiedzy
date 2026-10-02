@@ -8,8 +8,11 @@ import {
   daysUntil,
   factsSummary,
   familyGoalProgress,
+  GRADE_NAMES,
   mistakesToFix,
   planActive,
+  planExamCount,
+  planStatus,
   reviewCount,
   suggestTopic,
   untouchedTopics,
@@ -160,7 +163,10 @@ function PlanCard({ progress }: { progress: Progress }) {
   const topics = store.topicsFor(profile.id).filter((t) => plan.topicIds.includes(t.id));
   if (!topics.length) return null;
   const lvl = (t: ParsedTopic) => progress.topics.get(t.id)?.level ?? 0;
-  const done = topics.filter((t) => lvl(t) >= 3).length;
+  const status = planStatus(plan, topics.map((t) => t.id), progress);
+  const done = status.fluent;
+  const examN = planExamCount(topics.length);
+  const last = status.lastExam;
   const days = plan.until ? daysUntil(plan.until, Date.now()) : null;
   const when = days === null ? '' : days <= 0 ? 'dziś' : days === 1 ? 'jutro' : `za ${days} dni`;
   const next = suggestTopic(topics, progress, plan.topicIds);
@@ -170,7 +176,7 @@ function PlanCard({ progress }: { progress: Progress }) {
         <span className="plan-icon" aria-hidden="true">
           <Icon name="pin" size={26} />
         </span>
-        <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ flex: '1 1 190px', minWidth: 0 }}>
           <div className="label">Plan od rodzica{when ? ` · termin ${when}` : ''}</div>
           <h2 className="plan-title">{plan.title || 'Tematy na teraz'}</h2>
         </div>
@@ -189,11 +195,23 @@ function PlanCard({ progress }: { progress: Progress }) {
           </button>
         ))}
       </div>
-      {done === topics.length ? (
+      {status.confirmed && last ? (
         <p className="plan-done">
-          <Icon name="check" stroke={3} /> Plan wykonany! Wszystkie tematy są na poziomie „Biegły”. Możesz zrobić sprawdzian próbny.
+          <Icon name="check" stroke={3} /> Materiał opanowany! Sprawdzian próbny: {last.grade} ({GRADE_NAMES[last.grade]}), {last.correct}/{last.total}.
         </p>
-      ) : null}
+      ) : (
+        <p className="plan-check">
+          {last ? (
+            <>
+              Ostatni sprawdzian próbny: <b>{last.grade} ({GRADE_NAMES[last.grade]})</b>, {last.correct}/{last.total}. Cel: ocena 5 lub 6 — poćwicz tematy i spróbuj jeszcze raz.
+            </>
+          ) : done === topics.length ? (
+            <>Wszystkie tematy są na poziomie „Biegły”. Teraz sprawdzian próbny: {examN} pytań bez podpowiedzi. Ocena 5 lub 6 potwierdzi, że umiesz materiał.</>
+          ) : (
+            <>Najpierw ćwicz tematy (z podpowiedziami), potem zrób sprawdzian próbny: {examN} pytań bez podpowiedzi. Ocena 5 lub 6 potwierdzi, że umiesz materiał.</>
+          )}
+        </p>
+      )}
       <div className="row" style={{ flexWrap: 'wrap' }}>
         {next && done < topics.length && (
           <button className="btn btn-primary" onClick={() => go(practice({ kind: 'topic', topicId: next.id }))}>
@@ -203,7 +221,7 @@ function PlanCard({ progress }: { progress: Progress }) {
         <button
           className="btn"
           onClick={() =>
-            go(practice({ kind: 'test', topicIds: topics.map((t) => t.id), title: plan.title ? `Próbny: ${plan.title}` : 'Sprawdzian próbny', subjectId: topics[0].subject, count: 15 }))
+            go(practice({ kind: 'test', topicIds: topics.map((t) => t.id), title: plan.title ? `Próbny: ${plan.title}` : 'Sprawdzian próbny', subjectId: topics[0].subject, count: examN }))
           }
         >
           <Icon name="test" /> Sprawdzian próbny

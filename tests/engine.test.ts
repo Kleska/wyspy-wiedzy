@@ -288,3 +288,39 @@ describe('moje błędy, tabliczka mnożenia, czytanie', () => {
     expect(q.map((x) => x.ex.id)).toEqual(reading.exercises.filter((e) => e.passage?.title === titles[0]).map((e) => e.id));
   });
 });
+
+describe('plan: sprawdzian próbny potwierdza opanowanie materiału', () => {
+  it('liczba pytań rośnie z liczbą tematów; opanowanie = ostatni sprawdzian z całego planu na 5 lub 6', async () => {
+    const { planExamCount, planStatus } = await import('../src/engine');
+    expect(planExamCount(2)).toBe(15);
+    expect(planExamCount(9)).toBe(27);
+    expect(planExamCount(20)).toBe(30);
+
+    const verb = topics.find((t) => t.id === 'b-czasownik')!;
+    const ids = [noun.id, verb.id];
+    const plan = { topicIds: ids, setAt: '2026-10-01T08:00:00' };
+    const exam = (id: string, at: string, good: number, topicIds = ids): { a: Attempt[]; s: Session } => ({
+      a: Array.from({ length: 10 }, (_, i) => att(i % 2 ? verb : noun, Math.floor(i / 2), i < good, at, id)),
+      s: { id, profileId: P, topicId: null, mode: 'test', topicIds, startedAt: at, endedAt: at, activeSeconds: 200, answered: 10, correct: good, completed: true },
+    });
+
+    const none = planStatus(plan, ids, progress([], [], '2026-10-02T10:00:00'));
+    expect(none).toMatchObject({ total: 2, fluent: 0, lastExam: null, confirmed: false });
+
+    const weak = exam('e1', '2026-10-02T10:00:00', 7);
+    const p1 = progress(weak.a, [weak.s], '2026-10-02T11:00:00');
+    expect(planStatus(plan, ids, p1)).toMatchObject({ confirmed: false, lastExam: { grade: 4, correct: 7, total: 10 } });
+
+    const good = exam('e2', '2026-10-03T10:00:00', 9);
+    const p2 = progress([...weak.a, ...good.a], [weak.s, good.s], '2026-10-03T11:00:00');
+    expect(planStatus(plan, ids, p2)).toMatchObject({ confirmed: true, lastExam: { sessionId: 'e2', grade: 5 } });
+
+    // Sprawdzian tylko z jednego tematu albo sprzed ustawienia planu nie potwierdza całego planu.
+    const partial = exam('e3', '2026-10-03T12:00:00', 10, [noun.id]);
+    const p3 = progress(partial.a, [partial.s], '2026-10-03T13:00:00');
+    expect(planStatus(plan, ids, p3).lastExam).toBeNull();
+    const old = exam('e4', '2026-09-30T12:00:00', 10);
+    expect(planStatus(plan, ids, progress(old.a, [old.s], '2026-10-03T13:00:00')).lastExam).toBeNull();
+  });
+});
+

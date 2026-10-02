@@ -164,4 +164,78 @@ Rz: gdy wymienia się na r (morze – morski) i po spółgłoskach b, p, d, t, g
 Ż: gdy wymienia się na g, h, z, s, dz (droga – dróżka). Czasem trzeba zapamiętać: żółw.
 Ch: na końcu wyrazu (kożuch, dach; wyjątek: druh). H: najczęściej trzeba zapamiętać (hałas, hulajnoga).
 „Może” (być może) piszemy przez ż, a „morze” (woda) przez rz.`,
+
+  // ─── Angielski, klasa 5 (Unit 0) ───────────────────────────────────────────
+
+  'b-a5-u0-be': `Czasownik „to be” znaczy „być”. W czasie teraźniejszym ma trzy formy: am, is, are.
+I am (I'm) · you are (you're) · he is (he's), she is (she's), it is (it's) · we are (we're) · they are (they're).
+Przeczenie: I'm not · he, she, it isn't · you, we, they aren't.
+Pytanie: „to be” przechodzi na początek. You are Polish. → Are you Polish?
+Krótkie odpowiedzi: Yes, I am. No, I'm not. · Yes, he is. No, he isn't. · Yes, they are. No, they aren't.
+Uwaga: w krótkiej odpowiedzi na „tak” nie skracamy. Mówimy „Yes, he is”, a nie „Yes, he's”.
+Uwaga: wiek podajemy po angielsku z „to be”. I'm eleven. — Mam jedenaście lat.
+Przykład: Ola is from Poland. She isn't from Spain. Is she Polish? Yes, she is.`,
+
+  'b-a5-u0-kraje': `Kraj i narodowość to dwa różne słowa: Poland (Polska) — Polish (polski; Polak, Polka).
+Po „from” stoi nazwa kraju: I'm from Poland. Narodowość stoi od razu po am, is, are: I'm Polish.
+Nazwy krajów i narodowości piszemy po angielsku zawsze wielką literą.
+Argentina – Argentinian · China – Chinese · France – French · Germany – German · Italy – Italian.
+Poland – Polish · Spain – Spanish · Turkey – Turkish · the UK – British · the USA – American.
+Uwaga: przed „UK” i „USA” stoi „the”: I'm from the UK.
+Przykład: Marco is from Italy. He's Italian. It's the Italian flag.`,
+
+  'b-a5-u0-miesiace': `Miesiące po kolei: January, February, March, April, May, June, July, August, September, October, November, December.
+Nazwy miesięcy piszemy po angielsku wielką literą.
+Przed nazwą miesiąca stoi „in”: in May (w maju), in October (w październiku).
+Uwaga: June to czerwiec, a July to lipiec — łatwo je pomylić.
+Uwaga: w słowie February jest „r” w środku: Feb-ru-ary.
+Sposób: cztery ostatnie miesiące kończą się na -ber: September, October, November, December.
+Przykład: When's your birthday? It's in August.`,
+
+  'b-a5-u0-havegot': `„Have got” znaczy „mieć”.
+I, you, we, they have got (I've got) · he, she, it has got (he's got).
+Przeczenie: I, you, we, they haven't got · he, she, it hasn't got.
+Pytanie: Have you got a dog? Has she got a cat?
+Krótkie odpowiedzi: Yes, I have. No, I haven't. · Yes, she has. No, she hasn't.
+Uwaga: „he's got” to „he has got”, a samo „he's” to „he is”.
+Przykład: I've got a brother, but I haven't got a sister. My brother has got a hamster.`,
+
+  'b-a5-u0-can': `„Can” znaczy „umieć, potrafić”.
+Forma jest taka sama dla każdej osoby: I can, you can, he can, she can, we can, they can.
+Po „can” stoi czasownik w formie podstawowej — bez „to” i bez końcówki -s: She can swim.
+Przeczenie: can't. I can't sing.
+Pytanie: Can you cook? Krótkie odpowiedzi: Yes, I can. No, I can't.
+Czynności: cook, draw, run, sing, swim, skateboard, play football, play the guitar, ride a bike, speak Spanish.
+Przykład: My dad can cook, but he can't play the guitar.`,
+
+  'b-a5-u0-there': `„There is” (there's) mówi, że gdzieś jest jedna rzecz: There's a desk in my room.
+„There are” mówi, że gdzieś są dwie rzeczy lub więcej: There are two chairs in the kitchen.
+Przeczenie: There isn't a TV. There aren't any books.
+Pytanie: Is there a sofa? Are there any shelves? Krótkie odpowiedzi: Yes, there is. No, there isn't. · Yes, there are. No, there aren't.
+Przyimki miejsca: in (w), on (na), under (pod), next to (obok).
+Dom: armchair, bath, bed, chair, desk, fridge, shelves, shower, sofa, table, wardrobe.
+Przykład: There's a bed next to the door and there are some books on the desk.`,
+
+  'b-a5-u0-this': `Blisko: this (jedna rzecz), these (kilka rzeczy). Daleko: that (jedna rzecz), those (kilka rzeczy).
+What's this? It's a coat. · What are these? They're trainers.
+What's that? It's a hat. · What are those? They're jeans.
+Z „this” i „that” łączy się „is”, a z „these” i „those” — „are”: This is my hat. These are my shoes.
+Uwaga: jeans i trousers to zawsze liczba mnoga — tak jak polskie „spodnie”: These jeans are new. O butach (shoes, trainers) też zwykle mówimy w liczbie mnogiej.
+Uwaga: po angielsku przymiotnik nie zmienia się w liczbie mnogiej. It's a red hat. They're red hats.
+Ubrania: coat, dress, hat, hoodie, jacket, jeans, jumper, shoes, skirt, T-shirt, trainers, trousers.`,
+
+  'b-a5-u0-poss': `Zaimki dzierżawcze mówią, czyje coś jest: I → my, you → your, he → his, she → her, it → its, we → our, they → their.
+Zaimek stoi przed rzeczownikiem: my bike, her name, their house.
+Końcówka 's po imieniu albo nazwie osoby też pokazuje, czyje coś jest: Ola's bike — rower Oli, my dad's guitar — gitara mojego taty.
+Przykład: It's Adam's room. = It's his room.
+Uwaga: „its” (bez apostrofu) znaczy „jego, jej”, a „it's” to skrót od „it is” (albo „it has”).
+Po angielsku przymiotnik stoi przed rzeczownikiem i nie zmienia się w liczbie mnogiej: a new hat, two new hats.
+„Very” (bardzo) stoi przed przymiotnikiem: My bike is very old.
+Przymiotniki: big, clever, friendly, funny, helpful, new, old, pretty, small, sporty.`,
+
+  'b-a5-u0-czytanie': `Najpierw przeczytaj cały tekst — nie musisz rozumieć każdego słowa.
+Potem przeczytaj pytanie i znajdź w tekście zdanie, które na nie odpowiada.
+True znaczy „prawda”, a false — „fałsz”.
+Pytania: Who? — kto? · What? — co? · Where? — gdzie? · When? — kiedy? · How old? — ile lat? · How many? — ile?
+Sposób: nie znasz słowa? Rozwiń „Słówka z tekstu” pod tekstem albo stuknij „Podpowiedź”.`,
 };

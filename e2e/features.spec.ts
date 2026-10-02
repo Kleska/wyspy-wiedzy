@@ -358,3 +358,106 @@ test('plan ze zdjęcia zakresu (przez czat z Claude)', async ({ page }) => {
   await expect(page.getByText('termin za 2 dni')).toBeVisible();
   await snap(page, 'f30-home-plan-photo', true);
 });
+
+test('angielski: słówka z wymową, podpowiedź z tłumaczeniem, klawisz apostrofu', async ({ page }) => {
+  await onboard(page, 'Zosia', 5);
+  await page.locator('.subject-big', { hasText: 'Angielski' }).click();
+  await expect(page.getByRole('heading', { name: 'Wyspa Angielskiego' })).toBeVisible();
+  await snap(page, 'f30-english-subject', true);
+
+  await page.getByRole('button', { name: /To be: am, is, are/ }).first().click();
+  const dlg = page.getByRole('dialog');
+  // Ściągi w dwóch językach nie czytamy jednym głosem; słówka rozwija się stuknięciem.
+  await dlg.locator('.words-details summary').click();
+  await expect(dlg.locator('.words-details[open]')).toBeVisible();
+  await expect(dlg.locator('.word-list li').first()).toContainText("I'm");
+  await expect(dlg.getByRole('button', { name: 'Przeczytaj ściągę na głos' })).toHaveCount(0);
+  await expect(dlg.getByRole('button', { name: "Posłuchaj: I'm", exact: true })).toBeVisible();
+  await snap(page, 'f31-english-topic-words', true);
+  await dlg.getByRole('button', { name: /ukryj tłumaczenia/ }).click();
+  await expect(dlg.locator('.word-pl')).toHaveCount(0);
+  await dlg.locator('.word-reveal').first().click();
+  await expect(dlg.locator('.word-pl')).toHaveCount(1);
+  await dlg.getByRole('button', { name: /Graj!/ }).click();
+
+  let sawTranslation = false;
+  let sawApostrophe = false;
+  let sawGuideWords = false;
+  for (let i = 0; i < 14 && !(sawTranslation && sawApostrophe && sawGuideWords); i++) {
+    await expect(page.getByRole('button', { name: 'Sprawdź' })).toBeVisible();
+    await page.getByRole('button', { name: 'Podpowiedź' }).click();
+    await expect(page.locator('.hint-box')).toBeVisible();
+    if (await page.locator('.hint-main').count()) {
+      await expect(page.locator('.hint-main')).toContainText('Po polsku:');
+      if (!sawTranslation) await snap(page, 'f32-english-hint', true);
+      sawTranslation = true;
+    }
+    if (await page.locator('.gap').count()) {
+      // Po angielsku zamiast polskich liter jest klawisz apostrofu.
+      await expect(page.getByRole('button', { name: 'Wstaw ą' })).toHaveCount(0);
+      await page.locator('.gap').first().click();
+      await page.getByRole('button', { name: 'Wstaw apostrof' }).click();
+      await expect(page.locator('.gap').first()).toHaveValue("'");
+      if (!sawApostrophe) await snap(page, 'f33-english-apostrophe', true);
+      sawApostrophe = true;
+    }
+    await answerAny(page);
+    await page.getByRole('button', { name: 'Sprawdź' }).click();
+    await page.waitForTimeout(750);
+    if (!sawGuideWords && (await page.getByRole('button', { name: 'Ściąga' }).count())) {
+      await page.getByRole('button', { name: 'Ściąga' }).click();
+      const guide = page.getByRole('dialog');
+      await guide.locator('.words-details summary').click();
+      await expect(guide.locator('.word-list li').first()).toBeVisible();
+      await guide.getByRole('button', { name: 'Wracam do zadania' }).click();
+      sawGuideWords = true;
+    }
+    await page.getByRole('button', { name: /^(Dalej|Zakończ)$/ }).click();
+    if (await page.locator('.summary').count()) break;
+  }
+  expect(sawTranslation).toBe(true);
+  expect(sawApostrophe).toBe(true);
+  expect(sawGuideWords).toBe(true);
+});
+
+test('angielski: czytanie ze słówkami z tekstu i plan potwierdzany sprawdzianem próbnym', async ({ page }) => {
+  await onboard(page, 'Zosia', 5);
+  await page.locator('.subject-big', { hasText: 'Angielski' }).click();
+  await page.getByRole('button', { name: /Czytanie po angielsku/ }).first().click();
+  await page.getByRole('dialog').getByRole('button', { name: /Graj!/ }).click();
+  await expect(page.locator('details.passage[open]')).toBeVisible();
+  await page.locator('.passage-words summary').click();
+  await expect(page.locator('.passage-words .word-list li').first()).toBeVisible();
+  await snap(page, 'f34-english-reading', true);
+  await page.getByRole('button', { name: 'Zakończ ćwiczenie' }).click();
+  await expect(page.getByRole('heading', { name: 'Wyspa Angielskiego' })).toBeVisible();
+  await page.getByRole('button', { name: 'Wróć', exact: true }).click();
+
+  await parentLogin(page);
+  await page.getByRole('button', { name: 'Plan i sprawdziany' }).click();
+  await page.getByPlaceholder('np. Sprawdzian z ułamków').fill('Sprawdzian: Unit 0');
+  // Cały dział jednym stuknięciem: wszystkie tematy z angielskiego.
+  await page.getByRole('button', { name: 'Zaznacz wszystkie (9)' }).click();
+  await expect(page.locator('.check-row', { hasText: 'Have got' }).locator('input')).toBeChecked();
+  await page.getByRole('button', { name: 'Zapisz plan (9)' }).click();
+  await expect(page.getByText('Opanowanie materiału jeszcze niepotwierdzone.')).toBeVisible();
+  await snap(page, 'f35-english-parent-plan', true);
+  await page.getByRole('button', { name: 'Wyjdź' }).click();
+
+  await expect(page.getByRole('heading', { name: 'Sprawdzian: Unit 0' })).toBeVisible();
+  await expect(page.locator('.plan-check')).toContainText('Ocena 5 lub 6 potwierdzi');
+  await snap(page, 'f36-english-home-plan', true);
+  await page.getByRole('button', { name: /Sprawdzian próbny/ }).click();
+  // Po 3 pytania z każdego z 9 tematów.
+  await expect(page.getByText('Pytanie 1 z 27')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Podpowiedź' })).toHaveCount(0);
+  await runExam(page);
+  await expect(page.locator('.grade-num')).toBeVisible();
+  await snap(page, 'f37-english-exam-summary', true);
+  await page.locator('.summary .btn-primary').last().click();
+  await expect(page.getByRole('heading', { name: 'Wyspa Angielskiego' })).toBeVisible();
+  await page.getByRole('button', { name: 'Wróć', exact: true }).click();
+  // Wynik sprawdzianu próbnego widać na karcie planu (ocena 5 lub 6 = materiał opanowany).
+  await expect(page.locator('.plan-check, .plan-done')).toContainText(/Sprawdzian próbny|sprawdzian próbny/);
+  await expect(page.locator('.plan-check, .plan-done')).toContainText(/\d+\/27/);
+});
