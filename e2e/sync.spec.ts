@@ -1,4 +1,5 @@
-import { expect, test, type Browser, type BrowserContext, type Page, type Route, type WebSocketRoute } from '@playwright/test';
+import type { Browser, BrowserContext, Page, Route, WebSocketRoute } from '@playwright/test';
+import { expect, test, useLocalConfig } from './fixtures';
 
 /*
  * Synchronizacja między urządzeniami. Zamiast prawdziwego Supabase używamy atrapy w pamięci testu:
@@ -129,6 +130,8 @@ class FakeSupabase {
 
 async function device(browser: Browser): Promise<{ ctx: BrowserContext; page: Page }> {
   const ctx = await browser.newContext({ serviceWorkers: 'block' });
+  // Na początku urządzenie działa lokalnie (bez chmury); `cloud.enable` podłącza je potem do atrapy.
+  await useLocalConfig(ctx);
   return { ctx, page: await ctx.newPage() };
 }
 
@@ -231,6 +234,11 @@ test('dwa urządzenia: postępy córki widać u rodzica, plan od rodzica trafia 
   // ── Tablet dołącza: wysyła profil i odpowiedzi córki, a ustawienia rodziny (PIN, nagrody) bierze z chmury ──
   await cloud.enable(tablet.ctx);
   await tablet.page.reload();
+  // Zanim rodzic zaloguje tablet, córka może uczyć się dalej lokalnie — nic nie idzie jeszcze do chmury.
+  await tablet.page.getByRole('button', { name: 'Na razie bez logowania' }).click();
+  await expect(tablet.page.getByText('Cześć, Zosia!')).toBeVisible();
+  expect(cloud.rowsOf('attempt').length).toBe(0);
+  await tablet.page.reload();
   await login(tablet.page);
   // Tablet zostaje przy profilu córki, choć z chmury doszedł drugi profil.
   await expect(tablet.page.getByText('Cześć, Zosia!')).toBeVisible();
@@ -330,6 +338,13 @@ test('dwa urządzenia: postępy córki widać u rodzica, plan od rodzica trafia 
   await tablet.page.reload();
   await expect(tablet.page.getByRole('heading', { name: 'Kto się dziś uczy?' })).toBeVisible();
   await expect(tablet.page.getByRole('button', { name: /Kuba/ })).toBeVisible();
+
+  // Urządzenie raz podłączone do konta wymaga logowania (bez „Na razie bez logowania”).
+  await phone.page.getByRole('button', { name: 'Ustawienia' }).click();
+  await phone.page.getByRole('button', { name: 'Wyloguj urządzenie' }).click();
+  await phone.page.getByRole('alertdialog').getByRole('button', { name: 'Wyloguj' }).click();
+  await expect(phone.page.getByRole('heading', { name: 'Zaloguj konto rodziny' })).toBeVisible();
+  await expect(phone.page.getByRole('button', { name: 'Na razie bez logowania' })).toHaveCount(0);
 
   await phone.ctx.close();
   await tablet.ctx.close();

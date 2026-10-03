@@ -39,14 +39,16 @@ export function ParentSettings() {
     setTimeout(() => setMsg(''), 2500);
   };
 
-  const syncColor = { local: '#8a94a0', idle: '#1e7a4c', syncing: '#1f5fd6', offline: '#b8860b', error: '#b4441a' }[st.sync.status];
-  const syncText = {
+  const signedOut = st.cloud && st.auth.status !== 'signedIn';
+  const syncColor = signedOut ? '#b8860b' : { local: '#8a94a0', idle: '#1e7a4c', syncing: '#1f5fd6', offline: '#b8860b', error: '#b4441a' }[st.sync.status];
+  const syncStateText = {
     local: 'Tylko to urządzenie (chmura niewłączona)',
     idle: 'Zsynchronizowano',
     syncing: 'Synchronizuję…',
     offline: 'Brak internetu — zapiszę później',
     error: 'Błąd synchronizacji',
   }[st.sync.status];
+  const syncText = signedOut ? 'Niezalogowane — tylko to urządzenie' : syncStateText;
 
   return (
     <>
@@ -108,7 +110,19 @@ export function ParentSettings() {
           <span className="sync-dot" style={{ background: syncColor }} />
           <b>{syncText}</b>
         </div>
-        {st.cloud ? (
+        {signedOut ? (
+          <>
+            <div className="note">
+              To urządzenie nie jest zalogowane do konta rodziny, więc działa tylko lokalnie: rodzic nie widzi stąd postępów, a plan i tematy ustawione na innych
+              urządzeniach tu nie docierają. Po zalogowaniu dane z tego urządzenia zostaną wysłane do chmury.
+            </div>
+            <div>
+              <button className="btn btn-sm btn-primary" onClick={() => location.reload()}>
+                <Icon name="cloud" size={16} /> Zaloguj konto rodziny
+              </button>
+            </div>
+          </>
+        ) : st.cloud ? (
           <>
             <p className="muted" style={{ fontSize: 14 }}>
               Konto: {st.auth.email ?? '—'} · ostatnio: {st.sync.lastSync ? new Date(st.sync.lastSync).toLocaleTimeString('pl-PL') : '—'} · czeka na wysłanie:{' '}

@@ -24,6 +24,8 @@ export interface StoreState {
   ready: boolean;
   persistent: boolean;
   cloud: boolean;
+  /** To urządzenie było już kiedyś zalogowane do konta rodziny. */
+  joined: boolean;
   auth: AuthState;
   /** `live` — działa kanał „na żywo”: zmiany z innych urządzeń przychodzą od razu, a nie co minutę. */
   sync: { status: SyncStatus; lastSync: number | null; pending: number; error?: string; firstPullDone: boolean; live?: boolean };
@@ -89,6 +91,7 @@ export class Store {
     ready: false,
     persistent: false,
     cloud: false,
+    joined: false,
     auth: { status: 'none' },
     sync: { status: 'local', lastSync: null, pending: 0, firstPullDone: false },
     version: 0,
@@ -128,6 +131,7 @@ export class Store {
       ready: true,
       persistent: this.kv.persistent,
       cloud,
+      joined: !!(await this.kv.getMeta<string>('cloudUser')),
       auth: cloud ? { status: 'checking' } : { status: 'none' },
       sync: { ...this.state.sync, status: cloud ? 'idle' : 'local', firstPullDone: !cloud },
     };
@@ -379,7 +383,7 @@ export class Store {
     }
     await this.kv.setMeta('cloudUser', userId);
     const pending = (await this.kv.getOutbox()).length;
-    this.patch({ auth: { status: 'signedIn', userId, email } });
+    this.patch({ auth: { status: 'signedIn', userId, email }, joined: true });
     this.patchSync({ pending });
     await this.sync();
     this.startLive(userId);

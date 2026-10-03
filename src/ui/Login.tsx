@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { store } from '../data/store';
 
-export function Login() {
+export function Login({ onSkip }: { onSkip?: () => void }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
@@ -41,6 +41,16 @@ export function Login() {
         <button className="btn btn-primary btn-lg" disabled={busy}>
           {busy ? 'Loguję…' : 'Zaloguj'}
         </button>
+        {onSkip && (
+          <>
+            <button type="button" className="btn" onClick={onSkip}>
+              Na razie bez logowania
+            </button>
+            <p className="muted" style={{ fontSize: 14 }}>
+              Bez logowania aplikacja działa tylko na tym urządzeniu. Postępy wyślą się do konta rodziny, gdy rodzic się tu zaloguje.
+            </p>
+          </>
+        )}
       </form>
     </div>
   );

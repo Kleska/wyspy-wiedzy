@@ -45,6 +45,9 @@ export function App() {
   const [topicOpen, setTopicOpen] = useState<string | null>(null);
   const [picking, setPicking] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
+  // Urządzenie jeszcze niepodłączone do konta rodziny może działać lokalnie (do zamknięcia aplikacji) —
+  // dziecko nie zostaje bez nauki, gdy rodzic nie zdążył się zalogować. Dane wyślą się przy pierwszym logowaniu.
+  const [localOnly, setLocalOnly] = useState(false);
   const toastTimer = useRef<ReturnType<typeof setTimeout>>();
 
   const profiles = store.profiles();
@@ -112,8 +115,8 @@ export function App() {
 
   if (!st.ready) return <Splash text="Ładuję…" />;
   if (st.cloud && st.auth.status === 'checking') return <Splash text="Łączę z chmurą…" />;
-  if (st.cloud && st.auth.status === 'signedOut') return <Login />;
-  if (st.cloud && !st.sync.firstPullDone) return <Splash text="Pobieram postępy…" />;
+  if (st.cloud && st.auth.status === 'signedOut' && !(localOnly && !st.joined)) return <Login onSkip={st.joined ? undefined : () => setLocalOnly(true)} />;
+  if (st.cloud && st.auth.status === 'signedIn' && !st.sync.firstPullDone) return <Splash text="Pobieram postępy…" />;
   if (profiles.length === 0) return <Onboarding onDone={choose} />;
   if (!profile || picking) return <ProfilePicker profiles={profiles} onPick={choose} onCancel={profile ? () => setPicking(false) : undefined} />;
 

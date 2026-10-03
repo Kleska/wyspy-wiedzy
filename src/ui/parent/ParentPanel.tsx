@@ -67,7 +67,16 @@ export function ParentPanel({ pin, onExit }: { pin: string; onExit: () => void }
           </button>
         </nav>
         <main className="parent-main">
-          {st.cloud && (
+          {st.cloud && st.auth.status !== 'signedIn' && (
+            <div className="sync-bar offline" role="status">
+              <span className="sync-dot" />
+              <span>To urządzenie nie jest zalogowane do konta rodziny — widzisz tylko dane zapisane tutaj.</span>
+              <button className="btn btn-sm" onClick={() => location.reload()}>
+                Zaloguj
+              </button>
+            </div>
+          )}
+          {st.cloud && st.auth.status === 'signedIn' && (
             <div className={`sync-bar ${sync.status}`} role="status">
               <span className="sync-dot" />
               <span>{syncText}</span>
