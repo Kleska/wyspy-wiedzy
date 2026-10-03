@@ -171,6 +171,14 @@ function PlanCard({ progress }: { progress: Progress }) {
   const done = status.fluent;
   const examN = planExamCount(topics.length);
   const last = status.lastExam;
+  // Trzy kroki: Nauka (lekcje) → Ćwiczenia (poziom „Biegły”) → Sprawdzian próbny (ocena 5–6).
+  const lessonTopics = topics.filter((t) => t.lesson?.trim());
+  const learned = lessonTopics.filter((t) => progress.lessonsDone.has(t.id)).length;
+  const nextLesson = lessonTopics.find((t) => !progress.lessonsDone.has(t.id));
+  const stage = nextLesson ? 1 : status.confirmed ? 4 : done < topics.length ? 2 : 3;
+  // Powtórka z własnych błędów: zadania z tematów planu, w których dziecko pomyliło się w ostatnim miesiącu.
+  const planMistakes = mistakesToFix({ profileId: profile.id, attempts: store.list('attempt'), topics, now: Date.now(), since: profile.resetAt, days: 30 });
+  const sheetTitle = `Powtórka przed sprawdzianem${plan.title ? `: ${plan.title}` : ''}`;
   const days = plan.until ? daysUntil(plan.until, Date.now()) : null;
   const when = days === null ? '' : days <= 0 ? 'dziś' : days === 1 ? 'jutro' : `za ${days} dni`;
   const next = suggestTopic(topics, progress, plan.topicIds);
@@ -184,14 +192,47 @@ function PlanCard({ progress }: { progress: Progress }) {
           <div className="label">Plan od rodzica{when ? ` · termin ${when}` : ''}</div>
           <h2 className="plan-title">{plan.title || 'Tematy na teraz'}</h2>
         </div>
-        <span className="pill">
-          {done}/{topics.length} na poziomie „Biegły”
-        </span>
       </div>
+      <ol className="plan-steps" aria-label="Kolejność nauki">
+        {lessonTopics.length > 0 && (
+          <li className={learned === lessonTopics.length ? 'done' : stage === 1 ? 'now' : ''}>
+            <b>1</b>
+            <span>
+              Nauka
+              <small>
+                {learned}/{lessonTopics.length} {plural(lessonTopics.length, ['lekcja', 'lekcje', 'lekcji'])}
+              </small>
+            </span>
+          </li>
+        )}
+        <li className={done === topics.length ? 'done' : stage === 2 ? 'now' : ''}>
+          <b>{lessonTopics.length > 0 ? 2 : 1}</b>
+          <span>
+            Ćwiczenia
+            <small>
+              {done}/{topics.length} na poziomie „Biegły”
+            </small>
+          </span>
+        </li>
+        <li className={status.confirmed ? 'done' : stage === 3 ? 'now' : ''}>
+          <b>{lessonTopics.length > 0 ? 3 : 2}</b>
+          <span>
+            Sprawdzian próbny
+            <small>{last ? `ocena ${last.grade}` : `${examN} ${plural(examN, ['pytanie', 'pytania', 'pytań'])}`}</small>
+          </span>
+        </li>
+      </ol>
       <div className="plan-topics">
         {topics.map((t) => (
           <button key={t.id} className="plan-topic" onClick={() => go(practice({ kind: 'topic', topicId: t.id }))}>
-            <span className="plan-topic-title">{t.title}</span>
+            <span className="plan-topic-title">
+              {t.title}
+              {t.lesson?.trim() && progress.lessonsDone.has(t.id) && (
+                <span className="lesson-mark" title="Lekcja przeczytana">
+                  <Icon name="book" size={14} />
+                </span>
+              )}
+            </span>
             <span className="plan-topic-level">
               <LevelSteps level={lvl(t)} />
               <LevelChip level={lvl(t)} small />
@@ -212,18 +253,39 @@ function PlanCard({ progress }: { progress: Progress }) {
           ) : done === topics.length ? (
             <>Wszystkie tematy są na poziomie „Biegły”. Teraz sprawdzian próbny: {examN} pytań bez podpowiedzi. Ocena 5 lub 6 potwierdzi, że umiesz materiał.</>
           ) : (
-            <>Najpierw ćwicz tematy (z podpowiedziami), potem zrób sprawdzian próbny: {examN} pytań bez podpowiedzi. Ocena 5 lub 6 potwierdzi, że umiesz materiał.</>
+            <>
+              {lessonTopics.length > 0 ? 'Najpierw przeczytaj lekcje, potem ćwicz tematy (z podpowiedziami), a na koniec' : 'Najpierw ćwicz tematy (z podpowiedziami), potem'} zrób sprawdzian
+              próbny: {examN} pytań bez podpowiedzi. Ocena 5 lub 6 potwierdzi, że umiesz materiał.
+            </>
           )}
         </p>
       )}
       <div className="row" style={{ flexWrap: 'wrap' }}>
+        {nextLesson && (
+          <button className="btn btn-primary" onClick={() => go({ name: 'learn', topicId: nextLesson.id, nonce: Date.now(), from: 'home' })}>
+            <Icon name="book" /> Nauka: {nextLesson.title} <Icon name="arrowRight" />
+          </button>
+        )}
         {next && done < topics.length && (
-          <button className="btn btn-primary" onClick={() => go(practice({ kind: 'topic', topicId: next.id }))}>
+          <button className={`btn ${stage === 2 ? 'btn-primary' : ''}`} onClick={() => go(practice({ kind: 'topic', topicId: next.id }))}>
             Ćwicz: {next.title} <Icon name="arrowRight" />
           </button>
         )}
+        {planMistakes.length > 0 && (
+          <button
+            className="btn"
+            onClick={() => go(practice({ kind: 'fix', items: planMistakes.slice(0, 20).map(({ topicId, exerciseId }) => ({ topicId, exerciseId })), subjectId: null }))}
+          >
+            <Icon name="target" /> Popraw swoje błędy ({planMistakes.length})
+          </button>
+        )}
+        {lessonTopics.length > 0 && (
+          <button className="btn" onClick={() => go({ name: 'sheet', topicIds: lessonTopics.map((t) => t.id), title: sheetTitle, from: 'home' })}>
+            <Icon name="book" /> Powtórka przed sprawdzianem
+          </button>
+        )}
         <button
-          className="btn"
+          className={`btn ${stage >= 3 ? 'btn-primary' : ''}`}
           onClick={() =>
             go(practice({ kind: 'test', topicIds: topics.map((t) => t.id), title: plan.title ? `Próbny: ${plan.title}` : 'Sprawdzian próbny', subjectId: topics[0].subject, count: examN }))
           }
@@ -670,6 +732,20 @@ function Challenges({
           <small>Bez podpowiedzi, z oceną 1–6</small>
         </span>
       </button>
+      {topics.some((t) => t.lesson?.trim()) && (
+        <button
+          className="challenge"
+          onClick={() =>
+            go({ name: 'sheet', topicIds: topics.filter((t) => t.lesson?.trim()).map((t) => t.id), title: `Powtórka: ${scope ?? subjectOf(subjectId).name}`, from: 'subject', subjectId })
+          }
+        >
+          <Icon name="book" size={28} />
+          <span>
+            <b>Powtórka{scope ? `: ${scope}` : ''}</b>
+            <small>Najważniejsze rzeczy na jednej stronie</small>
+          </span>
+        </button>
+      )}
       {untouched >= 2 && (
         <button className="challenge" onClick={() => go(practice({ kind: 'diagnostic', subjectId }))}>
           <Icon name="compass" size={28} />

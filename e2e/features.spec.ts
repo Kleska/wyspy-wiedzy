@@ -466,6 +466,12 @@ test('angielski: czytanie ze słówkami z tekstu i plan potwierdzany sprawdziane
   // Wynik sprawdzianu próbnego widać na karcie planu (ocena 5 lub 6 = materiał opanowany).
   await expect(page.locator('.plan-check, .plan-done')).toContainText(/Sprawdzian próbny|sprawdzian próbny/);
   await expect(page.locator('.plan-check, .plan-done')).toContainText(/\d+\/27/);
+
+  // Powtórka z własnych błędów: zadania z planu, w których dziecko pomyliło się na sprawdzianie.
+  await snap(page, 'f38-plan-after-exam', true);
+  await page.getByRole('button', { name: /Popraw swoje błędy \(\d+\)/ }).click();
+  await expect(page.getByRole('button', { name: 'Sprawdź' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Podpowiedź' })).toBeVisible();
 });
 
 test('rozdziały: plansza angielskiego pokazuje Unit 0, sprawdzian jest z rozdziału', async ({ page }) => {
@@ -584,5 +590,108 @@ test('PIN rodzica: nowy ma 6 cyfr, stary 4-cyfrowy wpuszcza raz i każe ustawić
   await expect(page.getByRole('button', { name: 'Zmień PIN' })).toBeDisabled();
   await page.getByLabel('Nowy PIN').fill('123456');
   await expect(page.getByRole('button', { name: 'Zmień PIN' })).toBeEnabled();
+});
+
+test('tryb nauki: karty lekcji, pytania kontrolne, powtórka rozdziału i kroki na karcie planu', async ({ page }) => {
+  await onboard(page, 'Zosia', 5);
+  await page.locator('.subject-big', { hasText: 'Angielski' }).click();
+  await page.getByRole('button', { name: /To be: am, is, are/ }).first().click();
+  await page.getByRole('dialog').getByRole('button', { name: /Nauka: poznaj temat krok po kroku/ }).click();
+
+  // Karty: każda na jeden ekran, przechodzi się „Dalej”.
+  const title = page.locator('.pr-prompt h1');
+  const dalej = page.getByRole('button', { name: 'Dalej' });
+  await expect(title).toHaveText('Najważniejsze');
+  await expect(page.locator('.lesson-list li')).toHaveCount(3);
+  await snap(page, 'f50-lesson-key');
+  await dalej.click();
+  await expect(title).toHaveText('Krok po kroku');
+  await snap(page, 'f51-lesson-steps');
+  await dalej.click();
+  await expect(title).toHaveText('Przykład');
+  await expect(page.locator('.lesson-example .result')).toContainText('Czyli:');
+  await snap(page, 'f52-lesson-example');
+  await dalej.click();
+  await expect(title).toHaveText('Tak — nie tak');
+  await expect(page.getByText('Część 1 z 2')).toBeVisible();
+  await expect(page.locator('.lesson-pair')).toHaveCount(2);
+  await expect(page.locator('.lp-good').first()).toHaveText('Yes, he is.');
+  await expect(page.locator('.lp-bad').first()).toHaveText("Yes, he's.");
+  await expect(page.locator('.lp-why').first()).toContainText(/^Bo skrót 's zapowiada/);
+  await snap(page, 'f53-lesson-pairs');
+  await page.getByRole('button', { name: 'Wstecz' }).click();
+  await expect(title).toHaveText('Przykład');
+  await dalej.click();
+  await dalej.click();
+  await expect(page.getByText('Część 2 z 2')).toBeVisible();
+  await dalej.click();
+  await expect(title).toHaveText('Jak to zapamiętać');
+  await snap(page, 'f54-lesson-trick');
+  await dalej.click();
+
+  // Pytania kontrolne: wyjaśnienie od razu po odpowiedzi.
+  await expect(page.getByText('Sprawdź się: pytanie 1 z 3')).toBeVisible();
+  await page.locator('.opt', { hasText: /^are$/ }).click();
+  await page.getByRole('button', { name: 'Sprawdź' }).click();
+  await expect(page.locator('.pr-foot.good')).toContainText('My friends → they → are.');
+  await dalej.click();
+  await page.locator('.opt', { hasText: "Yes, she's." }).click();
+  await page.getByRole('button', { name: 'Sprawdź' }).click();
+  await expect(page.locator('.pr-foot.bad')).toContainText('Poprawnie: Yes, she is.');
+  await snap(page, 'f55-lesson-check');
+  await dalej.click();
+  await page.locator('.gap').fill('aren’t');
+  await page.getByRole('button', { name: 'Sprawdź' }).click();
+  await expect(page.locator('.pr-foot.good')).toBeVisible();
+  await page.getByRole('button', { name: 'Kończę lekcję' }).click();
+
+  await expect(page.getByRole('heading', { name: 'Lekcja przeczytana!' })).toBeVisible();
+  await expect(page.getByText('Pytania kontrolne: 2 z 3')).toBeVisible();
+  await expect(page.getByText('+5 muszelek za pierwszą lekcję z tego tematu')).toBeVisible();
+  await snap(page, 'f56-lesson-done');
+  await page.getByRole('button', { name: 'Wróć', exact: true }).click();
+
+  // Lekcję można powtórzyć; pytania kontrolne nie zmieniają poziomu tematu.
+  await page.getByRole('button', { name: /To be: am, is, are/ }).first().click();
+  await expect(page.getByRole('dialog').getByRole('button', { name: 'Powtórz lekcję' })).toBeVisible();
+  await expect(page.getByRole('dialog').locator('.level-chip')).toHaveText('Nowy');
+  await page.keyboard.press('Escape');
+
+  // Powtórka rozdziału: najważniejsze rzeczy ze wszystkich tematów na jednej stronie.
+  await page.getByRole('button', { name: /^Powtórka: Unit 0/ }).click();
+  await expect(page.getByRole('heading', { name: 'Powtórka: Unit 0' })).toBeVisible();
+  await expect(page.locator('.sheet-topic')).toHaveCount(9);
+  await expect(page.locator('.sheet-topic').first().getByRole('button', { name: 'Powtórz lekcję' })).toBeVisible();
+  await expect(page.locator('.sheet-topic').nth(1).getByRole('button', { name: 'Cała lekcja' })).toBeVisible();
+  await snap(page, 'f57-review-sheet', true);
+  await page.getByRole('button', { name: 'Wróć', exact: true }).click();
+  await page.getByRole('button', { name: 'Wróć', exact: true }).click();
+
+  // Karta planu prowadzi po kolei: Nauka → Ćwiczenia → Sprawdzian próbny.
+  await parentLogin(page);
+  await page.getByRole('button', { name: 'Plan i sprawdziany' }).click();
+  await page.getByPlaceholder('np. Sprawdzian z ułamków').fill('Sprawdzian: Unit 0');
+  await page.getByRole('button', { name: 'Zaznacz wszystkie (9)' }).click();
+  await page.getByRole('button', { name: 'Zapisz plan (9)' }).click();
+  await page.getByRole('button', { name: 'Postępy' }).click();
+  await expect(page.locator('tr', { hasText: 'Nauka (lekcja)' })).toContainText('To be: am, is, are');
+  await page.getByRole('button', { name: 'Wyjdź' }).click();
+
+  const steps = page.getByRole('list', { name: 'Kolejność nauki' }).getByRole('listitem');
+  await expect(steps).toHaveCount(3);
+  await expect(steps.nth(0)).toContainText('Nauka');
+  await expect(steps.nth(0)).toContainText('1/9 lekcji');
+  await expect(steps.nth(0)).toHaveClass(/now/);
+  await expect(steps.nth(1)).toContainText('0/9 na poziomie „Biegły”');
+  await expect(steps.nth(2)).toContainText('27 pytań');
+  await snap(page, 'f58-plan-steps', true);
+  await page.getByRole('button', { name: 'Powtórka przed sprawdzianem' }).click();
+  await expect(page.getByRole('heading', { name: 'Powtórka przed sprawdzianem: Sprawdzian: Unit 0' })).toBeVisible();
+  await page.getByRole('button', { name: 'Wróć', exact: true }).click();
+  // Następna lekcja z planu to pierwszy temat, którego lekcji dziecko jeszcze nie czytało.
+  await page.getByRole('button', { name: /^Nauka: Kraje i narodowości/ }).click();
+  await expect(page.locator('.pr-topic')).toHaveText('Nauka · Kraje i narodowości');
+  await page.getByRole('button', { name: 'Zamknij lekcję' }).click();
+  await expect(page.getByText('Cześć, Zosia!')).toBeVisible();
 });
 

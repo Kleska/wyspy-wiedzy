@@ -18,6 +18,8 @@ export function TopicSheet({ topicId, onClose }: { topicId: string; onClose: () 
   const n = Math.min(store.settings.sessionLength, topic.exercises.length);
   const testN = Math.min(10, topic.exercises.length);
   const inPlan = !!profile.plan?.topicIds.includes(topic.id);
+  const hasLesson = !!topic.lesson?.trim();
+  const lessonDone = !!progress?.lessonsDone.has(topic.id);
   return (
     <Modal title={topic.title} onClose={onClose}>
       <div className="row" style={{ justifyContent: 'space-between', flexWrap: 'wrap' }}>
@@ -63,7 +65,12 @@ export function TopicSheet({ topicId, onClose }: { topicId: string; onClose: () 
       <p className="muted" style={{ fontWeight: 700, fontSize: 14 }}>
         Poziomy: {LEVEL_NAMES.slice(1).join(' → ')}. Rosną, gdy odpowiadasz dobrze kilka dni z rzędu, a spadają, gdy coś się zapomina.
       </p>
-      <button className="btn btn-primary btn-lg btn-block" onClick={() => go(practice({ kind: 'topic', topicId: topic.id }))}>
+      {hasLesson && (
+        <button className={`btn btn-lg btn-block ${lessonDone ? '' : 'btn-primary'}`} onClick={() => go({ name: 'learn', topicId: topic.id, nonce: Date.now(), from: 'subject' })}>
+          <Icon name="book" /> {lessonDone ? 'Powtórz lekcję' : 'Nauka: poznaj temat krok po kroku'}
+        </button>
+      )}
+      <button className={`btn btn-lg btn-block ${hasLesson && !lessonDone ? '' : 'btn-primary'}`} onClick={() => go(practice({ kind: 'topic', topicId: topic.id }))}>
         {theme.start} ({n} {plural(n, ['zadanie', 'zadania', 'zadań'])})
       </button>
       {testN >= 5 && (

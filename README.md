@@ -38,6 +38,12 @@ można ją zainstalować na ekranie głównym i używać bez internetu. Postępy
   przycisk „Ćwicz najsłabsze”.
 - Sprawdzian w szkole? Zdjęcie zakresu (albo opis) → AI dobiera pasujące tematy, układa brakujące zadania i ustawia
   plan z terminem. Działa też bez klucza API, przez zwykły czat z Claude.
+- Tryb nauki: przed ćwiczeniami dziecko czyta krótką lekcję w kartach na jeden ekran — najważniejsze w trzech
+  zdaniach, krok po kroku z przykładem, „tak / nie tak” (typowy błąd obok poprawnej wersji, z powodem), sposób na
+  zapamiętanie i 2–3 pytania kontrolne z wyjaśnieniem. „Powtórka” zbiera najważniejsze rzeczy z całego rozdziału
+  albo planu na jednej stronie. Karta planu prowadzi po kolei: Nauka → Ćwiczenia → Sprawdzian próbny, a „Popraw swoje
+  błędy” układa sesję z zadań z planu, w których dziecko się pomyliło. Lekcje do własnych tematów wpisuje się
+  w edytorze tematu (pole „Lekcja”).
 - Rozdziały: temat może należeć do rozdziału (np. „Unit 0”, „Unit 1”) — plansza przedmiotu pokazuje jeden rozdział
   naraz, a listy tematów w panelu rodzica są nimi pogrupowane (z przyciskiem „Zaznacz rozdział”).
 - Kartkówka od rodzica: w panelu rodzica wybierasz dziecko, tematy, liczbę pytań i termin; dziecko widzi ją na

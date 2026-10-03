@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { askConfirm } from '../dialogs';
 import { SUBJECTS, subjectLang, subjectOf } from '../../content/seed';
 import { nowIso, store, uid } from '../../data/store';
-import { DSL_HELP, parseDsl, TYPE_LABEL } from '../../dsl';
+import { DSL_HELP, LESSON_HELP, parseDsl, parseLesson, TYPE_LABEL } from '../../dsl';
 import type { Topic, TopicSource } from '../../types';
 import { plural } from '../../themes';
 import { exerciseSummary } from '../exercises/logic';
@@ -18,6 +18,7 @@ export interface EditorSeed {
   guide?: string;
   words?: string;
   unit?: string;
+  lesson?: string;
   dsl: string;
   source: TopicSource;
   grades?: number[];
@@ -120,7 +121,7 @@ export function ParentTopics({ onEdit }: { onEdit: (s: EditorSeed) => void }) {
                               <button
                                 className="btn btn-sm"
                                 onClick={() =>
-                                  onEdit({ title: `${t.title} (moja wersja)`, subject: t.subject, description: t.description ?? '', guide: t.guide, words: t.words, unit: t.unit, dsl: t.dsl, source: 'manual', grades: t.grades })
+                                  onEdit({ title: `${t.title} (moja wersja)`, subject: t.subject, description: t.description ?? '', guide: t.guide, words: t.words, unit: t.unit, lesson: t.lesson, dsl: t.dsl, source: 'manual', grades: t.grades })
                                 }
                               >
                                 <Icon name="copy" size={16} /> Kopiuj i zmień
@@ -130,7 +131,7 @@ export function ParentTopics({ onEdit }: { onEdit: (s: EditorSeed) => void }) {
                             <>
                               <button
                                 className="btn btn-sm"
-                                onClick={() => onEdit({ topicId: t.id, title: t.title, subject: t.subject, description: t.description ?? '', guide: t.guide, words: t.words, unit: t.unit, dsl: t.dsl, source: t.source, grades: t.grades })}
+                                onClick={() => onEdit({ topicId: t.id, title: t.title, subject: t.subject, description: t.description ?? '', guide: t.guide, words: t.words, unit: t.unit, lesson: t.lesson, dsl: t.dsl, source: t.source, grades: t.grades })}
                               >
                                 <Icon name="pencil" size={16} /> Edytuj
                               </button>
@@ -165,6 +166,8 @@ export function TopicEditor({ seed, onClose }: { seed: EditorSeed; onClose: () =
   const [guide, setGuide] = useState(seed.guide ?? '');
   const [words, setWords] = useState(seed.words ?? '');
   const [unit, setUnit] = useState(seed.unit ?? '');
+  const [lesson, setLesson] = useState(seed.lesson ?? '');
+  const lessonErrors = useMemo(() => parseLesson(lesson)?.errors ?? [], [lesson]);
   const [grades, setGrades] = useState<number[]>(seed.grades ?? [...new Set(store.profiles().map((p) => p.grade ?? 3))]);
   const [dsl, setDsl] = useState(seed.dsl);
   const [target, setTarget] = useState<string>(seed.topicId ?? 'new');
@@ -196,6 +199,7 @@ export function TopicEditor({ seed, onClose }: { seed: EditorSeed; onClose: () =
       guide: guide.trim() || undefined,
       words: words.trim() || undefined,
       unit: unit.trim() || undefined,
+      lesson: lesson.trim() || undefined,
       order: existing?.subject === subject ? existing.order : maxOrder + 10,
       source: existing?.source ?? seed.source,
       grades: grades.length ? [...grades].sort((a, b) => a - b) : undefined,
@@ -288,6 +292,22 @@ export function TopicEditor({ seed, onClose }: { seed: EditorSeed; onClose: () =
                   placeholder={'Każda myśl w nowej linii, np.\nCzasownik mówi, co ktoś robi.\nPytamy: co robi?\nPrzykład: Mama piecze ciasto. Co robi? Piecze.'}
                 />
               </label>
+              <label className="field">
+                <span>Lekcja (tryb nauki) — krótkie karty do przeczytania przed ćwiczeniami: najważniejsze, krok po kroku, tak / nie tak, zapamiętaj, pytania kontrolne</span>
+                <textarea className="input" style={{ minHeight: 180, fontSize: 14 }} value={lesson} onChange={(e) => setLesson(e.target.value)} spellCheck={false} placeholder={LESSON_HELP} />
+              </label>
+              {lessonErrors.length > 0 && (
+                <div className="note" role="alert">
+                  <b>
+                    Lekcja: {lessonErrors.length} {plural(lessonErrors.length, ['błąd', 'błędy', 'błędów'])}
+                  </b>
+                  {lessonErrors.slice(0, 5).map((e, i) => (
+                    <div key={i}>
+                      Linia {e.line}: {e.message}
+                    </div>
+                  ))}
+                </div>
+              )}
               {(subjectLang(subject) !== 'pl' || words) && (
                 <label className="field">
                   <span>Słówka — po jednym w linii: wyraz = tłumaczenie (lista do nauki z wymową i podpowiedzi do słów w zdaniach)</span>

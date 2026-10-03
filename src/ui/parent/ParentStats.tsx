@@ -23,6 +23,7 @@ const MODE_LABEL: Record<SessionMode, string> = {
   fix: 'Poprawa błędów',
   sprint: 'Błyskawica',
   pairs: 'Pary na czas',
+  learn: 'Nauka (lekcja)',
 };
 
 function fmtMin(sec: number) {
@@ -166,7 +167,7 @@ export function ParentStats() {
 
   const sessions = store
     .list('session')
-    .filter((s) => s.profileId === pid && s.answered > 0 && s.startedAt >= since)
+    .filter((s) => s.profileId === pid && (s.answered > 0 || s.mode === 'learn') && s.startedAt >= since)
     .sort((a, b) => b.startedAt.localeCompare(a.startedAt))
     .slice(0, 15);
 
@@ -488,9 +489,7 @@ export function ParentStats() {
                             ? gameLabel(s.genId)
                             : '—'}
                     </td>
-                    <td>
-                      {s.correct}/{s.answered}
-                    </td>
+                    <td>{s.mode === 'learn' ? '—' : `${s.correct}/${s.answered}`}</td>
                     <td>{fmtMin(s.activeSeconds)}</td>
                     <td>{s.completed ? <span className="pill good">ukończona</span> : <span className="pill">przerwana</span>}</td>
                   </tr>

@@ -4,6 +4,7 @@ import { store } from './data/store';
 import { loadThemeFonts, THEMES } from './themes';
 import type { Profile } from './types';
 import { Home, SubjectScreen } from './ui/Home';
+import { Learn, ReviewSheet } from './ui/Learn';
 import { AppContext, useStoreVersion, type AppCtx, type Screen } from './ui/hooks';
 import { Login } from './ui/Login';
 import { Onboarding, ProfilePicker } from './ui/Onboarding';
@@ -129,6 +130,8 @@ export function App() {
         {screen.name === 'sprint' && <Sprint key={screen.nonce} game={screen.game} />}
         {screen.name === 'pairs' && <Pairs key={screen.nonce} game={screen.game} />}
         {screen.name === 'times' && <TimesTable />}
+        {screen.name === 'learn' && <Learn key={screen.nonce} topicId={screen.topicId} from={screen.from} />}
+        {screen.name === 'sheet' && <ReviewSheet topicIds={screen.topicIds} title={screen.title} from={screen.from} subjectId={screen.subjectId} />}
         {screen.name === 'summary' && <Summary result={screen.result} />}
         {screen.name === 'rewards' && <Rewards />}
         {screen.name === 'parent' && <ParentGate onExit={() => go({ name: 'home' })} />}

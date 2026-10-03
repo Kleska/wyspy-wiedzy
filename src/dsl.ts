@@ -1,4 +1,4 @@
-import type { DslError, Exercise, ExerciseType, Lang, Passage } from './types';
+import type { DslError, Exercise, ExerciseType, Lang, Lesson, LessonPair, Passage } from './types';
 
 /*
  * Prosty format tekstowy zadań — jedno zadanie w jednej linii.
@@ -307,6 +307,66 @@ export function normalizeAnswer(s: string): string {
   return r;
 }
 
+type LessonSection = 'key' | 'steps' | 'pairs' | 'trick' | 'checks';
+
+function lessonSection(header: string): LessonSection | null {
+  const h = header.toLowerCase();
+  if (h.includes('najważ')) return 'key';
+  if (h.includes('krok')) return 'steps';
+  if (h.includes('tak')) return 'pairs';
+  if (h.includes('zapami')) return 'trick';
+  if (h.includes('sprawd')) return 'checks';
+  return null;
+}
+
+/**
+ * Lekcja (tryb nauki). Sekcje zaczynają się od linii z „#”:
+ *
+ *   # Najważniejsze        — 2–4 proste zdania, każde w osobnej linii
+ *   # Krok po kroku        — kroki po kolei; linia „Przykład: …” to przykład
+ *   # Tak / nie tak        — tak: Yes, he is. | nie: Yes, he's. | bo: po skrócie musi coś stać
+ *   # Zapamiętaj           — skojarzenie, rymowanka, prosty test
+ *   # Sprawdź się          — 2–3 zadania w zwykłym formacie (z wyjaśnieniem po „!!”)
+ *
+ * Zwraca `null`, gdy lekcji nie ma.
+ */
+export function parseLesson(text: string | undefined): Lesson | null {
+  if (!text?.trim()) return null;
+  const out: Lesson = { key: [], steps: [], pairs: [], trick: [], checks: [], errors: [] };
+  const checkLines: string[] = [];
+  let section: LessonSection | null = null;
+  text.split(/\r?\n/).forEach((raw, i) => {
+    const line = raw.trim();
+    if (!line) return;
+    const fail = (message: string) => out.errors.push({ line: i + 1, text: line, message });
+    if (line.startsWith('#')) {
+      section = lessonSection(line.slice(1));
+      if (!section) fail('Nieznana część lekcji. Użyj: # Najważniejsze, # Krok po kroku, # Tak / nie tak, # Zapamiętaj, # Sprawdź się.');
+      return;
+    }
+    if (!section) return void fail('Lekcja musi zaczynać się od nagłówka, np. „# Najważniejsze”.');
+    if (section === 'checks') return void checkLines.push(line);
+    if (section !== 'pairs') return void out[section].push(line);
+    const pair: Partial<LessonPair> = {};
+    for (const part of line.split('|')) {
+      const m = part.trim().match(/^(tak|nie|bo)\s*:\s*(.+)$/i);
+      if (!m) continue;
+      const k = m[1].toLowerCase();
+      if (k === 'tak') pair.good = m[2].trim();
+      else if (k === 'nie') pair.bad = m[2].trim();
+      else pair.why = m[2].trim();
+    }
+    if (pair.good && pair.bad) out.pairs.push(pair as LessonPair);
+    else fail('Para musi mieć postać: tak: poprawnie | nie: błędnie | bo: dlaczego');
+  });
+  if (checkLines.length) {
+    const { exercises, errors } = parseDsl(checkLines.join('\n'), 'L');
+    out.checks = exercises;
+    out.errors.push(...errors);
+  }
+  return out;
+}
+
 /** Słówka tematu: linie „english = polski” (puste linie i komentarze # pomijamy). */
 export function parseWords(text: string | undefined): [string, string][] {
   const out: [string, string][] = [];
@@ -381,6 +441,20 @@ export function maskSpelling(word: string, lang: Lang = 'pl'): string {
   // Po angielsku nie ma „trudnych miejsc” jak w polskim — ukrywamy samogłoski (February → F_br__ry).
   return lang === 'en' ? word.replace(/[aeiou]/gi, '_') : word.replace(/rz|ch|ó|u|ż|h/gi, '_');
 }
+
+export const LESSON_HELP = `# Najważniejsze
+Czasownik mówi, co ktoś robi.
+Pytamy o niego: co robi?
+# Krok po kroku
+Znajdź słowo, które nazywa czynność.
+Zadaj pytanie: co robi?
+Przykład: Mama piecze ciasto. Co robi mama? Piecze.
+# Tak / nie tak
+tak: Kot śpi. — „śpi” to czasownik | nie: „kot” to czasownik | bo: kot to nazwa zwierzęcia, a nie czynność
+# Zapamiętaj
+Czasownik to słowo-akcja: da się to zrobić albo pokazać ruchem.
+# Sprawdź się
+wybierz: Które słowo jest czasownikiem? | *biega | kot | szybki !! Biega — co robi? To czasownik.`;
 
 export const DSL_HELP = `# Każde zadanie w jednej linii. Linie z # to komentarze.
 wybierz: Które słowo jest czasownikiem? | *biega | kot | szybki | bardzo !! Biega — co robi? To czasownik.

@@ -2,7 +2,8 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { BUILTIN_TOPICS } from '../src/content/seed';
 import { evalSchool } from '../src/content/math';
-import { exerciseToDsl, isFillAnswerCorrect, maskSpelling, parseDsl, parseLine, parseTapSentence, parseWords, wordHints } from '../src/dsl';
+import { exerciseToDsl, isFillAnswerCorrect, LESSON_HELP, maskSpelling, parseDsl, parseLesson, parseLine, parseTapSentence, parseWords, wordHints } from '../src/dsl';
+import { LESSONS } from '../src/content/lessons';
 import { parsePastedAnswer } from '../src/ai';
 import { correctText, initialAnswer, isCorrect, isReady } from '../src/ui/exercises/logic';
 import type { Exercise } from '../src/types';
@@ -322,6 +323,51 @@ describe('język obcy: podpowiedzi, słówka, apostrofy', () => {
     for (const t of english) {
       const keys = parseWords(t.words).map(([w]) => w.toLowerCase());
       expect(new Set(keys).size, t.title).toBe(keys.length);
+    }
+  });
+});
+
+describe('tryb nauki: lekcje', () => {
+  it('format lekcji: sekcje, pary „tak / nie tak”, pytania kontrolne i błędy', () => {
+    const l = parseLesson(LESSON_HELP)!;
+    expect(l.errors).toEqual([]);
+    expect(l.key).toHaveLength(2);
+    expect(l.steps).toHaveLength(3);
+    expect(l.pairs).toEqual([{ good: 'Kot śpi. — „śpi” to czasownik', bad: '„kot” to czasownik', why: 'kot to nazwa zwierzęcia, a nie czynność' }]);
+    expect(l.trick).toHaveLength(1);
+    expect(l.checks).toHaveLength(1);
+    expect(l.checks[0]).toMatchObject({ type: 'choice', explain: 'Biega — co robi? To czasownik.' });
+    expect(parseLesson('')).toBeNull();
+    expect(parseLesson(undefined)).toBeNull();
+
+    const bad = parseLesson('bez nagłówka\n# Coś innego\n# Tak / nie tak\ntak: tylko dobra wersja\n# Sprawdź się\nzle: zadanie')!;
+    expect(bad.errors.map((e) => e.line)).toEqual([1, 2, 4, 1]);
+    expect(bad.pairs).toEqual([]);
+  });
+
+  it('każdy temat z angielskiego ma kompletną lekcję bez błędów', () => {
+    const english = BUILTIN_TOPICS.filter((t) => t.subject === 'ang');
+    for (const id of Object.keys(LESSONS)) expect(BUILTIN_TOPICS.some((t) => t.id === id), `lekcja do nieistniejącego tematu ${id}`).toBe(true);
+    for (const t of english) {
+      const l = parseLesson(t.lesson);
+      expect(l, t.title).not.toBeNull();
+      expect(l!.errors, t.title).toEqual([]);
+      // Krótko: najwyżej trzy zdania „najważniejsze”, jeden przykład, co najmniej trzy pary i dwa pytania.
+      expect(l!.key.length, t.title).toBeGreaterThanOrEqual(2);
+      expect(l!.key.length, t.title).toBeLessThanOrEqual(3);
+      expect(l!.steps.filter((x) => x.startsWith('Przykład:')).length, t.title).toBe(1);
+      expect(l!.pairs.length, t.title).toBeGreaterThanOrEqual(3);
+      expect(l!.pairs.length, t.title).toBeLessThanOrEqual(4);
+      for (const p of l!.pairs) expect(p.why, `${t.title}: para bez „bo”`).toBeTruthy();
+      expect(l!.trick.length, t.title).toBeGreaterThanOrEqual(1);
+      expect(l!.checks.length, t.title).toBeGreaterThanOrEqual(2);
+      const body = (e: Exercise) => exerciseToDsl({ ...e, explain: undefined, hint: undefined });
+      const topicIds = new Set(parseDsl(t.dsl).exercises.map(body));
+      for (const ex of l!.checks) {
+        expect(ex.explain, `${t.title}: pytanie kontrolne bez wyjaśnienia`).toBeTruthy();
+        // Pytania kontrolne są inne niż zadania tematu (dziecko nie widzi w lekcji gotowych odpowiedzi do ćwiczeń).
+        expect(topicIds.has(body(ex)), `${t.title}: pytanie kontrolne powtarza zadanie tematu`).toBe(false);
+      }
     }
   });
 });

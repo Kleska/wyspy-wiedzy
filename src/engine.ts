@@ -167,6 +167,8 @@ export interface Progress {
   sprintBest: Map<string, number>;
   /** Pary na czas: najlepszy (najkrótszy) czas w ms. */
   pairsBest: Map<string, number>;
+  /** Tematy, których lekcję (tryb nauki) dziecko przeszło do końca. */
+  lessonsDone: Set<string>;
   badges: Badge[];
   pendingRewards: number;
 }
@@ -266,6 +268,9 @@ export interface ProgressInput {
 
 const byAt = (a: { at: string }, b: { at: string }) => (a.at < b.at ? -1 : a.at > b.at ? 1 : 0);
 const isExamMode = (m: SessionMode | undefined): m is 'test' | 'diagnostic' => m === 'test' || m === 'diagnostic';
+
+/** Monety za pierwsze przejście lekcji (tryb nauki). */
+export const LESSON_COINS = 5;
 
 /** Temat zaliczony testem: co najmniej 3 odpowiedzi z tego tematu i 80% dobrych. */
 export const PLACE_MIN = 3;
@@ -431,6 +436,7 @@ export function computeProgress(input: ProgressInput): Progress {
   const sprintPaid = new Map<string, number>();
   const sprintBest = new Map<string, number>();
   const pairsBest = new Map<string, number>();
+  const lessonsDone = new Set<string>();
   const exams: ExamResult[] = [];
   for (const s of sessions) {
     const t = Date.parse(s.startedAt);
@@ -439,6 +445,16 @@ export function computeProgress(input: ProgressInput): Progress {
     d.seconds += s.activeSeconds;
     totalSeconds += s.activeSeconds;
     if (!s.completed) continue;
+    if (s.mode === 'learn') {
+      // Lekcja: liczy się czas nauki, a pierwsze przejście każdej lekcji daje monety i dzień nauki
+      // (ponowne czytanie jest zawsze dozwolone, ale nie da się nim „nabijać” monet).
+      if (s.topicId && !lessonsDone.has(s.topicId)) {
+        lessonsDone.add(s.topicId);
+        coinsEarned += LESSON_COINS;
+        activeDays.add(dk);
+      }
+      continue;
+    }
     d.sessionsCompleted++;
     sessionsCompleted++;
     if (s.mode === 'sprint' || s.mode === 'pairs') {
@@ -653,6 +669,7 @@ export function computeProgress(input: ProgressInput): Progress {
     exams,
     sprintBest,
     pairsBest,
+    lessonsDone,
     badges,
     pendingRewards: redemptions.filter((r) => r.status === 'pending').length,
   };

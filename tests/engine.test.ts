@@ -361,3 +361,23 @@ describe('rozdziały i kartkówki od rodzica', () => {
   });
 });
 
+describe('tryb nauki w postępach', () => {
+  it('pierwsze przejście lekcji daje monety i dzień nauki; powtórka lekcji już nie', async () => {
+    const { LESSON_COINS } = await import('../src/engine');
+    const learn = (id: string, at: string, topicId: string, completed = true): Session => ({ id, profileId: P, topicId, mode: 'learn', startedAt: at, endedAt: at, activeSeconds: 120, answered: 0, correct: 0, completed });
+    const none = progress([], [learn('l0', '2026-10-01T10:00:00', noun.id, false)], '2026-10-01T12:00:00');
+    expect(none.lessonsDone.size).toBe(0);
+    expect(none.coins).toBe(0);
+
+    const p = progress([], [learn('l1', '2026-10-01T10:00:00', noun.id), learn('l2', '2026-10-01T11:00:00', noun.id), learn('l3', '2026-10-02T10:00:00', noun.id)], '2026-10-02T12:00:00');
+    expect([...p.lessonsDone]).toEqual([noun.id]);
+    expect(p.coins).toBe(LESSON_COINS);
+    // Czas czytania liczy się do czasu nauki, ale lekcja nie jest „ukończonym ćwiczeniem”.
+    expect(p.totalSeconds).toBe(360);
+    expect(p.sessionsCompleted).toBe(0);
+    // Dzień pierwszej lekcji jest dniem nauki; samo ponowne czytanie następnego dnia serii nie przedłuża.
+    expect(p.activeDays.has('2026-10-01')).toBe(true);
+    expect(p.activeDays.has('2026-10-02')).toBe(false);
+  });
+});
+

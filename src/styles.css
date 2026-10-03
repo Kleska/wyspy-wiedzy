@@ -4638,3 +4638,311 @@ p {
   max-width: 100%;
   font-weight: 700;
 }
+
+/* ───────────────────────── Tryb nauki: karty lekcji ───────────────────────── */
+
+.lesson-list,
+.lesson-steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.lesson-list li,
+.lesson-steps li {
+  background: var(--surface);
+  border: 2px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+  font-size: clamp(17px, 2.2vw, 20px);
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.lesson-steps {
+  counter-reset: step;
+}
+
+.lesson-steps li {
+  counter-increment: step;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.lesson-steps li::before {
+  content: counter(step);
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  background: var(--secondary);
+  color: var(--secondary-ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 18px;
+}
+
+.lesson-example {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.lesson-example span {
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+  padding: 12px 16px;
+  font-size: clamp(17px, 2.2vw, 20px);
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.lesson-example span.result {
+  background: var(--good-bg);
+  color: var(--good);
+}
+
+.lesson-pairs {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.lesson-pair {
+  background: var(--surface);
+  border: 2px solid var(--line);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.lp-good,
+.lp-bad {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 16px;
+  font-size: clamp(17px, 2.2vw, 20px);
+  font-weight: 800;
+}
+
+.lp-good svg,
+.lp-bad svg {
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+
+.lp-good {
+  background: var(--good-bg);
+  color: var(--good);
+}
+
+.lp-bad {
+  background: var(--bad-bg);
+  color: var(--bad);
+}
+
+.lp-why {
+  padding: 10px 16px 12px;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.lesson-trick {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.lesson-trick p {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+  font-size: clamp(17px, 2.2vw, 20px);
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.lesson-trick svg {
+  flex-shrink: 0;
+  margin-top: 3px;
+  color: var(--gold-ink);
+}
+
+.lesson-done h1 {
+  font-size: clamp(30px, 5vw, 44px);
+}
+
+.sheet-page {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* Strona powtórki: zwarty zapis — zwykła lista zamiast kart, pary obok siebie. */
+.sheet-topic .lesson-list {
+  gap: 6px;
+  list-style: disc;
+  padding-left: 22px;
+}
+
+.sheet-topic .lesson-list li {
+  background: none;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  font-size: 16px;
+}
+
+.lesson-pairs.compact {
+  gap: 6px;
+}
+
+.lesson-pairs.compact .lesson-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.lesson-pairs.compact .lp-good,
+.lesson-pairs.compact .lp-bad {
+  padding: 8px 10px;
+  gap: 6px;
+  font-size: 15px;
+}
+
+.lesson-pairs.compact svg {
+  width: 16px;
+  height: 16px;
+}
+
+.sheet-topic .lesson-trick {
+  gap: 6px;
+}
+
+.sheet-topic .lesson-trick p {
+  padding: 8px 12px;
+  font-size: 15px;
+}
+
+/* Karta planu: trzy kroki */
+.plan-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+}
+
+.plan-steps li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 2px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  font-weight: 800;
+  background: var(--surface);
+}
+
+.plan-steps li > b {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: var(--surface-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+}
+
+.plan-steps li > span {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.plan-steps small {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.plan-steps li.now {
+  border-color: var(--accent);
+}
+
+.plan-steps li.now > b {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.plan-steps li.done {
+  background: var(--good-bg);
+  border-color: var(--good);
+}
+
+.plan-steps li.done > b {
+  background: var(--good);
+  color: #fff;
+}
+
+.lesson-mark {
+  display: inline-flex;
+  vertical-align: middle;
+  margin-left: 6px;
+  color: var(--good);
+}
+
+[data-theme='pixel'] .lesson-list li,
+[data-theme='pixel'] .lesson-steps li,
+[data-theme='pixel'] .lesson-example,
+[data-theme='pixel'] .lesson-pair,
+[data-theme='pixel'] .lesson-trick p,
+[data-theme='pixel'] .plan-steps li,
+[data-theme='pixel'] .plan-steps li > b,
+[data-theme='pixel'] .lesson-steps li::before {
+  border-radius: 0;
+}
+
+/* Karta planu na telefonie: kroki jeden pod drugim, tematy w zwartych wierszach (plan może mieć kilkanaście tematów). */
+@media (max-width: 560px) {
+  .plan-steps {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .plan-steps li > span {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 2px 8px;
+  }
+
+  .plan-topics {
+    gap: 6px;
+  }
+
+  .plan-topic {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 12px;
+  }
+
+  .plan-topic .level-steps {
+    display: none;
+  }
+}

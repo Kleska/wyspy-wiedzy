@@ -78,6 +78,11 @@ export interface Topic {
   description?: string;
   /** Ściąga: dłuższe wyjaśnienie z przykładami, pokazywane przed tematem i po błędzie. */
   guide?: string;
+  /**
+   * Lekcja (tryb nauki): krótkie karty do przeczytania przed ćwiczeniami. Tekst z sekcjami
+   * „# Najważniejsze”, „# Krok po kroku”, „# Tak / nie tak”, „# Zapamiętaj”, „# Sprawdź się” (patrz `parseLesson`).
+   */
+  lesson?: string;
   /** Rozdział, do którego należy temat (np. „Unit 0”) — porządkuje planszę przedmiotu i listy w panelu rodzica. */
   unit?: string;
   /** Słówka (język obcy): linie „english = polski”. Lista do nauki i źródło podpowiedzi do słów w zdaniach. */
@@ -98,6 +103,27 @@ export interface ParsedTopic extends Topic {
   exercises: Exercise[];
   errors: DslError[];
   builtin: boolean;
+}
+
+/** Para „tak / nie tak”: poprawna wersja, typowy błąd i krótkie „bo…”. */
+export interface LessonPair {
+  good: string;
+  bad: string;
+  why?: string;
+}
+
+/** Lekcja po sparsowaniu (tryb nauki). */
+export interface Lesson {
+  /** Najważniejsze — 2–4 proste zdania. */
+  key: string[];
+  /** Krok po kroku; linie „Przykład: …” pokazujemy jako przykład. */
+  steps: string[];
+  pairs: LessonPair[];
+  /** Sposób na zapamiętanie. */
+  trick: string[];
+  /** Pytania kontrolne z wyjaśnieniem od razu po odpowiedzi (nie trafiają do dziennika postępów). */
+  checks: Exercise[];
+  errors: DslError[];
 }
 
 export interface DslError {
@@ -139,9 +165,10 @@ export interface Attempt {
 /**
  * topic — ćwiczenie tematu, review — powtórka, test — sprawdzian z oceną,
  * diagnostic — test na start, gen — trening bez końca (zadania losowane),
- * fix — poprawa błędów ze sprawdzianu, sprint — Błyskawica (60 sekund), pairs — Pary na czas.
+ * fix — poprawa błędów ze sprawdzianu, sprint — Błyskawica (60 sekund), pairs — Pary na czas,
+ * learn — przeczytana lekcja (tryb nauki; bez odpowiedzi w dzienniku).
  */
-export type SessionMode = 'topic' | 'review' | 'test' | 'diagnostic' | 'gen' | 'fix' | 'sprint' | 'pairs';
+export type SessionMode = 'topic' | 'review' | 'test' | 'diagnostic' | 'gen' | 'fix' | 'sprint' | 'pairs' | 'learn';
 
 export interface Session {
   id: string;

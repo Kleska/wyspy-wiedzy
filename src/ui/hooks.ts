@@ -56,6 +56,10 @@ export type Screen =
   | { name: 'sprint'; game: SprintGame; nonce: number }
   | { name: 'pairs'; game: SprintGame; nonce: number }
   | { name: 'times' }
+  /** Tryb nauki: karty lekcji jednego tematu. `then` — dokąd wrócić po lekcji. */
+  | { name: 'learn'; topicId: string; nonce: number; from?: 'home' | 'subject' }
+  /** Powtórka przed sprawdzianem: najważniejsze rzeczy z kilku tematów na jednej stronie. */
+  | { name: 'sheet'; topicIds: string[]; title: string; from: 'home' | 'subject'; subjectId?: string }
   | { name: 'summary'; result: SessionResult }
   | { name: 'rewards' }
   | { name: 'parent' };
