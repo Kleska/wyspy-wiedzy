@@ -15,6 +15,8 @@ export interface OutboxEntry {
   kind: string;
   id: string;
   data: unknown;
+  /** Wersja dokumentu sprzed tej zmiany (osoby, tematy, ustawienia) — do scalania zmian z dwóch urządzeń. */
+  base?: unknown;
 }
 
 const DB_NAME = 'wyspy-wiedzy';
@@ -26,6 +28,7 @@ export interface KV {
   deleteDocs(keys: string[]): Promise<void>;
   clearDocs(): Promise<void>;
   addOutbox(e: OutboxEntry): Promise<void>;
+  addOutboxMany(entries: OutboxEntry[]): Promise<void>;
   getOutbox(): Promise<OutboxEntry[]>;
   deleteOutbox(seqs: number[]): Promise<void>;
   clearOutbox(): Promise<void>;
@@ -78,7 +81,13 @@ class IdbKV implements KV {
   }
   async addOutbox(e: OutboxEntry) {
     const { tx, os } = this.store('outbox', 'readwrite');
-    os.add({ kind: e.kind, id: e.id, data: e.data });
+    os.add(e.base === undefined ? { kind: e.kind, id: e.id, data: e.data } : { kind: e.kind, id: e.id, data: e.data, base: e.base });
+    await txDone(tx);
+  }
+  async addOutboxMany(entries: OutboxEntry[]) {
+    if (!entries.length) return;
+    const { tx, os } = this.store('outbox', 'readwrite');
+    entries.forEach((e) => os.add(e.base === undefined ? { kind: e.kind, id: e.id, data: e.data } : { kind: e.kind, id: e.id, data: e.data, base: e.base }));
     await txDone(tx);
   }
   async getOutbox() {
@@ -125,6 +134,9 @@ class MemoryKV implements KV {
   }
   async addOutbox(e: OutboxEntry) {
     this.outbox.push({ ...e, seq: this.seq++ });
+  }
+  async addOutboxMany(entries: OutboxEntry[]) {
+    for (const e of entries) await this.addOutbox(e);
   }
   async getOutbox() {
     return this.outbox.slice();

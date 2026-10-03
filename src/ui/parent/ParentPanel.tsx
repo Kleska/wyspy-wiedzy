@@ -25,6 +25,16 @@ export function ParentPanel({ pin, onExit }: { pin: string; onExit: () => void }
   const [tab, setTab] = useState<Tab>('stats');
   const [editor, setEditor] = useState<EditorSeed | null>(null);
   const pending = store.list('redemption').filter((r) => r.status === 'pending').length;
+  const st = store.state;
+  const sync = st.sync;
+  const syncText =
+    sync.status === 'syncing'
+      ? 'Synchronizuję…'
+      : sync.status === 'offline'
+        ? 'Brak internetu — pokazuję dane zapisane na tym urządzeniu'
+        : sync.status === 'error'
+          ? `Błąd synchronizacji${sync.error ? `: ${sync.error}` : ''}`
+          : `Dane ze wszystkich urządzeń · ${sync.live ? 'na żywo' : 'odświeżane co minutę'} · ostatnio pobrane ${sync.lastSync ? new Date(sync.lastSync).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '—'}`;
 
   const openEditor = (seed: EditorSeed) => {
     setEditor(seed);
@@ -57,6 +67,15 @@ export function ParentPanel({ pin, onExit }: { pin: string; onExit: () => void }
           </button>
         </nav>
         <main className="parent-main">
+          {st.cloud && (
+            <div className={`sync-bar ${sync.status}`} role="status">
+              <span className="sync-dot" />
+              <span>{syncText}</span>
+              <button className="btn btn-sm" onClick={() => void store.sync()} disabled={sync.status === 'syncing'}>
+                <Icon name="repeat" size={16} /> Odśwież
+              </button>
+            </div>
+          )}
           {editor ? (
             <TopicEditor
               seed={editor}

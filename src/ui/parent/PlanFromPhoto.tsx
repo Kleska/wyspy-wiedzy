@@ -255,7 +255,7 @@ function PlanReview({
       ids.push(topic.id);
     }
     if (!ids.length) return setErr('Zaznacz co najmniej jeden temat.');
-    await store.put('profile', { ...p, plan: { topicIds: ids, until: until || undefined, title: title.trim() || undefined, setAt: nowIso() }, updatedAt: nowIso() });
+    await store.put('profile', { ...p, plan: { topicIds: ids, until: until || undefined, title: title.trim() || undefined, setAt: nowIso() }, planAt: nowIso(), updatedAt: nowIso() });
     onSaved(`Plan „${title.trim() || 'Sprawdzian'}” gotowy: ${ids.length} ${plural(ids.length, ['temat', 'tematy', 'tematów'])}. ${p.name} zobaczy go na ekranie startowym.`);
   };
 

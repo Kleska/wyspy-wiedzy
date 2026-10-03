@@ -61,7 +61,7 @@ function PlanEditor({ p }: { p: Profile }) {
           setAt: nowIso(),
         }
       : null;
-    await store.put('profile', { ...p, plan, updatedAt: nowIso() });
+    await store.put('profile', { ...p, plan, planAt: nowIso(), updatedAt: nowIso() });
     setMsg(plan ? `Zapisano plan: ${p.name}.` : 'Plan usunięty.');
     setTimeout(() => setMsg(''), 2500);
   };
@@ -69,7 +69,7 @@ function PlanEditor({ p }: { p: Profile }) {
     setSel([]);
     setUntil('');
     setTitle('');
-    await store.put('profile', { ...p, plan: null, updatedAt: nowIso() });
+    await store.put('profile', { ...p, plan: null, planAt: nowIso(), updatedAt: nowIso() });
     setMsg('Plan usunięty.');
     setTimeout(() => setMsg(''), 2500);
   };

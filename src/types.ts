@@ -196,6 +196,8 @@ export interface Profile {
   resetAt?: string;
   /** Plan od rodzica: tematy na najbliższy czas (np. przed sprawdzianem). */
   plan?: Plan | null;
+  /** Kiedy rodzic ostatnio ustawił albo usunął plan — przy scalaniu zmian z dwóch urządzeń wygrywa późniejszy plan. */
+  planAt?: string;
   createdAt: string;
   updatedAt: string;
 }

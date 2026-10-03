@@ -77,20 +77,40 @@ Bez konfiguracji chmury aplikacja działa w trybie lokalnym (jedno urządzenie).
 3. **Settings → Pages → Source: GitHub Actions.** Po chwili aplikacja będzie pod adresem
    `https://<twój-login>.github.io/wyspy-wiedzy/`.
 
-### 2. Supabase (wspólne postępy na wszystkich urządzeniach)
+### 2. Supabase (konto rodziny: wspólne postępy na żywo na wszystkich urządzeniach)
 
-1. Załóż projekt na [supabase.com](https://supabase.com) (region: Frankfurt).
-2. **SQL Editor → New query** → wklej zawartość `supabase/migrations/001_init.sql` → **Run**.
+Po włączeniu rodzic widzi u siebie postępy z tabletu dziecka (po sekundzie–dwóch), a plan, tematy i nagrody
+ustawione na telefonie rodzica od razu trafiają na urządzenia dzieci.
+
+1. Załóż projekt na [supabase.com](https://supabase.com) (region: Frankfurt, plan Free).
+2. **SQL Editor → New query** → wklej zawartość `supabase/migrations/001_init.sql` → **Run**
+   (tabela, ochrona danych RLS i kanał „na żywo”; skrypt można uruchomić ponownie bez szkody).
 3. **Authentication → Users → Add user → Create new user**: e-mail i hasło konta rodziny, zaznacz *Auto Confirm User*.
 4. **Authentication → Sign In / Providers**: wyłącz *Allow new users to sign up* (nikt obcy nie założy konta).
-5. **Project Settings → API**: skopiuj *Project URL* i klucz *anon / publishable* do `public/config.js`:
+5. **Project Settings → API Keys** (albo przycisk **Connect**): skopiuj *Project URL* i klucz *publishable*
+   (`sb_publishable_…`; w starszych projektach *anon*) do `public/config.js`:
    ```js
-   window.WW_CONFIG = { supabaseUrl: "https://xxxx.supabase.co", supabaseAnonKey: "eyJ..." };
+   window.WW_CONFIG = { supabaseUrl: "https://xxxx.supabase.co", supabaseAnonKey: "sb_publishable_..." };
    ```
    Ten klucz jest publiczny z założenia — dostęp do danych chroni RLS (każde konto widzi tylko swoje wiersze).
-6. Zrób commit i push. Na każdym urządzeniu otwórz adres aplikacji i raz zaloguj się kontem rodziny.
+   Klucza *secret* / *service_role* nigdy tu nie wklejaj.
+6. Zrób commit i push. Na każdym urządzeniu otwórz adres aplikacji i raz zaloguj się kontem rodziny
+   (dopóki urządzenie nie jest zalogowane, aplikacja pokazuje ekran logowania).
 
-Dane zebrane wcześniej w trybie lokalnym zostaną wysłane do chmury przy pierwszym logowaniu na tym urządzeniu.
+Jak to działa po włączeniu:
+
+- **Kolejność pierwszego logowania:** zaloguj najpierw urządzenie rodzica. Pierwsze urządzenie wysyła do chmury
+  swoje ustawienia rodziny (PIN, nagrody, wspólny cel); każde kolejne przyjmuje je z chmury, a dokłada swoje
+  osoby, odpowiedzi i tematy. Od tej chwili PIN jest jeden na wszystkich urządzeniach.
+- **To samo dziecko na liście dwa razy** (profil założony osobno na dwóch urządzeniach): Panel rodzica →
+  Ustawienia → przy zbędnym profilu „Połącz z…” — postępy z obu profili się zsumują.
+- **Zapomniany PIN:** na ekranie PIN-u „Nie pamiętam PIN-u” → hasło konta rodziny → nowy PIN.
+- **Zmiany z dwóch urządzeń naraz** scalają się pole po polu (np. dziecko zmienia wygląd offline, a rodzic
+  w tym czasie ustawia plan — zostaje jedno i drugie). Odpowiedzi są tylko dopisywane, więc nic nie ginie.
+- **Bez internetu** aplikacja działa normalnie i dosyła zaległe zapisy po połączeniu. Sygnał „na żywo” tylko
+  przyspiesza pobieranie — gdy go zabraknie, urządzenie pobiera zmiany przy otwarciu aplikacji i co minutę.
+- **Darmowy plan Supabase** usypia projekt po około tygodniu bez ruchu (np. wakacje). Dostaniesz e-mail;
+  w panelu Supabase wystarczy kliknąć *Resume project* — dane zostają, a aplikacja w tym czasie działa lokalnie.
 
 ### 3. AI — zadania ze zdjęcia książki i z opisu (opcjonalnie)
 

@@ -4496,3 +4496,37 @@ p {
 [data-theme='pixel'] .word-reveal {
   border-radius: 0;
 }
+
+/* ───────────────────────── Panel rodzica: stan synchronizacji ───────────────────────── */
+
+.sync-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  font-weight: 600;
+  color: #5b6672;
+  margin-bottom: 14px;
+}
+
+.sync-bar > span:nth-child(2) {
+  flex: 1;
+  min-width: 0;
+}
+
+.sync-bar .sync-dot {
+  background: #1e7a4c;
+}
+
+.sync-bar.syncing .sync-dot {
+  background: #1f5fd6;
+}
+
+.sync-bar.offline .sync-dot {
+  background: #b8860b;
+}
+
+.sync-bar.error .sync-dot {
+  background: #b4441a;
+}

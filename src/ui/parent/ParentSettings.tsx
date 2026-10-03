@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { askConfirm, askText } from '../dialogs';
 import { aiMode, getLocalApiKey, setLocalApiKey } from '../../ai';
 import { nowIso, store, uid } from '../../data/store';
-import { THEME_ORDER, THEMES } from '../../themes';
+import { plural, THEME_ORDER, THEMES } from '../../themes';
 import { useStoreVersion } from '../hooks';
 import { Icon } from '../icons';
 import { FREE_AVATARS, GRADES } from '../Onboarding';
@@ -58,10 +58,11 @@ export function ParentSettings() {
           Osoby (dzieci)
         </h2>
         <p className="muted" style={{ fontSize: 14 }}>
-          Zmiany zapisują się od razu. Imię zapisuje się po wyjściu z pola albo po naciśnięciu Enter.
+          Zmiany zapisują się od razu. Imię zapisuje się po wyjściu z pola albo po naciśnięciu Enter. To samo dziecko jest na liście dwa razy (np. po połączeniu
+          urządzeń)? Użyj „Połącz z…” — postępy z obu profili się zsumują.
         </p>
         {profiles.map((p) => (
-          <ProfileEditor key={p.id} p={p} onMsg={flash} />
+          <ProfileEditor key={p.id} p={p} others={profiles.filter((o) => o.id !== p.id)} onMsg={flash} />
         ))}
         <div>
           <button
@@ -114,6 +115,10 @@ export function ParentSettings() {
               {st.sync.pending}
               {st.sync.error ? ` · ${st.sync.error}` : ''}
             </p>
+            <p className="muted" style={{ fontSize: 14 }}>
+              Tryb na żywo: <b>{st.sync.live ? 'działa' : 'niepołączony'}</b>. Każde zalogowane urządzenie wysyła odpowiedzi od razu, a zmiany z innych urządzeń dostaje
+              na żywo (w razie przerwy w połączeniu — przy otwarciu aplikacji i co minutę). Plan, tematy, nagrody i PIN ustawione tutaj trafią na urządzenia dzieci.
+            </p>
             <div className="row" style={{ flexWrap: 'wrap' }}>
               <button className="btn btn-sm" onClick={() => void store.sync()}>
                 <Icon name="cloud" size={16} /> Synchronizuj teraz
@@ -128,8 +133,8 @@ export function ParentSettings() {
           </>
         ) : (
           <div className="note">
-            Postępy są zapisane tylko na tym urządzeniu. Żeby mieć wspólne postępy na iPadzie, telefonie i komputerze, włącz chmurę — instrukcja w pliku README
-            (krok „Supabase”). Po włączeniu dane z tego urządzenia zostaną wysłane do chmury.
+            Postępy są zapisane tylko na tym urządzeniu. Żeby widzieć postępy dzieci na swoim telefonie i ustawiać im plan albo tematy zdalnie, włącz konto rodziny
+            (instrukcja w pliku README, krok „Supabase”). Po zalogowaniu dane z tego urządzenia zostaną wysłane do chmury.
           </div>
         )}
         {!st.persistent && (
@@ -243,7 +248,7 @@ export function ParentSettings() {
 
 const ALL_AVATARS = [...FREE_AVATARS, ...PAID_AVATARS.map((a) => a.emoji)];
 
-function ProfileEditor({ p, onMsg }: { p: Profile; onMsg: (m: string) => void }) {
+function ProfileEditor({ p, others, onMsg }: { p: Profile; others: Profile[]; onMsg: (m: string) => void }) {
   const save = (patch: Partial<Profile>) => void store.put('profile', { ...p, ...patch, updatedAt: nowIso() });
   return (
     <div className="profile-editor">
@@ -310,6 +315,32 @@ function ProfileEditor({ p, onMsg }: { p: Profile; onMsg: (m: string) => void })
       <div className="row" style={{ flexWrap: 'wrap', gap: 8 }}>
         {p.resetAt && <span className="muted" style={{ fontSize: 13 }}>Postępy liczone od {new Date(p.resetAt).toLocaleDateString('pl-PL')}</span>}
         <span className="spacer" />
+        {others.length > 0 && (
+          <select
+            className="select"
+            style={{ width: 'auto', fontSize: 14, padding: '6px 10px' }}
+            value=""
+            aria-label={`Połącz z inną osobą: ${p.name}`}
+            onChange={async (e) => {
+              const to = others.find((o) => o.id === e.target.value);
+              if (!to) return;
+              const ok = await askConfirm(
+                `Połączyć profile: „${p.name}” → „${to.name}”? Odpowiedzi, punkty i nagrody z profilu „${p.name}” przejdą do profilu „${to.name}”, a profil „${p.name}” zniknie z listy. Tego nie da się cofnąć. Zrób to, gdy dziecko akurat nie ćwiczy.`,
+                { ok: 'Połącz', danger: true },
+              );
+              if (!ok) return;
+              const n = await store.mergeProfiles(p.id, to.id);
+              onMsg(`Połączono: „${p.name}” → „${to.name}” (przeniesiono ${n} ${plural(n, ['zapis', 'zapisy', 'zapisów'])}).`);
+            }}
+          >
+            <option value="">Połącz z…</option>
+            {others.map((o) => (
+              <option key={o.id} value={o.id}>
+                {o.avatar} {o.name} (klasa {o.grade ?? 3})
+              </option>
+            ))}
+          </select>
+        )}
         <button
           className="btn btn-sm"
           onClick={async () => {

@@ -48,7 +48,13 @@ export function App() {
   const toastTimer = useRef<ReturnType<typeof setTimeout>>();
 
   const profiles = store.profiles();
-  const profile: Profile | undefined = profiles.find((p) => p.id === profileId) ?? (profiles.length === 1 ? profiles[0] : undefined);
+  const only = profiles.length === 1 ? profiles[0] : undefined;
+  const profile: Profile | undefined = profiles.find((p) => p.id === profileId) ?? only;
+  // Jedyna osoba na urządzeniu wybiera się sama — i zostaje wybrana, gdy w trakcie nauki
+  // synchronizacja dołoży kolejne osoby (inaczej ćwiczenie przerwałby ekran „Kto się dziś uczy?”).
+  useEffect(() => {
+    if (!profileId && only) setProfileId(only.id);
+  }, [profileId, only]);
   const theme = THEMES[profile?.theme ?? 'wyspy'];
 
   useEffect(() => {

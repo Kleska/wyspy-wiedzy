@@ -1,8 +1,9 @@
-import type { SupabaseClient } from '@supabase/supabase-js';
+import type { RealtimeChannel, SupabaseClient } from '@supabase/supabase-js';
 import { BUILTIN_TOPICS, SUBJECTS } from '../content/seed';
 import { parseDsl } from '../dsl';
 import type { DocKind, DocMap, ParsedTopic, Profile, Settings, Topic } from '../types';
-import { openKV, type KV, type StoredDoc } from './idb';
+import { openKV, type KV, type OutboxEntry, type StoredDoc } from './idb';
+import { mergeDoc, MUTABLE_KINDS, sameJson } from './merge';
 
 declare global {
   interface Window {
@@ -24,7 +25,8 @@ export interface StoreState {
   persistent: boolean;
   cloud: boolean;
   auth: AuthState;
-  sync: { status: SyncStatus; lastSync: number | null; pending: number; error?: string; firstPullDone: boolean };
+  /** `live` — działa kanał „na żywo”: zmiany z innych urządzeń przychodzą od razu, a nie co minutę. */
+  sync: { status: SyncStatus; lastSync: number | null; pending: number; error?: string; firstPullDone: boolean; live?: boolean };
   version: number;
 }
 
@@ -77,6 +79,7 @@ export class Store {
   };
   private listeners = new Set<() => void>();
   private supa: SupabaseClient | null = null;
+  private channel: RealtimeChannel | null = null;
   private syncTimer: ReturnType<typeof setTimeout> | null = null;
   private syncing = false;
   private syncAgain = false;
@@ -197,15 +200,55 @@ export class Store {
 
   async put<K extends DocKind>(kind: K, doc: DocMap[K]) {
     const id = (doc as { id: string }).id;
+    const before = this.docs[kind].get(id);
     (this.docs[kind] as Map<string, DocMap[K]>).set(id, doc);
     if (kind === 'topic' || kind === 'settings') this.topicVersion++;
     this.emit();
     await this.kv.putDocs([{ k: `${kind}:${id}`, kind, id, data: doc }]);
     if (this.state.cloud && this.state.auth.status === 'signedIn') {
-      await this.kv.addOutbox({ kind, id, data: doc });
+      // Przy osobach, tematach i ustawieniach zapamiętujemy wersję sprzed zmiany — przyda się do scalania.
+      await this.kv.addOutbox({ kind, id, data: doc, base: MUTABLE_KINDS.includes(kind) ? before : undefined });
       this.patchSync({ pending: this.state.sync.pending + 1 });
       this.scheduleSync(1500);
     }
+  }
+
+  /** Zapis wielu dokumentów naraz (jedna transakcja, jedno odświeżenie ekranu). */
+  async putMany<K extends DocKind>(kind: K, docs: DocMap[K][]) {
+    if (!docs.length) return;
+    const m = this.docs[kind] as Map<string, DocMap[K]>;
+    const before = new Map(docs.map((doc) => [(doc as { id: string }).id, m.get((doc as { id: string }).id)]));
+    for (const doc of docs) m.set((doc as { id: string }).id, doc);
+    if (kind === 'topic' || kind === 'settings') this.topicVersion++;
+    await this.kv.putDocs(docs.map((doc) => ({ k: `${kind}:${(doc as { id: string }).id}`, kind, id: (doc as { id: string }).id, data: doc })));
+    if (this.state.cloud && this.state.auth.status === 'signedIn') {
+      const mutable = MUTABLE_KINDS.includes(kind);
+      await this.kv.addOutboxMany(docs.map((doc) => ({ kind, id: (doc as { id: string }).id, data: doc, base: mutable ? before.get((doc as { id: string }).id) : undefined })));
+      this.patchSync({ pending: this.state.sync.pending + docs.length });
+      this.scheduleSync(1500);
+    } else {
+      this.emit();
+    }
+  }
+
+  /**
+   * Łączy dwie osoby w jedną (np. to samo dziecko założone osobno na dwóch urządzeniach):
+   * odpowiedzi, sesje i wymiany nagród osoby `fromId` przechodzą do `toId`, a `fromId` znika z listy.
+   * Postęp i tak liczymy z dziennika, więc po połączeniu po prostu się sumuje.
+   */
+  async mergeProfiles(fromId: string, toId: string): Promise<number> {
+    if (fromId === toId || !this.get('profile', toId)) return 0;
+    let n = 0;
+    for (const kind of ['attempt', 'session', 'redemption'] as const) {
+      const moved = this.list(kind)
+        .filter((d) => d.profileId === fromId)
+        .map((d) => ({ ...d, profileId: toId }));
+      n += moved.length;
+      await this.putMany(kind, moved as never[]);
+    }
+    const from = this.get('profile', fromId);
+    if (from) await this.put('profile', { ...from, deleted: true, updatedAt: nowIso() });
+    return n;
   }
 
   async saveSettings(p: Partial<Settings>) {
@@ -224,12 +267,9 @@ export class Store {
     if (d?.app !== 'wyspy-wiedzy' || !d.docs) throw new Error('To nie jest kopia zapasowa tej aplikacji.');
     let n = 0;
     for (const k of KINDS) {
-      for (const doc of d.docs[k] ?? []) {
-        if (doc && typeof doc === 'object' && typeof (doc as { id?: unknown }).id === 'string') {
-          await this.put(k, doc as never);
-          n++;
-        }
-      }
+      const docs = (d.docs[k] ?? []).filter((doc) => doc && typeof doc === 'object' && typeof (doc as { id?: unknown }).id === 'string');
+      await this.putMany(k, docs as never[]);
+      n += docs.length;
     }
     return n;
   }
@@ -255,7 +295,10 @@ export class Store {
       if (data.session) await this.onSignedIn(data.session.user.id, data.session.user.email ?? '');
       else this.patch({ auth: { status: 'signedOut' } });
       this.supa.auth.onAuthStateChange((event, session) => {
-        if (event === 'SIGNED_OUT') this.patch({ auth: { status: 'signedOut' } });
+        if (event === 'SIGNED_OUT') {
+          this.stopLive();
+          this.patch({ auth: { status: 'signedOut' } });
+        }
         else if (session && this.state.auth.userId !== session.user.id) void this.onSignedIn(session.user.id, session.user.email ?? '');
       });
       window.addEventListener('online', () => this.scheduleSync(300));
@@ -278,18 +321,60 @@ export class Store {
   }
 
   async signOut() {
+    this.stopLive();
     await this.supa?.auth.signOut();
     this.patch({ auth: { status: 'signedOut' } });
   }
 
-  private async onSignedIn(userId: string, email: string) {
+  /**
+   * Kanał „na żywo” (Supabase Realtime): baza zgłasza każdą zmianę w danych rodziny, a aplikacja od razu
+   * pobiera nowości. Sam sygnał nie niesie danych — zawsze robimy zwykłe pobranie, więc zgubiony sygnał
+   * niczego nie psuje (zostaje pobieranie przy otwarciu aplikacji i co minutę).
+   */
+  private startLive(userId: string) {
+    if (!this.supa || this.channel) return;
+    this.channel = this.supa
+      .channel('ww-docs')
+      .on('postgres_changes', { event: '*', schema: 'public', table: SYNC_TABLE, filter: `family_id=eq.${userId}` }, (change) => {
+        // Sygnał o własnym zapisie (to samo już mamy) pomijamy — pobieramy tylko po zmianach z innych urządzeń.
+        const row = change.new as { kind?: string; id?: string; data?: unknown } | undefined;
+        const mine = row?.kind && row.id && KINDS.includes(row.kind as DocKind) ? this.docs[row.kind as DocKind].get(row.id) : undefined;
+        if (mine && row?.data && sameJson(mine, row.data)) return;
+        this.scheduleSync(250);
+      })
+      .subscribe((status) => {
+        const live = status === 'SUBSCRIBED';
+        if (live !== !!this.state.sync.live) this.patchSync({ live });
+        // Po przerwie w połączeniu mogły nas ominąć sygnały — nadrabiamy jednym pobraniem.
+        if (live) this.scheduleSync(250);
+      });
+  }
+
+  private stopLive() {
+    if (this.channel) void this.supa?.removeChannel(this.channel);
+    this.channel = null;
+    if (this.state.sync.live) this.patchSync({ live: false });
+  }
+
+  private signInTask: Promise<void> | null = null;
+
+  /** Logowanie zgłasza się dwa razy (wynik `signIn` i zdarzenie z biblioteki) — obsługujemy je raz. */
+  private onSignedIn(userId: string, email: string): Promise<void> {
+    if (this.state.auth.status === 'signedIn' && this.state.auth.userId === userId) return Promise.resolve();
+    this.signInTask ??= this.handleSignedIn(userId, email).finally(() => (this.signInTask = null));
+    return this.signInTask;
+  }
+
+  private async handleSignedIn(userId: string, email: string) {
     const prev = await this.kv.getMeta<string>('cloudUser');
     if (prev && prev !== userId) {
       await this.resetLocal();
     } else if (!prev) {
-      // Pierwsze połączenie tego urządzenia: wyślij dane zebrane lokalnie.
+      // Pierwsze połączenie tego urządzenia: wyślij dane zebrane lokalnie. Do końca pierwszej synchronizacji
+      // urządzenie „dołącza” — ustawienia rodziny (PIN, nagrody) przyjmuje z chmury, jeśli już tam są.
+      await this.kv.setMeta('joining', true);
       for (const k of KINDS) {
-        for (const doc of this.list(k)) await this.kv.addOutbox({ kind: k, id: (doc as { id: string }).id, data: doc });
+        await this.kv.addOutboxMany(this.list(k).map((doc) => ({ kind: k, id: (doc as { id: string }).id, data: doc })));
       }
     }
     await this.kv.setMeta('cloudUser', userId);
@@ -297,6 +382,7 @@ export class Store {
     this.patch({ auth: { status: 'signedIn', userId, email } });
     this.patchSync({ pending });
     await this.sync();
+    this.startLive(userId);
   }
 
   scheduleSync(ms: number) {
@@ -314,8 +400,11 @@ export class Store {
     this.syncing = true;
     this.patchSync({ status: 'syncing', error: undefined });
     try {
+      const joining = !!(await this.kv.getMeta<boolean>('joining'));
+      await this.reconcile(joining);
       await this.flush();
       await this.pull();
+      if (joining) await this.kv.setMeta('joining', false);
       const pending = (await this.kv.getOutbox()).length;
       this.patchSync({ status: 'idle', lastSync: Date.now(), pending, firstPullDone: true });
     } catch (e) {
@@ -328,6 +417,57 @@ export class Store {
         this.scheduleSync(500);
       }
     }
+  }
+
+  /**
+   * Zanim wyślemy zmienione osoby, tematy i ustawienia, porównujemy je z wersją w chmurze i scalamy
+   * (patrz `mergeDoc`). Bez tego urządzenie, które było offline, nadpisałoby np. plan ustawiony przez rodzica.
+   */
+  private async reconcile(joining: boolean) {
+    const entries = await this.kv.getOutbox();
+    const pending = new Map<string, OutboxEntry>();
+    for (const e of entries) if (MUTABLE_KINDS.includes(e.kind as DocKind)) pending.set(`${e.kind}:${e.id}`, e);
+    if (!pending.size) return;
+    const { data, error } = await this.supa!.from(SYNC_TABLE).select('kind,id,data').in('kind', MUTABLE_KINDS).limit(1000);
+    if (error) throw new Error(error.message);
+    const drop: number[] = [];
+    const toStore: StoredDoc[] = [];
+    const toSend: OutboxEntry[] = [];
+    for (const row of (data ?? []) as { kind: string; id: string; data: unknown }[]) {
+      const key = `${row.kind}:${row.id}`;
+      const mine = pending.get(key);
+      if (!mine || !row.data || typeof row.data !== 'object') continue;
+      const kind = row.kind as DocKind;
+      const map = this.docs[kind] as Map<string, unknown>;
+      // Zmiana zrobiona na tym urządzeniu w trakcie synchronizacji: zostawiamy ją do następnej rundy.
+      if (!sameJson(map.get(row.id), mine.data)) continue;
+      const mineAll = entries.filter((e) => `${e.kind}:${e.id}` === key);
+      // Wersja wspólna = stan sprzed pierwszej z czekających zmian tego dokumentu.
+      const merged = mergeDoc(kind, mine.data, row.data, { joining, base: mineAll[0]?.base });
+      drop.push(...mineAll.map((e) => e.seq!));
+      if (!sameJson(merged, row.data)) toSend.push({ kind, id: row.id, data: merged });
+      if (!sameJson(merged, mine.data)) {
+        map.set(row.id, merged);
+        toStore.push({ k: key, kind, id: row.id, data: merged });
+      }
+    }
+    await this.kv.putDocs(toStore);
+    await this.kv.deleteOutbox(drop);
+    await this.kv.addOutboxMany(toSend);
+    if (toStore.length) {
+      this.topicVersion++;
+      this.emit();
+    }
+  }
+
+  /** Sprawdza hasło konta rodziny (np. przed ustawieniem nowego PIN-u, gdy rodzic zapomniał starego). */
+  async verifyPassword(password: string): Promise<boolean> {
+    const email = this.state.auth.email;
+    if (!this.supa || this.state.auth.status !== 'signedIn' || !email) throw new Error('To urządzenie nie jest zalogowane do konta rodziny.');
+    const { error } = await this.supa.auth.signInWithPassword({ email, password });
+    if (!error) return true;
+    if (error.message === 'Invalid login credentials') return false;
+    throw new Error(error.message);
   }
 
   private async flush() {
@@ -348,6 +488,7 @@ export class Store {
     const cursor = (await this.kv.getMeta<string>('cursor')) ?? null;
     let since = cursor ? new Date(Date.parse(cursor) - 5000).toISOString() : '1970-01-01T00:00:00Z';
     let maxSeen = cursor;
+    let changed = false;
     const pendingKeys = new Set((await this.kv.getOutbox()).map((e) => `${e.kind}:${e.id}`));
     for (let page = 0; page < 200; page++) {
       const { data, error } = await this.supa!
@@ -362,19 +503,23 @@ export class Store {
       for (const row of data as { kind: string; id: string; data: unknown; deleted: boolean; server_updated_at: string }[]) {
         if (!KINDS.includes(row.kind as DocKind) || !row.data || typeof row.data !== 'object') continue;
         const key = `${row.kind}:${row.id}`;
-        if (pendingKeys.has(key)) continue;
-        (this.docs[row.kind as DocKind] as Map<string, unknown>).set(row.id, row.data);
-        toStore.push({ k: key, kind: row.kind, id: row.id, data: row.data });
         if (!maxSeen || row.server_updated_at > maxSeen) maxSeen = row.server_updated_at;
+        if (pendingKeys.has(key)) continue;
+        const map = this.docs[row.kind as DocKind] as Map<string, unknown>;
+        // Własny zapis wraca z chmury w tej samej postaci — nie ma czego zapisywać ani odświeżać.
+        if (sameJson(map.get(row.id), row.data)) continue;
+        map.set(row.id, row.data);
+        toStore.push({ k: key, kind: row.kind, id: row.id, data: row.data });
       }
       await this.kv.putDocs(toStore);
+      if (toStore.length) changed = true;
       if (toStore.some((d) => d.kind === 'topic' || d.kind === 'settings')) this.topicVersion++;
       const last = (data[data.length - 1] as { server_updated_at: string }).server_updated_at;
       if (data.length < 1000 || last === since) break;
       since = last;
     }
-    if (maxSeen) await this.kv.setMeta('cursor', maxSeen);
-    this.emit();
+    if (maxSeen && maxSeen !== cursor) await this.kv.setMeta('cursor', maxSeen);
+    if (changed) this.emit();
   }
 
   // ─── AI ─────────────────────────────────────────────────────────────────
