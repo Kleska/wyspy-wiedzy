@@ -11,8 +11,11 @@ import { builtin } from './util';
  * Słówka („english = polski”) to lista do nauki z wymową i źródło podpowiedzi do słów w zdaniach.
  */
 
-function en(id: string, order: number, title: string, description: string, words: string, dsl: string): Topic {
-  return { ...builtin(id, 'ang', order, title, description, dsl, [5]), words: words.trim() };
+/** Rozdział podręcznika — kolejne rozdziały dodawaj jako osobne stałe (Unit 1, Unit 2…) z własnym zakresem `order`. */
+const UNIT_0 = 'Unit 0';
+
+function en(id: string, order: number, title: string, description: string, words: string, dsl: string, unit = UNIT_0): Topic {
+  return { ...builtin(id, 'ang', order, title, description, dsl, [5]), unit, words: words.trim() };
 }
 
 export const ENGLISH_GRADE5: Topic[] = [

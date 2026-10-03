@@ -145,7 +145,7 @@ export function Practice({ run }: { run: Run }) {
     profileId: profile.id,
     topicId: run.kind === 'topic' ? run.topicId : null,
     mode: run.kind,
-    ...(run.kind === 'test' ? { topicIds: run.topicIds } : {}),
+    ...(run.kind === 'test' ? { topicIds: run.topicIds, ...(run.quizId ? { quizId: run.quizId } : {}) } : {}),
     ...(run.kind === 'diagnostic' ? { topicIds: [...new Set(queue.map((q) => q.topicId))] } : {}),
     ...(run.kind === 'gen' ? { genId: run.genId } : {}),
     startedAt: nowIso(),

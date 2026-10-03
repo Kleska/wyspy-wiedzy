@@ -78,6 +78,8 @@ export interface Topic {
   description?: string;
   /** Ściąga: dłuższe wyjaśnienie z przykładami, pokazywane przed tematem i po błędzie. */
   guide?: string;
+  /** Rozdział, do którego należy temat (np. „Unit 0”) — porządkuje planszę przedmiotu i listy w panelu rodzica. */
+  unit?: string;
   /** Słówka (język obcy): linie „english = polski”. Lista do nauki i źródło podpowiedzi do słów w zdaniach. */
   words?: string;
   order: number;
@@ -148,6 +150,8 @@ export interface Session {
   mode: SessionMode;
   /** Tematy sprawdzianu / testu na start. */
   topicIds?: string[];
+  /** Kartkówka od rodzica, w ramach której odbył się ten sprawdzian. */
+  quizId?: string;
   /** Generator zadań (trening bez końca) albo klucz minigry (Błyskawica, Pary na czas). */
   genId?: string;
   /** Pary na czas: czas ułożenia wszystkich par w milisekundach (z karami). */
@@ -196,10 +200,24 @@ export interface Profile {
   resetAt?: string;
   /** Plan od rodzica: tematy na najbliższy czas (np. przed sprawdzianem). */
   plan?: Plan | null;
+  /** Kartkówki zadane przez rodzica tej osobie (wynik = ukończona sesja sprawdzianu z tym `quizId`). */
+  quizzes?: AssignedQuiz[];
   /** Kiedy rodzic ostatnio ustawił albo usunął plan — przy scalaniu zmian z dwóch urządzeń wygrywa późniejszy plan. */
   planAt?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+/** Kartkówka od rodzica: krótki sprawdzian z wybranych tematów, bez podpowiedzi, do zrobienia raz. */
+export interface AssignedQuiz {
+  id: string;
+  title: string;
+  topicIds: string[];
+  /** Liczba pytań. */
+  count: number;
+  /** Termin (RRRR-MM-DD), opcjonalnie. */
+  until?: string;
+  createdAt: string;
 }
 
 export interface Plan {
@@ -223,6 +241,8 @@ export interface FamilyGoal {
 export interface Settings {
   id: 'family';
   parentPinHash?: string;
+  /** Długość PIN-u (nowe PIN-y mają 6 cyfr; brak = stary, krótszy PIN do wymiany). */
+  pinLength?: number;
   pinSalt?: string;
   dailyGoalMinutes: number;
   sessionLength: number;

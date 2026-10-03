@@ -18,7 +18,7 @@ async function onboard(page: Page, name: string, grade: number) {
 async function parentLogin(page: Page) {
   await page.getByRole('button', { name: 'Panel rodzica' }).click();
   for (let k = 0; k < 2; k++) {
-    for (const d of '1234') await page.getByRole('button', { name: d, exact: true }).click();
+    for (const d of '123456') await page.getByRole('button', { name: d, exact: true }).click();
     await page.getByRole('button', { name: 'Zatwierdź' }).click();
   }
   await expect(page.getByRole('heading', { name: 'Postępy' })).toBeVisible();
@@ -462,3 +462,122 @@ test('angielski: czytanie ze słówkami z tekstu i plan potwierdzany sprawdziane
   await expect(page.locator('.plan-check, .plan-done')).toContainText(/Sprawdzian próbny|sprawdzian próbny/);
   await expect(page.locator('.plan-check, .plan-done')).toContainText(/\d+\/27/);
 });
+
+test('rozdziały: plansza angielskiego pokazuje Unit 0, sprawdzian jest z rozdziału', async ({ page }) => {
+  await onboard(page, 'Zosia', 5);
+  await page.locator('.subject-big', { hasText: 'Angielski' }).click();
+  const chips = page.getByRole('group', { name: 'Rozdział' });
+  await expect(chips.getByRole('button', { name: /Unit 0/ })).toHaveAttribute('aria-pressed', 'true');
+  await expect(chips.getByRole('button', { name: /Unit 0/ })).toContainText('0/9');
+  await snap(page, 'f40-english-units', true);
+  await page.getByRole('button', { name: /^Sprawdzian: Unit 0/ }).click();
+  await expect(page.getByRole('dialog', { name: 'Sprawdzian' }).locator('.check-row')).toHaveCount(9);
+  await page.keyboard.press('Escape');
+  // Przedmioty bez rozdziałów wyglądają jak dotąd.
+  await page.getByRole('button', { name: 'Wróć', exact: true }).click();
+  await page.locator('.subject-big', { hasText: 'Matematyka' }).click();
+  await expect(page.getByRole('group', { name: 'Rozdział' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /^Sprawdzian/ })).toBeVisible();
+
+  // W panelu rodzica rozdział widać przy temacie i w planie.
+  await page.getByRole('button', { name: 'Wróć', exact: true }).click();
+  await parentLogin(page);
+  await page.getByRole('button', { name: 'Plan i sprawdziany' }).click();
+  await expect(page.locator('.unit-group-head', { hasText: 'Unit 0' })).toBeVisible();
+  await page.getByRole('button', { name: 'Tematy' }).click();
+  await expect(page.locator('tr', { hasText: 'Have got' }).first()).toContainText('Unit 0');
+});
+
+test('kartkówka od rodzica: zadanie, napisanie i wynik w panelu rodzica', async ({ page }) => {
+  await onboard(page, 'Zosia', 5);
+  await parentLogin(page);
+  await page.getByRole('button', { name: 'Plan i sprawdziany' }).click();
+  await expect(page.getByText('Nie ma zadanych kartkówek.')).toBeVisible();
+  await page.getByRole('button', { name: 'Zadaj kartkówkę' }).click();
+  const form = page.locator('.quiz-form');
+  await form.getByPlaceholder('np. Have got i can').fill('Have got na piątek');
+  await form.getByRole('group', { name: 'Liczba pytań w kartkówce' }).getByRole('button', { name: '5', exact: true }).click();
+  await form.locator('.check-row', { hasText: 'Have got' }).locator('input').check();
+  await snap(page, 'f41-quiz-form', true);
+  await form.getByRole('button', { name: 'Zadaj kartkówkę (5 pytań)' }).click();
+  await expect(page.getByText('czeka na napisanie')).toBeVisible();
+  await page.getByRole('button', { name: 'Wyjdź' }).click();
+
+  const card = page.getByRole('region', { name: 'Kartkówki od rodzica' });
+  await expect(card).toContainText('Have got na piątek');
+  await expect(card).toContainText('5 pytań bez podpowiedzi');
+  await snap(page, 'f42-quiz-home', true);
+  await card.getByRole('button', { name: /Piszę kartkówkę/ }).click();
+  await expect(page.getByText('Pytanie 1 z 5')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Podpowiedź' })).toHaveCount(0);
+  await runExam(page);
+  await expect(page.locator('.grade-num')).toBeVisible();
+  await page.locator('.summary .btn-primary').last().click();
+  await page.getByRole('button', { name: 'Wróć', exact: true }).click();
+  // Kartkówkę pisze się raz: na ekranie startowym zostaje wynik.
+  await expect(card).toContainText(/Napisana: \d\/5/);
+  await expect(card.getByRole('button', { name: /Piszę kartkówkę/ })).toHaveCount(0);
+
+  await page.getByRole('button', { name: 'Panel rodzica' }).click();
+  for (const d of '123456') await page.getByRole('button', { name: d, exact: true }).click();
+  await page.getByRole('button', { name: 'Zatwierdź' }).click();
+  await page.getByRole('button', { name: 'Plan i sprawdziany' }).click();
+  const row = page.locator('tr', { hasText: 'Have got na piątek' });
+  await expect(row).toContainText(/\d\/5/);
+  await expect(row).not.toContainText('czeka na napisanie');
+  await expect(page.locator('tr', { hasText: 'Kartkówka' }).last()).toContainText('Have got');
+  await snap(page, 'f43-quiz-result', true);
+});
+
+test('PIN rodzica: nowy ma 6 cyfr, stary 4-cyfrowy wpuszcza raz i każe ustawić nowy', async ({ page }) => {
+  await onboard(page, 'Kuba', 3);
+  // Urządzenie ze starszej wersji aplikacji: w ustawieniach jest 4-cyfrowy PIN (1234).
+  await page.evaluate(async () => {
+    const salt = 'sol';
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`${salt}:1234`));
+    const hash = [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
+    await new Promise<void>((resolve, reject) => {
+      const open = indexedDB.open('wyspy-wiedzy');
+      open.onsuccess = () => {
+        const tx = open.result.transaction('docs', 'readwrite');
+        tx.objectStore('docs').put({ k: 'settings:family', kind: 'settings', id: 'family', data: { id: 'family', parentPinHash: hash, pinSalt: salt, updatedAt: new Date().toISOString() } });
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      };
+      open.onerror = () => reject(open.error);
+    });
+  });
+  await page.reload();
+  await page.getByRole('button', { name: 'Panel rodzica' }).click();
+  for (const d of '1234') await page.getByRole('button', { name: d, exact: true }).click();
+  await page.getByRole('button', { name: 'Zatwierdź' }).click();
+  await expect(page.getByRole('heading', { name: 'Ustaw nowy PIN (6 cyfr)' })).toBeVisible();
+  // Krótszego PIN-u nie da się już ustawić.
+  for (const d of '6543') await page.getByRole('button', { name: d, exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Zatwierdź' })).toBeDisabled();
+  for (const d of '21') await page.getByRole('button', { name: d, exact: true }).click();
+  await page.getByRole('button', { name: 'Zatwierdź' }).click();
+  await expect(page.getByRole('heading', { name: 'Powtórz PIN' })).toBeVisible();
+  for (const d of '654321') await page.getByRole('button', { name: d, exact: true }).click();
+  await page.getByRole('button', { name: 'Zatwierdź' }).click();
+  await expect(page.getByRole('heading', { name: 'Postępy' })).toBeVisible();
+
+  // Od teraz obowiązuje tylko nowy PIN.
+  await page.getByRole('button', { name: 'Wyjdź' }).click();
+  await page.getByRole('button', { name: 'Panel rodzica' }).click();
+  for (const d of '1234') await page.getByRole('button', { name: d, exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Zatwierdź' })).toBeDisabled();
+  for (const d of '56') await page.getByRole('button', { name: d, exact: true }).click();
+  await page.getByRole('button', { name: 'Zatwierdź' }).click();
+  await expect(page.getByText('Zły PIN.')).toBeVisible();
+  for (const d of '654321') await page.getByRole('button', { name: d, exact: true }).click();
+  await page.getByRole('button', { name: 'Zatwierdź' }).click();
+  await expect(page.getByRole('heading', { name: 'Postępy' })).toBeVisible();
+  // W ustawieniach też tylko 6 cyfr.
+  await page.getByRole('button', { name: 'Ustawienia' }).click();
+  await page.getByLabel('Nowy PIN').fill('12345');
+  await expect(page.getByRole('button', { name: 'Zmień PIN' })).toBeDisabled();
+  await page.getByLabel('Nowy PIN').fill('123456');
+  await expect(page.getByRole('button', { name: 'Zmień PIN' })).toBeEnabled();
+});
+

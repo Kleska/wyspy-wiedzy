@@ -9,12 +9,15 @@ import {
   factsSummary,
   familyGoalProgress,
   GRADE_NAMES,
+  groupByUnit,
   mistakesToFix,
   planActive,
   planExamCount,
   planStatus,
   reviewCount,
+  quizStates,
   suggestTopic,
+  unitLabel,
   untouchedTopics,
   WEEK_BONUS,
   weekStart,
@@ -67,6 +70,7 @@ export function Home() {
       <div className="start">
         <HelloCard progress={progress} />
         <PlanCard progress={progress} />
+        <QuizCard progress={progress} />
 
         <section className="col" style={{ gap: 14 }}>
           <h2 className="section-title">Co dziś ćwiczymy?</h2>
@@ -227,6 +231,60 @@ function PlanCard({ progress }: { progress: Progress }) {
           <Icon name="test" /> Sprawdzian próbny
         </button>
       </div>
+    </section>
+  );
+}
+
+/** Kartkówki od rodzica: do napisania (raz, bez podpowiedzi) i świeżo napisane z oceną. */
+function QuizCard({ progress }: { progress: Progress }) {
+  const { profile, go } = useApp();
+  const topics = store.topicsFor(profile.id);
+  const now = Date.now();
+  const items = quizStates(profile.quizzes, progress)
+    .map((q) => ({ ...q, topics: topics.filter((t) => q.quiz.topicIds.includes(t.id)) }))
+    // Napisana kartkówka zostaje na ekranie przez tydzień, potem wynik jest już tylko w panelu rodzica.
+    .filter((q) => q.topics.length > 0 && (!q.result || now - q.result.at < 7 * 86_400_000));
+  if (!items.length) return null;
+  return (
+    <section className="card quiz-card" aria-label="Kartkówki od rodzica">
+      <div className="plan-head">
+        <span className="plan-icon" aria-hidden="true">
+          <Icon name="test" size={26} />
+        </span>
+        <div style={{ flex: '1 1 190px', minWidth: 0 }}>
+          <div className="label">Od rodzica</div>
+          <h2 className="plan-title">{items.length === 1 ? 'Kartkówka' : 'Kartkówki'}</h2>
+        </div>
+      </div>
+      {items.map(({ quiz, result, topics: ts }) => {
+        const n = Math.min(quiz.count, ts.reduce((a, t) => a + t.exercises.length, 0));
+        const days = quiz.until ? daysUntil(quiz.until, now) : null;
+        const when = days === null ? '' : days < 0 ? ' · termin minął' : days === 0 ? ' · termin dziś' : days === 1 ? ' · termin jutro' : ` · termin za ${days} dni`;
+        return (
+          <div key={quiz.id} className={`quiz-row ${result ? 'done' : ''}`}>
+            <div style={{ flex: '1 1 200px', minWidth: 0 }}>
+              <b>{quiz.title}</b>
+              <div className="muted quiz-meta">
+                {result
+                  ? `Napisana: ${result.correct}/${result.total}`
+                  : `${n} ${plural(n, ['pytanie', 'pytania', 'pytań'])} bez podpowiedzi${when}`}
+              </div>
+            </div>
+            {result ? (
+              <span className={`pill ${result.grade >= 4 ? 'good' : result.grade <= 2 ? 'bad' : ''}`}>
+                ocena {result.grade} — {GRADE_NAMES[result.grade]}
+              </span>
+            ) : (
+              <button
+                className="btn btn-primary"
+                onClick={() => go(practice({ kind: 'test', topicIds: ts.map((t) => t.id), title: `Kartkówka: ${quiz.title}`, subjectId: ts[0].subject, count: n, quizId: quiz.id }))}
+              >
+                Piszę kartkówkę <Icon name="arrowRight" />
+              </button>
+            )}
+          </div>
+        );
+      })}
     </section>
   );
 }
@@ -423,10 +481,17 @@ export function SubjectScreen({ subjectId }: { subjectId: string }) {
   const { profile, theme, go, openTopic } = useApp();
   const progress = useProgress(profile.id)!;
   const subject = subjectOf(subjectId);
-  const topics = store.topicsFor(profile.id).filter((t) => t.subject === subjectId);
+  const allTopics = store.topicsFor(profile.id).filter((t) => t.subject === subjectId);
   const planIds = planActive(profile.plan, Date.now()) ? profile.plan!.topicIds : [];
-  const suggested = suggestTopic(topics, progress, planIds);
-  const st = subjectStats(topics, progress);
+  // Rozdziały (np. Unit 0, Unit 1): plansza pokazuje jeden naraz. Domyślnie ten, w którym jest polecany temat.
+  const units = groupByUnit(allTopics);
+  const hasUnits = units.some((u) => u.unit);
+  const suggestedAll = suggestTopic(allTopics, progress, planIds);
+  const [unitSel, setUnitSel] = useState<string | null>(null);
+  const unit = hasUnits ? (units.find((u) => u.unit === unitSel) ?? units.find((u) => u.unit === (suggestedAll?.unit?.trim() ?? '')) ?? units[0]).unit : '';
+  const topics = hasUnits ? allTopics.filter((t) => (t.unit?.trim() ?? '') === unit) : allTopics;
+  const suggested = hasUnits ? suggestTopic(topics, progress, planIds) : suggestedAll;
+  const st = subjectStats(allTopics, progress);
   const play = () => suggested && go(practice({ kind: 'topic', topicId: suggested.id }));
 
   const board = (() => {
@@ -523,6 +588,22 @@ export function SubjectScreen({ subjectId }: { subjectId: string }) {
             </div>
           </div>
         </header>
+        {hasUnits && (
+          <div className="unit-chips" role="group" aria-label="Rozdział">
+            <span className="label">Rozdział</span>
+            {units.map((u) => {
+              const fluent = u.topics.filter((t) => (progress.topics.get(t.id)?.level ?? 0) >= 3).length;
+              return (
+                <button key={u.unit} type="button" aria-pressed={u.unit === unit} onClick={() => setUnitSel(u.unit)}>
+                  {unitLabel(u.unit)}
+                  <small>
+                    {fluent}/{u.topics.length}
+                  </small>
+                </button>
+              );
+            })}
+          </div>
+        )}
         <div className="subject-layout">
           <main className="subject-board">{topics.length ? board : <div className="card">Brak tematów w tym przedmiocie.</div>}</main>
           <div className="subject-side">
@@ -541,7 +622,7 @@ export function SubjectScreen({ subjectId }: { subjectId: string }) {
                 </p>
               </aside>
             )}
-            <Challenges subjectId={subjectId} topics={topics} progress={progress} planIds={planIds} />
+            <Challenges subjectId={subjectId} topics={topics} allTopics={allTopics} scope={hasUnits ? unitLabel(unit) : undefined} progress={progress} planIds={planIds} />
           </div>
         </div>
       </div>
@@ -551,10 +632,27 @@ export function SubjectScreen({ subjectId }: { subjectId: string }) {
 
 // ─── Wyzwania: sprawdzian, test na start, trening bez końca, Błyskawica ──────
 
-function Challenges({ subjectId, topics, progress, planIds }: { subjectId: string; topics: ParsedTopic[]; progress: Progress; planIds: string[] }) {
+function Challenges({
+  subjectId,
+  topics,
+  allTopics,
+  scope,
+  progress,
+  planIds,
+}: {
+  subjectId: string;
+  /** Tematy widoczne na planszy (wybrany rozdział) — z nich jest sprawdzian. */
+  topics: ParsedTopic[];
+  /** Wszystkie tematy przedmiotu — test na start obejmuje cały przedmiot. */
+  allTopics: ParsedTopic[];
+  /** Nazwa rozdziału, jeśli przedmiot jest podzielony na rozdziały. */
+  scope?: string;
+  progress: Progress;
+  planIds: string[];
+}) {
   const { profile, go } = useApp();
   const [modal, setModal] = useState<'test' | 'gen' | null>(null);
-  const untouched = untouchedTopics(topics, progress).length;
+  const untouched = untouchedTopics(allTopics, progress).length;
   const gens = subjectId === 'mat' ? generatorsFor(gradeOf(profile)) : [];
   const quizOk = subjectId !== 'mat' && quizPool(profile.id, subjectId).length >= 5;
   const pairsOk = subjectId !== 'mat' && canPlayPairs({ kind: 'quiz', subjectId }, profile.id);
@@ -568,7 +666,7 @@ function Challenges({ subjectId, topics, progress, planIds }: { subjectId: strin
       <button className="challenge" onClick={() => setModal('test')}>
         <Icon name="test" size={28} />
         <span>
-          <b>Sprawdzian</b>
+          <b>Sprawdzian{scope ? `: ${scope}` : ''}</b>
           <small>Bez podpowiedzi, z oceną 1–6</small>
         </span>
       </button>
@@ -619,7 +717,7 @@ function Challenges({ subjectId, topics, progress, planIds }: { subjectId: strin
           </span>
         </button>
       )}
-      {modal === 'test' && <TestSetup subjectId={subjectId} topics={topics} progress={progress} planIds={planIds} onClose={() => setModal(null)} />}
+      {modal === 'test' && <TestSetup subjectId={subjectId} topics={topics} scope={scope} progress={progress} planIds={planIds} onClose={() => setModal(null)} />}
       {modal === 'gen' && (
         <Modal title="Trening bez końca i mini-gry" onClose={() => setModal(null)}>
           <p className="muted" style={{ fontWeight: 700 }}>
@@ -654,14 +752,14 @@ function Challenges({ subjectId, topics, progress, planIds }: { subjectId: strin
   );
 }
 
-function TestSetup({ subjectId, topics, progress, planIds, onClose }: { subjectId: string; topics: ParsedTopic[]; progress: Progress; planIds: string[]; onClose: () => void }) {
+function TestSetup({ subjectId, topics, scope, progress, planIds, onClose }: { subjectId: string; topics: ParsedTopic[]; scope?: string; progress: Progress; planIds: string[]; onClose: () => void }) {
   const { go } = useApp();
   const planned = topics.filter((t) => planIds.includes(t.id)).map((t) => t.id);
   const started = topics.filter((t) => (progress.topics.get(t.id)?.level ?? 0) > 0).map((t) => t.id);
   const [sel, setSel] = useState<string[]>(planned.length ? planned : started.length ? started : topics.map((t) => t.id));
   const [count, setCount] = useState(15);
   const available = topics.filter((t) => sel.includes(t.id)).reduce((a, t) => a + t.exercises.length, 0);
-  const title = sel.length === 1 ? `Sprawdzian: ${topics.find((t) => t.id === sel[0])?.title}` : `Sprawdzian: ${subjectOf(subjectId).name}`;
+  const title = sel.length === 1 ? `Sprawdzian: ${topics.find((t) => t.id === sel[0])?.title}` : `Sprawdzian: ${subjectOf(subjectId).name}${scope ? `, ${scope}` : ''}`;
   return (
     <Modal title="Sprawdzian" onClose={onClose}>
       <p className="muted" style={{ fontWeight: 700 }}>

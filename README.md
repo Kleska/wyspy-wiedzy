@@ -38,6 +38,10 @@ można ją zainstalować na ekranie głównym i używać bez internetu. Postępy
   przycisk „Ćwicz najsłabsze”.
 - Sprawdzian w szkole? Zdjęcie zakresu (albo opis) → AI dobiera pasujące tematy, układa brakujące zadania i ustawia
   plan z terminem. Działa też bez klucza API, przez zwykły czat z Claude.
+- Rozdziały: temat może należeć do rozdziału (np. „Unit 0”, „Unit 1”) — plansza przedmiotu pokazuje jeden rozdział
+  naraz, a listy tematów w panelu rodzica są nimi pogrupowane (z przyciskiem „Zaznacz rozdział”).
+- Kartkówka od rodzica: w panelu rodzica wybierasz dziecko, tematy, liczbę pytań i termin; dziecko widzi ją na
+  ekranie startowym, pisze raz, bez podpowiedzi, a ocena wraca do panelu rodzica (przy koncie rodziny — na żywo).
 - Plan od rodzica (tematy przypięte np. przed sprawdzianem w szkole, z terminem i sprawdzianem próbnym),
   cel tygodnia, zamrożenie serii, kamienie milowe serii, wspólny cel rodzeństwa.
 - Powtórki rozłożone w czasie: błędne zadania wracają na końcu ćwiczenia i w kolejnych dniach (1, 2, 4, 7, 14 dni).
@@ -47,7 +51,7 @@ można ją zainstalować na ekranie głównym i używać bez internetu. Postępy
 - Liczenie aktywnego czasu nauki (tylko gdy ekran jest widoczny i dziecko coś robi), statystyki dla rodzica:
   minuty dziennie, poprawność, poziomy tematów, zadania sprawiające kłopot razem z błędnymi odpowiedziami dziecka,
   raport tygodnia do udostępnienia (np. w wiadomości), historia sesji i sprawdzianów.
-- Panel rodzica za PIN-em: dodawanie tematów ręcznie, ze zdjęcia książki (AI), z opisu (AI) albo przez zwykły
+- Panel rodzica za 6-cyfrowym PIN-em: dodawanie tematów ręcznie, ze zdjęcia książki (AI), z opisu (AI) albo przez zwykły
   czat z Claude (bez klucza API), import/eksport kopii zapasowej.
 - Czytanie poleceń na głos (głos systemowy pl-PL), dźwięki.
 

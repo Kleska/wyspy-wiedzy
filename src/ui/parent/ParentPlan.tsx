@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import { SUBJECTS } from '../../content/seed';
 import { nowIso, store } from '../../data/store';
 import { dateKey, GRADE_NAMES, planActive, planExamCount, planStatus } from '../../engine';
 import type { Profile } from '../../types';
-import { LevelChip } from '../bits';
 import { useProgress, useStoreVersion } from '../hooks';
 import { Icon } from '../icons';
+import { ParentQuiz } from './ParentQuiz';
 import { PlanFromPhoto } from './PlanFromPhoto';
+import { TopicChecklist } from './TopicChecklist';
 
 export function ParentPlan({ pin }: { pin: string }) {
   useStoreVersion();
@@ -31,11 +31,12 @@ export function ParentPlan({ pin }: { pin: string }) {
         )}
       </div>
       <p className="muted">
-        Przypnij tematy, które dziecko ma teraz ćwiczyć (np. przed sprawdzianem w szkole). Zobaczy je na górze ekranu startowego, a aplikacja będzie je polecać w pierwszej
-        kolejności. Cel: poziom „Biegły” w każdym temacie.
+        Wszystko tutaj dotyczy jednej osoby (gdy dzieci jest kilka, wybierasz ją u góry). Plan: przypnij tematy, które dziecko ma teraz ćwiczyć (np. przed sprawdzianem w szkole) — zobaczy je na górze ekranu
+        startowego, a aplikacja będzie je polecać w pierwszej kolejności. Kartkówka: krótki sprawdzian z wybranych tematów, pisany raz.
       </p>
-      <PlanFromPhoto key={`photo-${p.id}`} p={p} pin={pin} onPlanSaved={() => setVer((v) => v + 1)} />
+      <ParentQuiz key={`quiz-${p.id}`} p={p} />
       <PlanEditor key={`${p.id}:${ver}`} p={p} />
+      <PlanFromPhoto key={`photo-${p.id}`} p={p} pin={pin} onPlanSaved={() => setVer((v) => v + 1)} />
       <ExamHistory profileId={p.id} />
     </>
   );
@@ -117,35 +118,7 @@ function PlanEditor({ p }: { p: Profile }) {
           <input className="input" type="date" value={until} min={dateKey(Date.now())} onChange={(e) => setUntil(e.target.value)} />
         </label>
       </div>
-      {SUBJECTS.filter((s) => topics.some((t) => t.subject === s.id)).map((s) => {
-        const ids = topics.filter((t) => t.subject === s.id).map((t) => t.id);
-        const all = ids.every((id) => sel.includes(id));
-        return (
-          <fieldset key={s.id} className="field" style={{ border: 0, padding: 0, margin: 0 }}>
-            <span className="row" style={{ justifyContent: 'space-between', flexWrap: 'wrap' }}>
-              {s.name}
-              <button
-                type="button"
-                className="btn btn-sm"
-                onClick={() => setSel((cur) => (all ? cur.filter((x) => !ids.includes(x)) : [...cur, ...ids.filter((x) => !cur.includes(x))]))}
-              >
-                {all ? 'Odznacz wszystkie' : `Zaznacz wszystkie (${ids.length})`}
-              </button>
-            </span>
-            <div className="col" style={{ gap: 6 }}>
-              {topics
-                .filter((t) => t.subject === s.id)
-                .map((t) => (
-                  <label key={t.id} className="check-row">
-                    <input type="checkbox" checked={sel.includes(t.id)} onChange={(e) => setSel((cur) => (e.target.checked ? [...cur, t.id] : cur.filter((x) => x !== t.id)))} />
-                    <span style={{ flex: 1 }}>{t.title}</span>
-                    <LevelChip level={progress?.topics.get(t.id)?.level ?? 0} small />
-                  </label>
-                ))}
-            </div>
-          </fieldset>
-        );
-      })}
+      <TopicChecklist topics={topics} sel={sel} setSel={setSel} progress={progress} />
       <div className="row" style={{ flexWrap: 'wrap' }}>
         <button className="btn btn-primary" onClick={save} disabled={!sel.length && !p.plan}>
           <Icon name="pin" size={18} /> {sel.length ? `Zapisz plan (${sel.length})` : 'Zapisz'}
@@ -190,7 +163,7 @@ function ExamHistory({ profileId }: { profileId: string }) {
                       timeStyle: 'short',
                     })}
                   </td>
-                  <td>{e.mode === 'test' ? 'Sprawdzian' : 'Test na start'}</td>
+                  <td>{e.quizId ? 'Kartkówka' : e.mode === 'test' ? 'Sprawdzian' : 'Test na start'}</td>
                   <td style={{ maxWidth: 320 }}>{e.topicIds.map((id) => all.find((t) => t.id === id)?.title ?? '?').join(', ')}</td>
                   <td>
                     {e.correct}/{e.total} ({Math.round((e.correct / e.total) * 100)}%)

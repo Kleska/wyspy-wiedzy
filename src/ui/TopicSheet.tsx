@@ -23,6 +23,7 @@ export function TopicSheet({ topicId, onClose }: { topicId: string; onClose: () 
       <div className="row" style={{ justifyContent: 'space-between', flexWrap: 'wrap' }}>
         <span className="label">
           {subjectOf(topic.subject).name}
+          {topic.unit ? ` · ${topic.unit}` : ''}
           {inPlan ? ' · w planie od rodzica' : ''}
         </span>
         <Stars n={s?.stars ?? 0} size={26} />

@@ -324,3 +324,40 @@ describe('plan: sprawdzian próbny potwierdza opanowanie materiału', () => {
   });
 });
 
+describe('rozdziały i kartkówki od rodzica', () => {
+  it('tematy grupują się w rozdziały w kolejności pojawiania się; angielski ma Unit 0', async () => {
+    const { groupByUnit, unitLabel } = await import('../src/engine');
+    const g = groupByUnit([{ unit: 'Unit 0', id: 1 }, { unit: 'Unit 1', id: 2 }, { id: 3 }, { unit: ' Unit 0 ', id: 4 }]);
+    expect(g.map((x) => [x.unit, x.topics.map((t) => t.id)])).toEqual([
+      ['Unit 0', [1, 4]],
+      ['Unit 1', [2]],
+      ['', [3]],
+    ]);
+    expect(unitLabel('')).toBe('Pozostałe');
+    const english = topics.filter((t) => t.subject === 'ang');
+    expect(groupByUnit(english).map((x) => x.unit)).toEqual(['Unit 0']);
+    expect(groupByUnit(topics.filter((t) => t.subject === 'mat')).map((x) => x.unit)).toEqual(['']);
+  });
+
+  it('wynik kartkówki to pierwsze ukończone podejście z jej identyfikatorem', async () => {
+    const { quizStates } = await import('../src/engine');
+    const quiz = { id: 'q1', title: 'Rzeczownik', topicIds: [noun.id], count: 5, createdAt: '2026-10-01T08:00:00' };
+    const run = (id: string, at: string, good: number, quizId?: string, completed = true): { a: Attempt[]; s: Session } => ({
+      a: Array.from({ length: 5 }, (_, i) => att(noun, i, i < good, at, id)),
+      s: { id, profileId: P, topicId: null, mode: 'test', topicIds: [noun.id], ...(quizId ? { quizId } : {}), startedAt: at, endedAt: at, activeSeconds: 100, answered: 5, correct: good, completed },
+    });
+    expect(quizStates([quiz], progress([], [], '2026-10-02T10:00:00'))[0].result).toBeNull();
+    expect(quizStates(undefined, progress([], [], '2026-10-02T10:00:00'))).toEqual([]);
+
+    // Zwykły sprawdzian z tego samego tematu i przerwana kartkówka nie liczą się jako wynik.
+    const other = run('s1', '2026-10-02T10:00:00', 5);
+    const aborted = run('s2', '2026-10-02T11:00:00', 2, 'q1', false);
+    expect(quizStates([quiz], progress([...other.a, ...aborted.a], [other.s, aborted.s], '2026-10-02T12:00:00'))[0].result).toBeNull();
+
+    const done = run('s3', '2026-10-02T13:00:00', 4, 'q1');
+    const later = run('s4', '2026-10-03T13:00:00', 5, 'q1');
+    const st = quizStates([quiz], progress([...done.a, ...later.a], [done.s, later.s], '2026-10-03T14:00:00'))[0];
+    expect(st.result).toMatchObject({ sessionId: 's3', correct: 4, total: 5, grade: 4, quizId: 'q1' });
+  });
+});
+

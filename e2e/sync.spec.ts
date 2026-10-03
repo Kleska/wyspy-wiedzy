@@ -204,15 +204,15 @@ test('dwa urządzenia: postępy córki widać u rodzica, plan od rodzica trafia 
   await tablet.page.getByRole('alertdialog').getByRole('button', { name: 'Skończ' }).click();
   await tablet.page.getByRole('button', { name: 'Wróć', exact: true }).click();
   await tablet.page.getByRole('button', { name: 'Panel rodzica' }).click();
-  await typePin(tablet.page, '1111');
-  await typePin(tablet.page, '1111');
+  await typePin(tablet.page, '111111');
+  await typePin(tablet.page, '111111');
   await expect(tablet.page.getByRole('heading', { name: 'Postępy' })).toBeVisible();
   await tablet.page.getByRole('button', { name: 'Wyjdź' }).click();
 
   await onboard(phone.page, 'Kuba', 3);
   await phone.page.getByRole('button', { name: 'Panel rodzica' }).click();
-  await typePin(phone.page, '1234');
-  await typePin(phone.page, '1234');
+  await typePin(phone.page, '123456');
+  await typePin(phone.page, '123456');
   await phone.page.getByRole('button', { name: 'Nagrody' }).click();
   await phone.page.locator('.idea', { hasText: 'Wybieram obiad na jutro' }).getByRole('button', { name: 'Dodaj' }).click();
   await expect(phone.page.locator('.idea', { hasText: 'Wybieram obiad na jutro' }).getByRole('button', { name: 'Dodano' })).toBeVisible();
@@ -249,7 +249,7 @@ test('dwa urządzenia: postępy córki widać u rodzica, plan od rodzica trafia 
 
   // ── Rodzic na telefonie widzi córkę i jej odpowiedzi, przypina jej plan ──
   await phone.page.getByRole('button', { name: 'Panel rodzica' }).click();
-  await typePin(phone.page, '1234');
+  await typePin(phone.page, '123456');
   // Kanał „na żywo” działa: profil i odpowiedzi córki przyszły same, bez odświeżania.
   await expect(phone.page.locator('.sync-bar')).toContainText('na żywo');
   await snap(phone.page, 's02-parent-live');
@@ -289,6 +289,13 @@ test('dwa urządzenia: postępy córki widać u rodzica, plan od rodzica trafia 
   await phone.page.getByRole('button', { name: 'Plan i sprawdziany' }).click();
   await phone.page.getByLabel('Uczeń').selectOption({ label: (await phone.page.getByLabel('Uczeń').locator('option', { hasText: 'Zosia' }).innerText()).trim() });
 
+  // ── Rodzic zadaje córce kartkówkę: pojawia się na jej tablecie na żywo ──
+  await phone.page.getByRole('button', { name: 'Zadaj kartkówkę' }).click();
+  await phone.page.locator('.quiz-form').getByPlaceholder('np. Have got i can').fill('Miesiące na jutro');
+  await phone.page.locator('.quiz-form .check-row', { hasText: 'Miesiące' }).locator('input').check();
+  await phone.page.locator('.quiz-form').getByRole('button', { name: /^Zadaj kartkówkę \(/ }).click();
+  await expect(tablet.page.getByRole('region', { name: 'Kartkówki od rodzica' })).toContainText('Miesiące na jutro');
+
   // ── Tablet bez internetu: córka zmienia wygląd, a rodzic w tym czasie zmienia plan. Nic nie może zginąć. ──
   cloud.offline.add(tablet.ctx);
   await tablet.page.getByRole('button', { name: 'Wygląd' }).click();
@@ -306,7 +313,7 @@ test('dwa urządzenia: postępy córki widać u rodzica, plan od rodzica trafia 
 
   // ── Na tablecie działa już PIN rodziny (z telefonu), a zapomniany PIN ustawia się od nowa hasłem konta ──
   await tablet.page.getByRole('button', { name: 'Panel rodzica' }).click();
-  await typePin(tablet.page, '1111');
+  await typePin(tablet.page, '111111');
   await expect(tablet.page.getByText('Zły PIN.')).toBeVisible();
   await snap(tablet.page, 's03-pin-forgot-link');
   await tablet.page.getByRole('button', { name: 'Nie pamiętam PIN-u' }).click();
@@ -317,8 +324,8 @@ test('dwa urządzenia: postępy córki widać u rodzica, plan od rodzica trafia 
   await tablet.page.getByLabel('Hasło konta rodziny').fill(PASSWORD);
   await tablet.page.getByRole('button', { name: 'Dalej' }).click();
   await expect(tablet.page.getByRole('heading', { name: 'Ustaw PIN rodzica' })).toBeVisible();
-  await typePin(tablet.page, '2468');
-  await typePin(tablet.page, '2468');
+  await typePin(tablet.page, '246810');
+  await typePin(tablet.page, '246810');
   await expect(tablet.page.getByRole('heading', { name: 'Postępy' })).toBeVisible();
   await tablet.page.getByRole('button', { name: 'Ustawienia' }).click();
   await expect(tablet.page.getByLabel('Połącz z inną osobą: Zosia')).toBeVisible();
@@ -331,7 +338,7 @@ test('dwa urządzenia: postępy córki widać u rodzica, plan od rodzica trafia 
   await phone.page.getByRole('button', { name: 'Wyjdź' }).click();
   await phone.page.waitForTimeout(1500);
   await phone.page.getByRole('button', { name: 'Panel rodzica' }).click();
-  await typePin(phone.page, '2468');
+  await typePin(phone.page, '246810');
   await expect(phone.page.getByRole('heading', { name: 'Postępy' })).toBeVisible();
 
   // Po ponownym uruchomieniu tablet jest nadal zalogowany i ma komplet danych.

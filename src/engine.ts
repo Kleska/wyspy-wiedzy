@@ -1,5 +1,5 @@
 import { plural } from './themes';
-import type { Attempt, Exercise, ExerciseType, FamilyGoal, ParsedTopic, Redemption, Session, SessionMode, Settings } from './types';
+import type { AssignedQuiz, Attempt, Exercise, ExerciseType, FamilyGoal, ParsedTopic, Redemption, Session, SessionMode, Settings } from './types';
 
 /*
  * Cały postęp (XP, monety, poziom, seria dni, poziomy tematów, odznaki, cele tygodnia) jest
@@ -127,6 +127,8 @@ export interface ExamResult {
   correct: number;
   total: number;
   grade: number;
+  /** Kartkówka od rodzica, której dotyczy wynik. */
+  quizId?: string;
 }
 
 export interface Progress {
@@ -474,6 +476,7 @@ export function computeProgress(input: ProgressInput): Progress {
         correct: ps.firstCorrect,
         total: ps.first,
         grade: schoolGrade(ps.firstCorrect, ps.first),
+        ...(s.quizId ? { quizId: s.quizId } : {}),
       });
     }
   }
@@ -898,6 +901,38 @@ export function planStatus(plan: { topicIds: string[]; setAt?: string }, topicId
     confirmed: !!lastExam && lastExam.grade >= PLAN_PASS_GRADE,
   };
 }
+
+// ─── Kartkówki od rodzica ────────────────────────────────────────────────────
+
+export interface QuizState {
+  quiz: AssignedQuiz;
+  /** Wynik — pierwsze ukończone podejście (kartkówkę pisze się raz). */
+  result: ExamResult | null;
+}
+
+export function quizStates(quizzes: AssignedQuiz[] | undefined, progress: Progress): QuizState[] {
+  return (quizzes ?? []).map((quiz) => ({
+    quiz,
+    result: progress.exams.filter((e) => e.quizId === quiz.id).sort((a, b) => a.at - b.at)[0] ?? null,
+  }));
+}
+
+// ─── Rozdziały ───────────────────────────────────────────────────────────────
+
+/** Tematy pogrupowane w rozdziały, w kolejności pojawiania się (tematy bez rozdziału trafiają do grupy „”). */
+export function groupByUnit<T extends { unit?: string }>(topics: T[]): { unit: string; topics: T[] }[] {
+  const out: { unit: string; topics: T[] }[] = [];
+  for (const t of topics) {
+    const unit = t.unit?.trim() ?? '';
+    const g = out.find((x) => x.unit === unit);
+    if (g) g.topics.push(t);
+    else out.push({ unit, topics: [t] });
+  }
+  return out;
+}
+
+/** Nazwa grupy do pokazania: tematy bez rozdziału nazywamy „Pozostałe”. */
+export const unitLabel = (unit: string) => unit || 'Pozostałe';
 
 // ─── Moje błędy ──────────────────────────────────────────────────────────────
 

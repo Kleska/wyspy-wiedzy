@@ -17,6 +17,7 @@ export interface EditorSeed {
   description: string;
   guide?: string;
   words?: string;
+  unit?: string;
   dsl: string;
   source: TopicSource;
   grades?: number[];
@@ -99,6 +100,7 @@ export function ParentTopics({ onEdit }: { onEdit: (s: EditorSeed) => void }) {
                     <tr key={t.id} style={{ opacity: t.builtin && hidden.has(t.id) ? 0.5 : 1 }}>
                       <td>
                         <b>{t.title}</b>
+                        {t.unit && <div className="muted" style={{ fontSize: 12 }}>{t.unit}</div>}
                         {t.errors.length > 0 && <div className="pill bad">{t.errors.length} {plural(t.errors.length, ['błąd', 'błędy', 'błędów'])} w treści</div>}
                         {t.builtin && hidden.has(t.id) && <div className="muted" style={{ fontSize: 12 }}>ukryty dla ucznia</div>}
                       </td>
@@ -118,7 +120,7 @@ export function ParentTopics({ onEdit }: { onEdit: (s: EditorSeed) => void }) {
                               <button
                                 className="btn btn-sm"
                                 onClick={() =>
-                                  onEdit({ title: `${t.title} (moja wersja)`, subject: t.subject, description: t.description ?? '', guide: t.guide, words: t.words, dsl: t.dsl, source: 'manual', grades: t.grades })
+                                  onEdit({ title: `${t.title} (moja wersja)`, subject: t.subject, description: t.description ?? '', guide: t.guide, words: t.words, unit: t.unit, dsl: t.dsl, source: 'manual', grades: t.grades })
                                 }
                               >
                                 <Icon name="copy" size={16} /> Kopiuj i zmień
@@ -128,7 +130,7 @@ export function ParentTopics({ onEdit }: { onEdit: (s: EditorSeed) => void }) {
                             <>
                               <button
                                 className="btn btn-sm"
-                                onClick={() => onEdit({ topicId: t.id, title: t.title, subject: t.subject, description: t.description ?? '', guide: t.guide, words: t.words, dsl: t.dsl, source: t.source, grades: t.grades })}
+                                onClick={() => onEdit({ topicId: t.id, title: t.title, subject: t.subject, description: t.description ?? '', guide: t.guide, words: t.words, unit: t.unit, dsl: t.dsl, source: t.source, grades: t.grades })}
                               >
                                 <Icon name="pencil" size={16} /> Edytuj
                               </button>
@@ -162,6 +164,7 @@ export function TopicEditor({ seed, onClose }: { seed: EditorSeed; onClose: () =
   const [description, setDescription] = useState(seed.description);
   const [guide, setGuide] = useState(seed.guide ?? '');
   const [words, setWords] = useState(seed.words ?? '');
+  const [unit, setUnit] = useState(seed.unit ?? '');
   const [grades, setGrades] = useState<number[]>(seed.grades ?? [...new Set(store.profiles().map((p) => p.grade ?? 3))]);
   const [dsl, setDsl] = useState(seed.dsl);
   const [target, setTarget] = useState<string>(seed.topicId ?? 'new');
@@ -192,6 +195,7 @@ export function TopicEditor({ seed, onClose }: { seed: EditorSeed; onClose: () =
       description: description.trim() || undefined,
       guide: guide.trim() || undefined,
       words: words.trim() || undefined,
+      unit: unit.trim() || undefined,
       order: existing?.subject === subject ? existing.order : maxOrder + 10,
       source: existing?.source ?? seed.source,
       grades: grades.length ? [...grades].sort((a, b) => a - b) : undefined,
@@ -250,6 +254,15 @@ export function TopicEditor({ seed, onClose }: { seed: EditorSeed; onClose: () =
                     </option>
                   ))}
                 </select>
+              </label>
+              <label className="field">
+                <span>Rozdział (opcjonalnie) — tematy z tym samym rozdziałem są razem na planszy dziecka, np. „Unit 1”</span>
+                <input className="input" value={unit} onChange={(e) => setUnit(e.target.value)} maxLength={30} placeholder="np. Unit 1" list="ww-units" />
+                <datalist id="ww-units">
+                  {[...new Set(store.allTopics().filter((t) => t.subject === subject && t.unit).map((t) => t.unit!.trim()))].map((u) => (
+                    <option key={u} value={u} />
+                  ))}
+                </datalist>
               </label>
               <fieldset className="field" style={{ border: 0, padding: 0, margin: 0 }}>
                 <span>Dla klasy (nic nie zaznaczone = dla wszystkich)</span>

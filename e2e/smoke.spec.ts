@@ -130,9 +130,9 @@ test('pełna ścieżka: profil → przedmiot → ćwiczenie → podsumowanie →
   await page.getByRole('button', { name: 'Wygląd' }).click();
   await page.getByRole('dialog').getByRole('button', { name: /Wyspy Wiedzy/ }).click();
   await page.getByRole('button', { name: 'Panel rodzica' }).click();
-  for (const d of '1234') await page.getByRole('button', { name: d, exact: true }).click();
+  for (const d of '123456') await page.getByRole('button', { name: d, exact: true }).click();
   await page.getByRole('button', { name: 'Zatwierdź' }).click();
-  for (const d of '1234') await page.getByRole('button', { name: d, exact: true }).click();
+  for (const d of '123456') await page.getByRole('button', { name: d, exact: true }).click();
   await page.getByRole('button', { name: 'Zatwierdź' }).click();
   await expect(page.getByRole('heading', { name: 'Postępy' })).toBeVisible();
   await snap(page, '10-parent-stats');
@@ -208,7 +208,7 @@ test('dwie osoby: każda ma swoją klasę, tematy i postępy', async ({ page }) 
   // Rodzic zmienia imię i usuwa osobę
   await page.getByRole('button', { name: 'Panel rodzica' }).click();
   for (let k = 0; k < 2; k++) {
-    for (const d of '1234') await page.getByRole('button', { name: d, exact: true }).click();
+    for (const d of '123456') await page.getByRole('button', { name: d, exact: true }).click();
     await page.getByRole('button', { name: 'Zatwierdź' }).click();
   }
   await page.getByRole('button', { name: 'Ustawienia' }).click();

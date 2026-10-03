@@ -19,7 +19,7 @@ test('sortowanie (przeciąganie), luki i pary działają i dają poprawny wynik'
   await page.getByRole('button', { name: 'Zaczynamy!' }).click();
   await page.getByRole('button', { name: 'Panel rodzica' }).click();
   for (let k = 0; k < 2; k++) {
-    for (const d of '1234') await page.getByRole('button', { name: d, exact: true }).click();
+    for (const d of '123456') await page.getByRole('button', { name: d, exact: true }).click();
     await page.getByRole('button', { name: 'Zatwierdź' }).click();
   }
   await page.getByRole('button', { name: 'Tematy' }).click();
@@ -91,7 +91,7 @@ test('zadania liczbowe: klawiatura z cyframi i ułamek piętrowy zamiast polskic
   await page.getByRole('button', { name: 'Zaczynamy!' }).click();
   await page.getByRole('button', { name: 'Panel rodzica' }).click();
   for (let k = 0; k < 2; k++) {
-    for (const d of '1234') await page.getByRole('button', { name: d, exact: true }).click();
+    for (const d of '123456') await page.getByRole('button', { name: d, exact: true }).click();
     await page.getByRole('button', { name: 'Zatwierdź' }).click();
   }
   await page.getByRole('button', { name: 'Tematy' }).click();

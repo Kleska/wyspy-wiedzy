@@ -8,7 +8,7 @@ import { Icon } from '../icons';
 import { FREE_AVATARS, GRADES } from '../Onboarding';
 import { PAID_AVATARS } from '../Rewards';
 import type { Profile, ThemeId } from '../../types';
-import { hashPin } from './ParentGate';
+import { hashPin, PIN_LENGTH } from './ParentGate';
 
 declare const __BUILD_TIME__: string;
 
@@ -203,13 +203,13 @@ export function ParentSettings() {
           PIN rodzica
         </h2>
         <div className="row" style={{ flexWrap: 'wrap' }}>
-          <input className="input" style={{ width: 160 }} inputMode="numeric" maxLength={6} value={newPin} onChange={(e) => setNewPin(e.target.value.replace(/\D/g, ''))} placeholder="nowy PIN" aria-label="Nowy PIN" />
+          <input className="input" style={{ width: 200 }} inputMode="numeric" maxLength={PIN_LENGTH} value={newPin} onChange={(e) => setNewPin(e.target.value.replace(/\D/g, ''))} placeholder="nowy PIN (6 cyfr)" aria-label="Nowy PIN" />
           <button
             className="btn btn-sm"
-            disabled={newPin.length < 4}
+            disabled={newPin.length !== PIN_LENGTH}
             onClick={async () => {
               const salt = Math.random().toString(36).slice(2);
-              await store.saveSettings({ parentPinHash: await hashPin(newPin, salt), pinSalt: salt });
+              await store.saveSettings({ parentPinHash: await hashPin(newPin, salt), pinSalt: salt, pinLength: PIN_LENGTH });
               setNewPin('');
               flash('PIN zmieniony. Jeśli używasz AI w chmurze, zmień też sekret PARENT_PIN w Supabase.');
             }}
