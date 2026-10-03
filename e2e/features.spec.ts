@@ -166,8 +166,13 @@ test('trening bez końca i Błyskawica', async ({ page }) => {
 test('rodzic: plan, raport tygodnia, pomysły na nagrody i wspólny cel', async ({ page }) => {
   await onboard(page, 'Kuba', 3);
   await parentLogin(page);
+  // Wybór ucznia widać także przy jednej osobie — wiadomo, czyje to postępy i gdzie pojawią się kolejne dzieci.
+  await expect(page.getByLabel('Uczeń')).toHaveValue(/.+/);
+  await expect(page.getByLabel('Uczeń').locator('option')).toHaveText([/Kuba \(klasa 3\)/]);
+  await expect(page.getByText('Na liście jest na razie jedna osoba.')).toBeVisible();
 
   await page.getByRole('button', { name: 'Plan i sprawdziany' }).click();
+  await expect(page.getByLabel('Uczeń').locator('option')).toHaveText([/Kuba \(klasa 3\)/]);
   await page.getByPlaceholder('np. Sprawdzian z ułamków').fill('Sprawdzian z czasowników');
   const d = new Date();
   d.setDate(d.getDate() + 3);

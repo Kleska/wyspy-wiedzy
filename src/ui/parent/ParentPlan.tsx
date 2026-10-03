@@ -20,16 +20,23 @@ export function ParentPlan({ pin }: { pin: string }) {
     <>
       <div className="row" style={{ flexWrap: 'wrap' }}>
         <h1 style={{ flex: 1 }}>Plan i sprawdziany</h1>
-        {profiles.length > 1 && (
-          <select className="select" style={{ width: 'auto' }} value={p.id} onChange={(e) => setPid(e.target.value)} aria-label="Uczeń">
+        <label className="student-pick">
+          <span>Uczeń</span>
+          <select className="select" value={p.id} onChange={(e) => setPid(e.target.value)} aria-label="Uczeń">
             {profiles.map((x) => (
               <option key={x.id} value={x.id}>
-                {x.avatar} {x.name}
+                {x.avatar} {x.name} (klasa {x.grade ?? 3})
               </option>
             ))}
           </select>
-        )}
+        </label>
       </div>
+      {profiles.length === 1 && (
+        <p className="muted" style={{ fontSize: 14 }}>
+          Na liście jest na razie jedna osoba. Kolejne dzieci pojawią się tu same, gdy zalogujesz konto rodziny na ich urządzeniach — albo dodaj je w zakładce Ustawienia →
+          „Osoby (dzieci)”.
+        </p>
+      )}
       <p className="muted">
         Wszystko tutaj dotyczy jednej osoby (gdy dzieci jest kilka, wybierasz ją u góry). Plan: przypnij tematy, które dziecko ma teraz ćwiczyć (np. przed sprawdzianem w szkole) — zobaczy je na górze ekranu
         startowego, a aplikacja będzie je polecać w pierwszej kolejności. Kartkówka: krótki sprawdzian z wybranych tematów, pisany raz.

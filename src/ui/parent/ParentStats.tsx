@@ -208,16 +208,24 @@ export function ParentStats() {
     <>
       <div className="row" style={{ flexWrap: 'wrap' }}>
         <h1 style={{ flex: 1 }}>Postępy</h1>
-        {profiles.length > 1 && (
-          <select className="select" style={{ width: 'auto' }} value={pid} onChange={(e) => setPid(e.target.value)} aria-label="Uczeń">
+        {/* Lista jest zawsze widoczna (także przy jednej osobie), żeby było jasne, czyje to postępy i gdzie się je przełącza. */}
+        <label className="student-pick">
+          <span>Uczeń</span>
+          <select className="select" value={pid} onChange={(e) => setPid(e.target.value)} aria-label="Uczeń">
             {profiles.map((p) => (
               <option key={p.id} value={p.id}>
-                {p.avatar} {p.name}
+                {p.avatar} {p.name} (klasa {p.grade ?? 3})
               </option>
             ))}
           </select>
-        )}
+        </label>
       </div>
+      {profiles.length === 1 && (
+        <p className="muted" style={{ fontSize: 14 }}>
+          Na liście jest na razie jedna osoba. Kolejne dzieci pojawią się tu same, gdy zalogujesz konto rodziny na ich urządzeniach — albo dodaj je w zakładce Ustawienia →
+          „Osoby (dzieci)”.
+        </p>
+      )}
 
       <div className="kpis">
         <div className="card kpi">

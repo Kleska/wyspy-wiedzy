@@ -4622,3 +4622,19 @@ p {
   color: #5b6672;
   margin-top: 6px;
 }
+
+/* Wybór ucznia w panelu rodzica (Postępy, Plan i sprawdziany) */
+.student-pick {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #5b6672;
+}
+
+.student-pick .select {
+  width: auto;
+  max-width: 100%;
+  font-weight: 700;
+}
