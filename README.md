@@ -21,7 +21,9 @@ można ją zainstalować na ekranie głównym i używać bez internetu. Postępy
   - klasa 3 — polski: rzeczownik, czasownik, przymiotnik, mieszanka części mowy, czasy czasownika, osoba i liczba;
     matematyka: dodawanie i odejmowanie do 100, mnożenie przez 6 i 7 oraz 8 i 9, dzielenie, zadania z treścią;
   - klasa 5 — polski: przypadki, stopniowanie przymiotnika, ó/u, „nie” z częściami mowy, części mowy odmienne
-    i nieodmienne, podmiot i orzeczenie; matematyka: ułamki (skracanie, dodawanie, odejmowanie), ułamki dziesiętne,
+    i nieodmienne, podmiot i orzeczenie; matematyka: dzielenie pisemne (przez liczbę jedno- i dwucyfrową, zero w wyniku,
+    reszta — z lekcją, w której słupek odsłania się krok po kroku, i gotowym słupkiem po każdej odpowiedzi),
+    ułamki (skracanie, dodawanie, odejmowanie), ułamki dziesiętne,
     pole i obwód, kolejność działań, cechy podzielności;
   - dyktanda dla klasy 3 i 5 (ó, rz, ż, ch, h);
   - czytanie ze zrozumieniem dla klasy 3 i 5 (teksty z pytaniami; tekst jest nad każdym pytaniem);

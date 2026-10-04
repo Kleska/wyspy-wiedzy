@@ -18,7 +18,7 @@ export function TopicChecklist({ topics, sel, setSel, progress }: { topics: Pars
         const units = groupByUnit(mine);
         const named = units.some((u) => u.unit);
         return (
-          <fieldset key={s.id} className="field" style={{ border: 0, padding: 0, margin: 0 }}>
+          <fieldset key={s.id} className="field" aria-label={s.name} style={{ border: 0, padding: 0, margin: 0 }}>
             <span className="row" style={{ justifyContent: 'space-between', flexWrap: 'wrap' }}>
               {s.name}
               <button type="button" className="btn btn-sm" onClick={() => toggle(ids, !all)}>

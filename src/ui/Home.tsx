@@ -378,7 +378,7 @@ function TimesCard() {
 function MiniGamesCard({ progress }: { progress: Progress }) {
   const { profile, go } = useApp();
   const gens = generatorsFor(gradeOf(profile));
-  const g = gens.find((x) => x.id === 'mul') ?? gens[0];
+  const g = gens.find((x) => x.id === 'mul') ?? gens.find((x) => !x.slow);
   const items: { key: string; icon: string; title: string; sub: string; onClick: () => void }[] = [];
   if (g) {
     const pb = progress.pairsBest.get(`pairs:${g.id}`);
@@ -806,19 +806,24 @@ function Challenges({
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <b>{g.title}</b>
                   <div className="muted" style={{ fontSize: 14, fontWeight: 700 }}>
-                    {g.description} · rekordy: {progress.sprintBest.get(g.id) ?? 0} w Błyskawicy
-                    {progress.pairsBest.get(`pairs:${g.id}`) ? `, ${fmtTime(progress.pairsBest.get(`pairs:${g.id}`)!)} w Parach` : ''}
+                    {g.description}
+                    {!g.slow && ` · rekordy: ${progress.sprintBest.get(g.id) ?? 0} w Błyskawicy`}
+                    {!g.slow && progress.pairsBest.get(`pairs:${g.id}`) ? `, ${fmtTime(progress.pairsBest.get(`pairs:${g.id}`)!)} w Parach` : ''}
                   </div>
                 </div>
                 <button className="btn btn-sm" onClick={() => go(practice({ kind: 'gen', genId: g.id }))}>
                   Trening
                 </button>
-                <button className="btn btn-sm btn-primary" onClick={() => go({ name: 'sprint', game: { kind: 'gen', genId: g.id }, nonce: Date.now() })}>
-                  <Icon name="zap" size={16} /> Błyskawica
-                </button>
-                <button className="btn btn-sm btn-primary" onClick={() => go({ name: 'pairs', game: { kind: 'gen', genId: g.id }, nonce: Date.now() })}>
-                  <Icon name="clock" size={16} /> Pary
-                </button>
+                {!g.slow && (
+                  <>
+                    <button className="btn btn-sm btn-primary" onClick={() => go({ name: 'sprint', game: { kind: 'gen', genId: g.id }, nonce: Date.now() })}>
+                      <Icon name="zap" size={16} /> Błyskawica
+                    </button>
+                    <button className="btn btn-sm btn-primary" onClick={() => go({ name: 'pairs', game: { kind: 'gen', genId: g.id }, nonce: Date.now() })}>
+                      <Icon name="clock" size={16} /> Pary
+                    </button>
+                  </>
+                )}
               </div>
             ))}
           </div>

@@ -1,3 +1,4 @@
+import { lessonDivision } from './longdiv';
 import type { DslError, Exercise, ExerciseType, Lang, Lesson, LessonPair, Passage } from './types';
 
 /*
@@ -346,6 +347,7 @@ export function parseLesson(text: string | undefined): Lesson | null {
     }
     if (!section) return void fail('Lekcja musi zaczynać się od nagłówka, np. „# Najważniejsze”.');
     if (section === 'checks') return void checkLines.push(line);
+    if (section === 'steps' && lessonDivision(line) === false) return void fail('Słupek zapisz tak: „słupek: 936 : 4” (dzielna : dzielnik, same cyfry).');
     if (section !== 'pairs') return void out[section].push(line);
     const pair: Partial<LessonPair> = {};
     for (const part of line.split('|')) {
@@ -425,7 +427,7 @@ export function isFillAnswerCorrect(given: string, accepted: string[]): boolean 
 
 /** Tekst do czytania na głos (bez znaczników). */
 export function speakableSentence(s: string): string {
-  return s.replace(/[{}]/g, '').replace(/_{2,}/g, ' … ');
+  return s.replace(/[{}]/g, '').replace(/_{2,}/g, ' … ').replace(/ \/\/ /g, ' ');
 }
 
 /** Pełny tekst dyktanda (z pierwszą akceptowaną odpowiedzią w każdej luce) — do czytania na głos. */

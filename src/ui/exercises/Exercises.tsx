@@ -452,7 +452,18 @@ function Fill({ ex, answer, setAnswer, reveal, hint, onEnter, lang = 'pl' }: Pro
       {ex.type === 'dictation' && <Listen ex={ex} voice={voice} lang={lang} />}
       <p className={`fill-text ${dictation ? 'dictation-text' : ''}`}>
         {ex.parts.map((p, k) => {
-          if (!Array.isArray(p)) return <Fragment key={k}>{withFractions(p)}</Fragment>;
+          // „ // ” w tekście zadania zaczyna nową linię (np. kolejne kroki dzielenia pisemnego).
+          if (!Array.isArray(p))
+            return (
+              <Fragment key={k}>
+                {p.split(' // ').map((piece, n) => (
+                  <Fragment key={n}>
+                    {n > 0 && <br />}
+                    {withFractions(piece)}
+                  </Fragment>
+                ))}
+              </Fragment>
+            );
           gi++;
           const i = gi;
           const ok = reveal ? isFillAnswerCorrect(answer[i] ?? '', p) : null;

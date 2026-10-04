@@ -3,6 +3,7 @@ import { factExercises, generateExercises, generatorById, genTopicId } from '../
 import { subjectLang, subjectOf } from '../content/seed';
 import { nowIso, store, uid } from '../data/store';
 import { dictationText, parseWords, speakableSentence, wordHints } from '../dsl';
+import { writtenDivisionOf } from '../longdiv';
 import {
   buildDiagnosticQueue,
   buildExamQueue,
@@ -24,6 +25,7 @@ import { ExerciseView } from './exercises/Exercises';
 import { answerText, correctText, exerciseSummary, initialAnswer, isCorrect, isReady, type Answer } from './exercises/logic';
 import { backScreen, isExamRun, useApp, type Run, type SessionResult } from './hooks';
 import { Icon } from './icons';
+import { DivisionSolution } from './LongDivision';
 
 type Item = QueueItem & { retry?: boolean };
 
@@ -220,7 +222,7 @@ export function Practice({ run }: { run: Run }) {
     let body = '';
     if (ex.type === 'choice') body = (ex.sentence ? speakableSentence(ex.sentence) + '. ' : '') + ex.options.join(', ');
     if (ex.type === 'tap') body = ex.tokens.join(' ');
-    if (ex.type === 'fill') body = ex.parts.map((p) => (Array.isArray(p) ? ' … ' : p)).join('');
+    if (ex.type === 'fill') body = speakableSentence(ex.parts.map((p) => (Array.isArray(p) ? ' … ' : p)).join(''));
     if (ex.type === 'dictation') body = dictationText(ex.parts);
     if (ex.type === 'sort') body = ex.items.map((i) => i.text).join(', ');
     if (ex.type === 'match') body = ex.pairs.map((p) => p[0]).join(', ');
@@ -420,6 +422,9 @@ export function Practice({ run }: { run: Run }) {
     ex.type === 'choice' ? speakableSentence(ex.sentence ?? '') : ex.type === 'fill' || ex.type === 'dictation' ? ex.parts.filter((p) => typeof p === 'string').join(' … ') : '';
   const hintWords = glossary.length ? wordHints(visibleText, glossary) : [];
   const hasHint = !!(ex.hint || hintWords.length || exTopic?.description);
+  // „Oblicz pisemnie”: po odpowiedzi pokazujemy cały słupek do porównania z kartką.
+  const division = writtenDivisionOf(ex);
+  const guidedDivision = !!division && ex.type === 'fill' && ex.parts.filter(Array.isArray).length > 2;
   const ready = isReady(ex, answer);
   const inRetry = idx >= mainCount;
   const pctDone = inRetry ? 100 : Math.round(((idx + (phase === 'feedback' ? 1 : 0)) / mainCount) * 100);
@@ -483,6 +488,8 @@ export function Practice({ run }: { run: Run }) {
           lang={lang}
         />
 
+        {phase === 'feedback' && division && <DivisionSolution key={`d${idx}`} a={division[0]} b={division[1]} />}
+
         {hint && phase === 'answer' && hasHint && (
           <div className="hint-box">
             <Icon name="bulb" />
@@ -526,8 +533,8 @@ export function Practice({ run }: { run: Run }) {
             </span>
             <div>
               <div className="fb-title">{ok ? praise : theme.oops}</div>
-              {showCorrectText && <div className="fb-text">Poprawnie: {correctText(ex)}</div>}
-              {ex.explain && <div className="fb-text">{ex.explain}</div>}
+              {showCorrectText && !guidedDivision && <div className="fb-text">Poprawnie: {correctText(ex)}</div>}
+              {ex.explain && !division && <div className="fb-text">{ex.explain}</div>}
               {lang !== 'pl' && ex.hint && <div className="fb-text fb-translation">{ex.hint}</div>}
               {!ok && !item.retry && (
                 <div className="fb-text muted">{retryQueued ? 'To zadanie wróci jeszcze raz na końcu.' : 'To zadanie wróci w powtórce w kolejnych dniach.'}</div>

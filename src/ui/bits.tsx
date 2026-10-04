@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { parseWords, passageParagraphs } from '../dsl';
+import { divisionLayout, lessonDivision } from '../longdiv';
 import { LEVEL_NAMES, type TopicLevel } from '../engine';
 import type { Lang, Passage } from '../types';
 import { speak } from '../speech';
 import { withFractions } from './exercises/Exercises';
 import { Icon } from './icons';
+import { DivisionGrid } from './LongDivision';
 
 export function Modal({ title, onClose, children, wide }: { title: string; onClose: () => void; children: React.ReactNode; wide?: boolean }) {
   useEffect(() => {
@@ -56,6 +58,9 @@ export function GuideText({ text }: { text: string }) {
         .map((l) => l.trim())
         .filter(Boolean)
         .map((l, i) => {
+          // „słupek: 936 : 4” — gotowy zapis dzielenia pisemnego zamiast tekstu.
+          const div = lessonDivision(l);
+          if (div) return <DivisionGrid key={i} layout={divisionLayout(div[0], div[1])} />;
           const m = l.match(/^(Przykład|Sposób|Uwaga|Wyjątki?|Sztuczka)\s*:\s*(.*)$/);
           return (
             <p key={i} className={m ? 'guide-ex' : ''}>
@@ -85,7 +90,7 @@ export function GuideCard({ title, description, guide, lang = 'pl' }: { title?: 
         <b>{title ?? 'Ściąga'}</b>
         <span className="spacer" />
         {canRead && (
-          <button className="btn icon-btn btn-sm" onClick={() => speak(text.replace(/\n/g, '. '))} aria-label="Przeczytaj ściągę na głos">
+          <button className="btn icon-btn btn-sm" onClick={() => speak(text.split(/\r?\n/).filter((l) => !lessonDivision(l)).join('. '))} aria-label="Przeczytaj ściągę na głos">
             <Icon name="volume" size={20} />
           </button>
         )}

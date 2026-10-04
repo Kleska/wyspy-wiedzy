@@ -1,6 +1,6 @@
 import { parseLine } from '../dsl';
 import type { FillExercise } from '../types';
-import { dec, evalSchool, gcd } from './math';
+import { dec, evalSchool, gcd, writtenLine } from './math';
 
 /*
  * Trening bez końca: zadania losowane przy każdym ćwiczeniu (wyniki liczone w kodzie).
@@ -13,6 +13,8 @@ export interface Generator {
   description: string;
   grades: number[];
   make: (rnd: () => number) => string;
+  /** Zadania na kartkę (np. dzielenie pisemne) — nie nadają się do Błyskawicy ani Par na czas. */
+  slow?: boolean;
 }
 
 const int = (rnd: () => number, a: number, b: number) => a + Math.floor(rnd() * (b - a + 1));
@@ -99,6 +101,22 @@ function orderOps(rnd: () => number): string {
   }
 }
 
+/** Dzielenie pisemne przez liczbę jednocyfrową: wynik trzy- lub czterocyfrowy, co trzecie zadanie z resztą. */
+function writtenDiv1(rnd: () => number): string {
+  const b = int(rnd, 3, 9);
+  const q = rnd() < 0.7 ? int(rnd, 101, 999) : int(rnd, 1001, 2400);
+  const r = rnd() < 0.34 ? int(rnd, 1, b - 1) : 0;
+  return writtenLine(q * b + r, b);
+}
+
+/** Dzielenie pisemne przez liczbę dwucyfrową: wynik dwu- lub trzycyfrowy, co trzecie zadanie z resztą. */
+function writtenDiv2(rnd: () => number): string {
+  const b = int(rnd, 12, 49);
+  const q = rnd() < 0.7 ? int(rnd, 12, 99) : int(rnd, 101, 240);
+  const r = rnd() < 0.34 ? int(rnd, 1, b - 1) : 0;
+  return writtenLine(q * b + r, b);
+}
+
 export const GENERATORS: Generator[] = [
   { id: 'add20', title: 'Dodawanie i odejmowanie do 20', description: 'Rachunki w pamięci do 20.', grades: [1, 2], make: addSub20 },
   { id: 'add100', title: 'Dodawanie i odejmowanie do 100', description: 'Najpierw dziesiątki, potem jedności.', grades: [2, 3, 4], make: addSub100 },
@@ -108,6 +126,8 @@ export const GENERATORS: Generator[] = [
   { id: 'frac', title: 'Skracanie ułamków', description: 'Dziel licznik i mianownik przez tę samą liczbę.', grades: [4, 5, 6, 7, 8], make: fracSimplify },
   { id: 'dec', title: 'Ułamki dziesiętne', description: 'Dodawanie i odejmowanie.', grades: [5, 6, 7, 8], make: decimals },
   { id: 'order', title: 'Kolejność działań', description: 'Nawiasy, potem mnożenie i dzielenie.', grades: [4, 5, 6, 7, 8], make: orderOps },
+  { id: 'dzp1', title: 'Dzielenie pisemne przez liczbę jednocyfrową', description: 'Licz na kartce, wpisz wynik i porównaj słupek.', grades: [4, 5, 6], make: writtenDiv1, slow: true },
+  { id: 'dzp2', title: 'Dzielenie pisemne przez liczbę dwucyfrową', description: 'Licz na kartce, wpisz wynik i porównaj słupek.', grades: [5, 6, 7, 8], make: writtenDiv2, slow: true },
 ];
 
 export const genTopicId = (id: string) => `gen:${id}`;

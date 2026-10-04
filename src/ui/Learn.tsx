@@ -3,6 +3,7 @@ import { subjectLang } from '../content/seed';
 import { nowIso, store, uid } from '../data/store';
 import { parseLesson } from '../dsl';
 import { LESSON_COINS } from '../engine';
+import { divisionLayout, lessonDivision, writtenDivisionOf } from '../longdiv';
 import { playSound } from '../speech';
 import { coinText } from '../themes';
 import type { Exercise, Lesson, LessonPair, Session } from '../types';
@@ -11,6 +12,7 @@ import { ExerciseView } from './exercises/Exercises';
 import { correctText, initialAnswer, isCorrect, isReady, type Answer } from './exercises/logic';
 import { practice, useApp, useProgress, type Screen } from './hooks';
 import { Icon } from './icons';
+import { DivisionSolution, DivisionSteps } from './LongDivision';
 import { TopBar } from './TopBar';
 
 /** Każda karta ma zmieścić się na jednym ekranie telefonu: przykład jest osobno, a pary idą po dwie. */
@@ -18,6 +20,7 @@ type Card =
   | { kind: 'key' }
   | { kind: 'steps' }
   | { kind: 'example' }
+  | { kind: 'division'; a: number; b: number; n: number; of: number }
   | { kind: 'pairs'; from: number; part: number; parts: number }
   | { kind: 'trick' }
   | { kind: 'check'; ex: Exercise; n: number };
@@ -28,11 +31,14 @@ const CARD_TITLE: Record<Exclude<Card['kind'], 'check'>, string> = {
   key: 'Najważniejsze',
   steps: 'Krok po kroku',
   example: 'Przykład',
+  division: 'Przykład krok po kroku',
   pairs: 'Tak — nie tak',
   trick: 'Jak to zapamiętać',
 };
 
 const EXAMPLE = /^Przykład\s*:\s*(.*)$/;
+/** Zwykły krok: ani „Przykład: …”, ani „słupek: 936 : 4” (te mają własne karty). */
+const isPlainStep = (l: string) => !EXAMPLE.test(l) && !lessonDivision(l);
 
 /** „Tak / nie tak”: poprawna wersja obok typowego błędu, z krótkim „bo…”. */
 export function PairList({ pairs, compact }: { pairs: LessonPair[]; compact?: boolean }) {
@@ -69,11 +75,9 @@ export function LessonKey({ lines }: { lines: string[] }) {
 function Steps({ lines }: { lines: string[] }) {
   return (
     <ol className="lesson-steps">
-      {lines
-        .filter((l) => !EXAMPLE.test(l))
-        .map((l, i) => (
-          <li key={i}>{l}</li>
-        ))}
+      {lines.filter(isPlainStep).map((l, i) => (
+        <li key={i}>{l}</li>
+      ))}
     </ol>
   );
 }
@@ -125,8 +129,10 @@ export function LessonTrick({ lines }: { lines: string[] }) {
 function cardsOf(lesson: Lesson): Card[] {
   const out: Card[] = [];
   if (lesson.key.length) out.push({ kind: 'key' });
-  if (lesson.steps.some((l) => !EXAMPLE.test(l))) out.push({ kind: 'steps' });
+  if (lesson.steps.some(isPlainStep)) out.push({ kind: 'steps' });
   if (lesson.steps.some((l) => EXAMPLE.test(l))) out.push({ kind: 'example' });
+  const divs = lesson.steps.map(lessonDivision).filter((d): d is [number, number] => Array.isArray(d));
+  divs.forEach(([a, b], n) => out.push({ kind: 'division', a, b, n: n + 1, of: divs.length }));
   const parts = Math.ceil(lesson.pairs.length / PAIRS_PER_CARD);
   for (let part = 0; part < parts; part++) out.push({ kind: 'pairs', from: part * PAIRS_PER_CARD, part: part + 1, parts });
   if (lesson.trick.length) out.push({ kind: 'trick' });
@@ -150,6 +156,8 @@ export function Learn({ topicId, from }: { topicId: string; from?: 'home' | 'sub
   const [answer, setAnswer] = useState<Answer>(null);
   const [checked, setChecked] = useState<boolean | null>(null);
   const [score, setScore] = useState(0);
+  // Karta ze słupkiem: który krok dzielenia jest już pokazany.
+  const [frame, setFrame] = useState(0);
   const startedAt = useRef({ iso: nowIso(), ms: Date.now() });
   // Czy to pierwsze przejście tej lekcji — sprawdzamy na początku, bo po zapisie będzie już „zrobiona”.
   const firstTime = useRef(!progress?.lessonsDone.has(topicId));
@@ -177,6 +185,7 @@ export function Learn({ topicId, from }: { topicId: string; from?: 'home' | 'sub
     setIdx(i);
     setAnswer(c.kind === 'check' ? initialAnswer(c.ex) : null);
     setChecked(null);
+    setFrame(0);
     window.scrollTo({ top: 0 });
   };
 
@@ -235,6 +244,9 @@ export function Learn({ topicId, from }: { topicId: string; from?: 'home' | 'sub
   }
 
   const isCheck = card.kind === 'check';
+  // Słupek odsłaniamy krok po kroku tym samym dużym przyciskiem; dopiero po ostatnim kroku idziemy do następnej karty.
+  const stepsLeft = card.kind === 'division' ? divisionLayout(card.a, card.b).frames.length - 1 - frame : 0;
+  const checkDivision = isCheck ? writtenDivisionOf(card.ex) : null;
   return (
     <div className="practice lesson">
       <div className="pr-top">
@@ -261,6 +273,12 @@ export function Learn({ topicId, from }: { topicId: string; from?: 'home' | 'sub
               Sprawdź się: pytanie {card.n + 1} z {checks}
             </p>
           )}
+          {card.kind === 'division' && (
+            <p className="muted" style={{ fontWeight: 700, marginTop: 4 }}>
+              {card.a} : {card.b}
+              {card.of > 1 ? ` · przykład ${card.n} z ${card.of}` : ''}
+            </p>
+          )}
           {card.kind === 'pairs' && card.parts > 1 && (
             <p className="muted" style={{ fontWeight: 700, marginTop: 4 }}>
               Część {card.part} z {card.parts}
@@ -271,6 +289,7 @@ export function Learn({ topicId, from }: { topicId: string; from?: 'home' | 'sub
         {card.kind === 'key' && <LessonKey lines={lesson.key} />}
         {card.kind === 'steps' && <Steps lines={lesson.steps} />}
         {card.kind === 'example' && <Example lines={lesson.steps} />}
+        {card.kind === 'division' && <DivisionSteps a={card.a} b={card.b} frame={frame} />}
         {card.kind === 'pairs' && <PairList pairs={lesson.pairs.slice(card.from, card.from + PAIRS_PER_CARD)} />}
         {card.kind === 'trick' && <LessonTrick lines={lesson.trick} />}
         {isCheck && (
@@ -286,6 +305,7 @@ export function Learn({ topicId, from }: { topicId: string; from?: 'home' | 'sub
             lang={lang}
           />
         )}
+        {checkDivision && checked !== null && <DivisionSolution key={`d${idx}`} a={checkDivision[0]} b={checkDivision[1]} />}
       </div>
 
       {isCheck && checked !== null ? (
@@ -308,9 +328,9 @@ export function Learn({ topicId, from }: { topicId: string; from?: 'home' | 'sub
           </div>
         </div>
       ) : (
-        <div className="pr-foot">
-          {idx > 0 && (
-            <button className="btn" onClick={() => open(idx - 1)}>
+        <div className="pr-foot pr-foot-answer">
+          {(idx > 0 || frame > 0) && (
+            <button className="btn" onClick={() => (frame > 0 ? setFrame(frame - 1) : open(idx - 1))}>
               <Icon name="chevronLeft" /> Wstecz
             </button>
           )}
@@ -318,6 +338,11 @@ export function Learn({ topicId, from }: { topicId: string; from?: 'home' | 'sub
           {isCheck ? (
             <button className="btn btn-primary btn-lg" onClick={check} disabled={!isReady(card.ex, answer)}>
               Sprawdź
+            </button>
+          ) : stepsLeft > 0 ? (
+            <button className="btn btn-primary btn-lg" onClick={() => setFrame(frame + 1)}>
+              Następny krok
+              <Icon name="arrowRight" />
             </button>
           ) : (
             <button className="btn btn-primary btn-lg" onClick={next}>

@@ -135,9 +135,9 @@ export function exerciseSummary(ex: Exercise): string {
     case 'tap':
       return ex.tokens.join(' ');
     case 'fill':
-      return ex.parts.map((p) => (Array.isArray(p) ? '___' : p)).join('');
+      return ex.parts.map((p) => (Array.isArray(p) ? '___' : p)).join('').replace(/ \/\/ /g, ' ');
     case 'dictation':
-      return ex.parts.map((p) => (Array.isArray(p) ? `[${p[0]}]` : p)).join('');
+      return ex.parts.map((p) => (Array.isArray(p) ? `[${p[0]}]` : p)).join('').replace(/ \/\/ /g, ' ');
     case 'sort':
       return ex.items.map((i) => i.text).join(', ');
     case 'match':

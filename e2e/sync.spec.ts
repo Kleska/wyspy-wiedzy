@@ -260,7 +260,7 @@ test('dwa urządzenia: postępy córki widać u rodzica, plan od rodzica trafia 
   await phone.page.getByRole('button', { name: 'Plan i sprawdziany' }).click();
   await phone.page.getByLabel('Uczeń').selectOption({ label: (await phone.page.getByLabel('Uczeń').locator('option', { hasText: 'Zosia' }).innerText()).trim() });
   await phone.page.getByPlaceholder('np. Sprawdzian z ułamków').fill('Sprawdzian: Unit 0');
-  await phone.page.getByRole('button', { name: 'Zaznacz wszystkie (9)' }).click();
+  await phone.page.getByRole('group', { name: 'Angielski' }).getByRole('button', { name: 'Zaznacz wszystkie (9)' }).click();
   await phone.page.getByRole('button', { name: 'Zapisz plan (9)' }).click();
   await expect(phone.page.getByText('Zapisano plan: Zosia.')).toBeVisible();
   const zosia = () => cloud.doc('profile', (d) => d.name === 'Zosia') as { theme?: string; plan?: { title?: string } | null } | undefined;

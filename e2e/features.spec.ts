@@ -461,7 +461,7 @@ test('angielski: czytanie ze słówkami z tekstu i plan potwierdzany sprawdziane
   await page.getByRole('button', { name: 'Plan i sprawdziany' }).click();
   await page.getByPlaceholder('np. Sprawdzian z ułamków').fill('Sprawdzian: Unit 0');
   // Cały dział jednym stuknięciem: wszystkie tematy z angielskiego.
-  await page.getByRole('button', { name: 'Zaznacz wszystkie (9)' }).click();
+  await page.getByRole('group', { name: 'Angielski' }).getByRole('button', { name: 'Zaznacz wszystkie (9)' }).click();
   await expect(page.locator('.check-row', { hasText: 'Have got' }).locator('input')).toBeChecked();
   await page.getByRole('button', { name: 'Zapisz plan (9)' }).click();
   await expect(page.getByText('Opanowanie materiału jeszcze niepotwierdzone.')).toBeVisible();
@@ -689,7 +689,7 @@ test('tryb nauki: karty lekcji, pytania kontrolne, powtórka rozdziału i kroki 
   await parentLogin(page);
   await page.getByRole('button', { name: 'Plan i sprawdziany' }).click();
   await page.getByPlaceholder('np. Sprawdzian z ułamków').fill('Sprawdzian: Unit 0');
-  await page.getByRole('button', { name: 'Zaznacz wszystkie (9)' }).click();
+  await page.getByRole('group', { name: 'Angielski' }).getByRole('button', { name: 'Zaznacz wszystkie (9)' }).click();
   await page.getByRole('button', { name: 'Zapisz plan (9)' }).click();
   await page.getByRole('button', { name: 'Postępy' }).click();
   await expect(page.locator('tr', { hasText: 'Nauka (lekcja)' })).toContainText('To be: am, is, are');
@@ -713,3 +713,88 @@ test('tryb nauki: karty lekcji, pytania kontrolne, powtórka rozdziału i kroki 
   await expect(page.getByText('Cześć, Zosia!')).toBeVisible();
 });
 
+
+test('dzielenie pisemne: lekcja ze słupkiem krok po kroku, zadanie na kartkę i gotowy słupek po odpowiedzi', async ({ page }) => {
+  const phone = test.info().project.name === 'phone';
+  if (phone) await page.setViewportSize({ width: 360, height: 740 });
+  await onboard(page, 'Ola', 5);
+  await page.locator('.subject-big', { hasText: 'Matematyka' }).click();
+  await page.getByRole('button', { name: /Dzielenie pisemne przez liczbę jednocyfrową/ }).first().click();
+  const sheet = page.getByRole('dialog');
+  // Ściąga ma gotowy słupek 936 : 4.
+  await expect(sheet.getByRole('img', { name: 'Dzielenie pisemne: 936 podzielić przez 4' })).toBeVisible();
+  await sheet.getByRole('button', { name: /Nauka/ }).click();
+
+  // Karty: najważniejsze → krok po kroku → słupek odsłaniany tym samym dużym przyciskiem.
+  await page.getByRole('button', { name: /Dalej/ }).click();
+  await page.getByRole('button', { name: /Dalej/ }).click();
+  await expect(page.getByRole('heading', { name: 'Przykład krok po kroku' })).toBeVisible();
+  await expect(page.getByText('936 : 4 · przykład 1 z 2')).toBeVisible();
+  await expect(page.getByText('Krok 1 z 10')).toBeVisible();
+  await expect(page.locator('.ldiv-quotient')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Następny krok' }).click();
+  await expect(page.locator('.ldiv-text')).toContainText('Ile razy 4 mieści się w 9? 2 razy');
+  await expect(page.locator('.ldiv-quotient')).toHaveText(['2']);
+  if (phone) {
+    // Na telefonie opis kroku i przyciski są widoczne bez przewijania, „Wstecz” i „Następny krok” stoją w jednym rzędzie.
+    const back = (await page.getByRole('button', { name: 'Wstecz' }).boundingBox())!;
+    const next = (await page.getByRole('button', { name: 'Następny krok' }).boundingBox())!;
+    expect(Math.abs(back.y + back.height / 2 - (next.y + next.height / 2))).toBeLessThan(8);
+    const text = (await page.locator('.ldiv-text').boundingBox())!;
+    expect(text.y + text.height).toBeLessThan(next.y);
+  }
+  await page.getByRole('button', { name: 'Wstecz' }).click();
+  await expect(page.getByText('Krok 1 z 10')).toBeVisible();
+  for (let i = 0; i < 9; i++) await page.getByRole('button', { name: 'Następny krok' }).click();
+  await expect(page.locator('.ldiv-quotient')).toHaveText(['2', '3', '4']);
+  await expect(page.locator('.ldiv-text')).toContainText('Wynik: 936 : 4 = 234. Sprawdzenie: 234 · 4 = 936.');
+  await snap(page, 'f40-division-lesson');
+  // Po ostatnim kroku przycisk prowadzi do następnej karty (drugi przykład: 156 : 3).
+  await page.getByRole('button', { name: /Dalej/ }).click();
+  await expect(page.getByText('156 : 3 · przykład 2 z 2')).toBeVisible();
+  await page.getByRole('button', { name: 'Następny krok' }).click();
+  await expect(page.locator('.ldiv-text')).toContainText('bierzemy dwie cyfry: 15');
+  await page.getByRole('button', { name: 'Zamknij lekcję' }).click();
+
+  // Ćwiczenie: szukamy zadania „Oblicz pisemnie”, odpowiadamy źle i oglądamy cały słupek.
+  await page.getByRole('button', { name: /Dzielenie pisemne przez liczbę jednocyfrową/ }).first().click();
+  await page.getByRole('dialog').getByRole('button', { name: /Graj!/ }).click();
+  let seenWritten = false;
+  for (let i = 0; i < 12 && !seenWritten; i++) {
+    const prompt = (await page.locator('.pr-prompt h1').innerText()).trim();
+    const written = prompt.startsWith('Oblicz pisemnie');
+    if (await page.locator('.opt').count()) await page.locator('.opt:not([disabled])').first().click();
+    else for (const g of await page.locator('.gap').all()) await g.fill('1');
+    await page.getByRole('button', { name: 'Sprawdź' }).click();
+    await expect(page.locator('.pr-foot.good, .pr-foot.bad')).toBeVisible();
+    if (written) {
+      seenWritten = true;
+      const sol = page.getByRole('region', { name: 'Rozwiązanie w słupku' });
+      await expect(sol).toBeVisible();
+      await expect(sol.getByText(/^Sprawdzenie: \d+ · \d+ = \d+$/)).toBeVisible();
+      // Działanie z zadania i słupek to te same liczby.
+      const m = (await page.locator('.fill-text').innerText()).match(/(\d+) : (\d+)/)!;
+      await expect(sol.getByRole('img', { name: `Dzielenie pisemne: ${m[1]} podzielić przez ${m[2]}` })).toBeVisible();
+      await sol.getByRole('button', { name: 'Pokaż krok po kroku' }).click();
+      await expect(sol.getByText(/^Krok 1 z \d+/)).toBeVisible();
+      await sol.getByRole('button', { name: 'Następny krok' }).click();
+      await expect(sol.locator('.ldiv-quotient')).toHaveCount(1);
+      await snap(page, 'f41-division-solution', true);
+    } else {
+      await expect(page.getByRole('region', { name: 'Rozwiązanie w słupku' })).toHaveCount(prompt.startsWith('Dzielimy pisemnie') && (await page.locator('.gap').count()) ? 1 : 0);
+    }
+    await page.waitForTimeout(720);
+    await page.getByRole('button', { name: /^(Dalej|Zakończ)$/ }).click();
+  }
+  expect(seenWritten).toBe(true);
+  await page.getByRole('button', { name: 'Zakończ ćwiczenie' }).click();
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Skończ' }).click();
+
+  // Trening bez końca: dzielenie pisemne jest, ale bez gier na czas (to zadania na kartkę).
+  await page.getByRole('button', { name: /Trening bez końca/ }).click();
+  const row = page.getByRole('dialog').locator('.gen-row', { hasText: 'Dzielenie pisemne przez liczbę dwucyfrową' });
+  await expect(row.getByRole('button', { name: 'Trening' })).toBeVisible();
+  await expect(row.getByRole('button', { name: /Błyskawica|Pary/ })).toHaveCount(0);
+  await row.getByRole('button', { name: 'Trening' }).click();
+  await expect(page.locator('.pr-prompt h1')).toContainText('Oblicz pisemnie');
+});

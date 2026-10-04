@@ -12,9 +12,84 @@
  *   z tego samego rozdziału (np. „a dress” kończy się na -s, a jest jedną rzeczą).
  * - Sprawdź się: 2–3 pytania z wyjaśnieniem, inne niż zadania tematu (nie trafiają do dziennika postępów).
  * - Angielskie słowo w polskim zdaniu bierzemy w „…”; wyliczenia i schematy ze strzałkami — bez cudzysłowów.
+ * - Matematyka: linia „słupek: 936 : 4” w części „Krok po kroku” daje kartę z dzieleniem pisemnym odsłanianym krok po kroku
+ *   (wszystko liczy aplikacja). Zadania „Oblicz pisemnie” bierzemy z `writtenLine`, żeby wynik był policzony, a nie wpisany.
  */
 
+import { writtenLine } from './math';
+
 export const LESSONS: Record<string, string> = {
+  'b-m5-dzp-1': `
+# Najważniejsze
+Dzielenie pisemne zaczynamy od lewej strony — od pierwszej cyfry. To odwrotnie niż w dodawaniu, odejmowaniu i mnożeniu pisemnym.
+W każdym kroku robimy to samo: dzielę, mnożę, odejmuję, spisuję następną cyfrę.
+Na koniec sprawdzamy mnożeniem: wynik razy dzielnik musi dać dzielną.
+# Krok po kroku
+Weź pierwszą cyfrę z lewej. Jeśli jest mniejsza od dzielnika, weź od razu dwie cyfry.
+Podziel: ile razy dzielnik mieści się w tej liczbie? Tę cyfrę zapisz w wyniku — nad ostatnią cyfrą liczby, którą dzielisz.
+Pomnóż tę cyfrę przez dzielnik i odejmij. Reszta musi być mniejsza od dzielnika.
+Spisz następną cyfrę obok reszty i zacznij od nowa: dzielę, mnożę, odejmuję, spisuję.
+słupek: 936 : 4
+słupek: 156 : 3
+# Tak / nie tak
+tak: W 936 : 4 najpierw dzielę 9. | nie: W 936 : 4 najpierw dzielę 6. | bo: setki są warte najwięcej, więc dzielimy je pierwsze. To, co z nich zostanie, zamieniamy na dziesiątki i dzielimy dalej.
+tak: 13 : 4 = 3, reszta 1 | nie: 13 : 4 = 2, reszta 5 | bo: w reszcie 5 czwórka mieści się jeszcze raz. Reszta zawsze musi być mniejsza od dzielnika.
+tak: Spisuję jedną cyfrę i od razu dzielę. | nie: Spisuję dwie cyfry naraz. | bo: każda spisana cyfra daje jedną cyfrę wyniku. Kto spisze dwie naraz, zgubi cyfrę w wyniku.
+# Zapamiętaj
+Cztery słowa w kółko: dzielę → mnożę → odejmuję → spisuję. Po „spisuję” znowu „dzielę”.
+Pisz równo: jedna cyfra w jednej kratce, cyfra pod cyfrą. Krzywy słupek to najczęstsza przyczyna błędów.
+# Sprawdź się
+wybierz: Dzielimy pisemnie 742 : 2. Którą cyfrę dzielimy najpierw? | *7 | 2 | 4 !! Zawsze zaczynamy od lewej strony, czyli od 7.
+wybierz: Dzielimy pisemnie 265 : 5. Którą liczbę dzielimy najpierw? | *26 | 2 | 65 !! 2 jest mniejsze od 5, więc bierzemy od razu dwie cyfry: 26.
+${writtenLine(474, 3)}
+`,
+  'b-m5-dzp-zero': `
+# Najważniejsze
+Gdy po spisaniu cyfry liczba jest mniejsza od dzielnika, piszemy 0 w wyniku i spisujemy następną cyfrę.
+Jeśli po ostatnim kroku coś zostaje, to jest to reszta. Zapisujemy ją po literze r: 587 : 4 = 146 r 3.
+Reszta jest zawsze mniejsza od dzielnika. Sprawdzenie: wynik razy dzielnik plus reszta daje dzielną.
+# Krok po kroku
+Dziel jak zwykle: dzielę, mnożę, odejmuję, spisuję.
+Po każdym spisaniu cyfry zapytaj: czy dzielnik mieści się w tej liczbie? Jeśli nie — wpisz 0 w wyniku i spisz następną cyfrę.
+Gdy skończą się cyfry do spisania, to, co zostało na dole, jest resztą.
+Sprawdź: pomnóż wynik przez dzielnik i dodaj resztę.
+słupek: 824 : 4
+słupek: 587 : 4
+# Tak / nie tak
+tak: 824 : 4 = 206 | nie: 824 : 4 = 26 | bo: 2 dziesiątek nie da się podzielić przez 4, ale miejsce dziesiątek w wyniku musi być zajęte. Sprawdź: 26 · 4 = 104, a nie 824.
+tak: 840 : 4 = 210 | nie: 840 : 4 = 21 | bo: ostatnie zero też daje cyfrę wyniku: 0 : 4 = 0. Sprawdź: 21 · 4 = 84, a nie 840.
+tak: 47 : 5 = 9 r 2 | nie: 47 : 5 = 8 r 7 | bo: reszta 7 jest większa od 5, więc piątka zmieści się jeszcze raz.
+# Zapamiętaj
+Każda spisana cyfra to jedna cyfra w wyniku — nawet jeśli tą cyfrą jest 0.
+Policz dzielenia: w 824 : 4 dzielimy trzy razy (8, potem 2, potem 24), więc wynik ma trzy cyfry. Wyszły dwie? Gdzieś zgubiło się zero.
+# Sprawdź się
+wybierz: Ile to jest 921 : 3? | *307 | 37 | 370 !! 9 : 3 = 3, potem 2 : 3 = 0 (to zero trzeba zapisać), na końcu 21 : 3 = 7.
+wybierz: Która reszta nie może wyjść przy dzieleniu przez 7? | *7 | 0 | 6 !! Reszta jest zawsze mniejsza od dzielnika, więc przy dzieleniu przez 7 może być najwyżej 6.
+${writtenLine(365, 7)}
+`,
+  'b-m5-dzp-2cyfr': `
+# Najważniejsze
+Przez liczbę dwucyfrową dzielimy tak samo: dzielę, mnożę, odejmuję, spisuję.
+Na początku bierzemy tyle cyfr, żeby powstała liczba nie mniejsza od dzielnika — zwykle dwie albo trzy.
+Cyfrę wyniku trzeba oszacować. Pomaga wygodna liczba blisko dzielnika: 24 to prawie 25, 38 to prawie 40.
+# Krok po kroku
+Weź z lewej tyle cyfr, żeby liczba była co najmniej tak duża jak dzielnik.
+Oszacuj, ile razy dzielnik się w niej mieści. Zamień dzielnik na wygodną liczbę, żeby było łatwiej.
+Pomnóż i sprawdź: iloczyn nie może być większy od dzielonej liczby, a reszta musi być mniejsza od dzielnika.
+Jeśli coś się nie zgadza, zmień cyfrę o 1. Potem spisz następną cyfrę i powtarzaj.
+słupek: 864 : 24
+słupek: 1548 : 36
+# Tak / nie tak
+tak: 86 : 24 = 3, reszta 14 | nie: 86 : 24 = 4, bo 8 : 2 = 4 | bo: 4 · 24 = 96, a to więcej niż 86. Same pierwsze cyfry często podpowiadają za dużo — zawsze sprawdź mnożeniem.
+tak: 144 : 24 = 6, reszta 0 | nie: 144 : 24 = 5, reszta 24 | bo: reszta 24 jest równa dzielnikowi, więc 24 mieści się jeszcze raz. Cyfra w wyniku była za mała.
+# Zapamiętaj
+Zrób sobie ściągę na marginesie: pomnóż dzielnik przez 2, 3, 4, 5… — w razie potrzeby aż do 9. Potem wybierasz największy iloczyn, który się mieści.
+Za duży iloczyn — weź cyfrę o 1 mniejszą. Za duża reszta — weź cyfrę o 1 większą.
+# Sprawdź się
+wybierz: Dzielimy pisemnie 943 : 41. Którą liczbę dzielimy najpierw? | *94 | 9 | 943 !! 9 jest mniejsze od 41, więc bierzemy dwie cyfry: 94.
+wybierz: Ile razy 18 mieści się w 100? Pomóż sobie: 18 to prawie 20. | *5 | 4 | 6 !! 5 · 18 = 90, a 6 · 18 = 108 to już za dużo.
+${writtenLine(943, 41)}
+`,
   'b-a5-u0-be': `
 # Najważniejsze
 „To be” znaczy „być”. W czasie teraźniejszym ma trzy formy: am, is, are.

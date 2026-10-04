@@ -199,7 +199,15 @@ describe('dyktando, ściągi i generatory', () => {
       for (const ex of exs) {
         const text = ex.parts.filter((p) => typeof p === 'string').join('').replace(/=\s*$/, '').trim();
         const ans = (ex.parts.find((p) => Array.isArray(p)) as string[])[0];
-        if (g.id === 'frac') {
+        if (g.slow) {
+          // Dzielenie pisemne: „a : b = [wynik]” albo „a : b = [wynik] r [reszta]”.
+          const [x, y] = text.split(':').map((v) => parseInt(v, 10));
+          const gaps = ex.parts.filter((p): p is string[] => Array.isArray(p)).map((p) => Number(p[0]));
+          const r = gaps[1] ?? 0;
+          expect(gaps[0] * y + r, text).toBe(x);
+          expect(r, text).toBeLessThan(y);
+          expect(gaps.length, text).toBe(x % y ? 2 : 1);
+        } else if (g.id === 'frac') {
           const [a, b] = text.split('/').map(Number);
           const [c, d] = ans.split('/').map(Number);
           expect(a * d, text).toBe(b * c);
