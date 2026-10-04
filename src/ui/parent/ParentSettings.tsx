@@ -1,12 +1,12 @@
 import { useRef, useState } from 'react';
 import { askConfirm, askText } from '../dialogs';
 import { aiMode, getLocalApiKey, setLocalApiKey } from '../../ai';
+import { AVATAR_GROUPS, AVATARS, FREE_AVATARS } from '../../avatars';
 import { nowIso, store, uid } from '../../data/store';
 import { plural, THEME_ORDER, THEMES } from '../../themes';
 import { useStoreVersion } from '../hooks';
 import { Icon } from '../icons';
-import { FREE_AVATARS, GRADES } from '../Onboarding';
-import { PAID_AVATARS } from '../Rewards';
+import { GRADES } from '../Onboarding';
 import type { Profile, ThemeId } from '../../types';
 import { hashPin, PIN_LENGTH } from './ParentGate';
 
@@ -260,8 +260,6 @@ export function ParentSettings() {
   );
 }
 
-const ALL_AVATARS = [...FREE_AVATARS, ...PAID_AVATARS.map((a) => a.emoji)];
-
 function ProfileEditor({ p, others, onMsg }: { p: Profile; others: Profile[]; onMsg: (m: string) => void }) {
   const save = (patch: Partial<Profile>) => void store.put('profile', { ...p, ...patch, updatedAt: nowIso() });
   return (
@@ -270,10 +268,14 @@ function ProfileEditor({ p, others, onMsg }: { p: Profile; others: Profile[]; on
         <label className="field" style={{ width: 90 }}>
           <span>Bohater</span>
           <select className="select" style={{ fontSize: 24, padding: '4px 8px' }} value={p.avatar} onChange={(e) => save({ avatar: e.target.value })} aria-label={`Bohater: ${p.name}`}>
-            {ALL_AVATARS.map((a) => (
-              <option key={a} value={a}>
-                {a}
-              </option>
+            {AVATAR_GROUPS.map((g) => (
+              <optgroup key={g.id} label={g.title}>
+                {AVATARS.filter((a) => a.group === g.id).map((a) => (
+                  <option key={a.emoji} value={a.emoji}>
+                    {a.emoji}
+                  </option>
+                ))}
+              </optgroup>
             ))}
           </select>
         </label>

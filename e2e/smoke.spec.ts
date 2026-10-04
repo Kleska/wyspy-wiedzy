@@ -93,6 +93,13 @@ test('pełna ścieżka: profil → przedmiot → ćwiczenie → podsumowanie →
   await page.getByRole('button', { name: /^Nagrody/ }).click();
   await expect(page.getByRole('heading', { name: 'Nagrody', exact: true })).toBeVisible();
   await snap(page, '07-rewards');
+  // Bohaterowie: nie tylko zwierzaki — darmowego pilota można wybrać od razu
+  await expect(page.getByRole('heading', { name: 'Postacie' })).toBeVisible();
+  await page.getByRole('button', { name: 'Wybierz: pilot' }).click();
+  await expect(page.locator('.hero-item.current')).toContainText('Twój bohater');
+  await expect(page.locator('.hero-item.current .hero-emoji')).toHaveAttribute('aria-label', 'pilot');
+  await expect(page.locator('.topbar .avatar')).toHaveText('👨‍✈️');
+  if (shots) await page.screenshot({ path: `${shots}/${test.info().project.name}-07b-heroes.png`, fullPage: true });
   await page.getByRole('tab', { name: 'Odznaki' }).click();
   await expect(page.getByText('Pierwsza wyprawa')).toBeVisible();
   await page.getByRole('button', { name: 'Wróć', exact: true }).click();
@@ -171,6 +178,8 @@ test('dwie osoby: każda ma swoją klasę, tematy i postępy', async ({ page }) 
   await page.goto('/');
   await page.getByPlaceholder('Imię').fill('Kuba');
   await page.getByRole('group', { name: 'Klasa' }).getByRole('button', { name: '3', exact: true }).click();
+  await page.getByRole('group', { name: 'Bohater' }).getByRole('button', { name: 'astronauta' }).click();
+  await snap(page, '14-onboarding-heroes');
   await page.getByRole('button', { name: 'Zaczynamy!' }).click();
   await expect(page.getByText('Cześć, Kuba!')).toBeVisible();
 
@@ -202,7 +211,12 @@ test('dwie osoby: każda ma swoją klasę, tematy i postępy', async ({ page }) 
   await page.reload();
   await expect(page.getByRole('heading', { name: 'Kto się dziś uczy?' })).toBeVisible();
   await snap(page, '17-people');
-  await page.getByRole('button', { name: /Kuba/ }).click();
+  // Wybór osoby to niskie wiersze (bohater + imię + klasa), nie duże kwadraty
+  const kuba = page.getByRole('button', { name: /Kuba/ });
+  await expect(kuba).toContainText('👨‍🚀');
+  await expect(kuba).toContainText('klasa 3');
+  expect((await kuba.boundingBox())!.height).toBeLessThan(100);
+  await kuba.click();
   await expect(page.getByText('Cześć, Kuba!')).toBeVisible();
 
   // Rodzic zmienia imię i usuwa osobę

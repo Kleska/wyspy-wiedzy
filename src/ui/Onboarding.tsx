@@ -1,10 +1,10 @@
 import { useState } from 'react';
+import { avatarName, FREE_AVATARS } from '../avatars';
 import { nowIso, store, uid } from '../data/store';
 import { THEME_ORDER, THEMES } from '../themes';
 import type { Profile, ThemeId } from '../types';
 import { ThemePreview } from './ThemePreview';
 
-export const FREE_AVATARS = ['🦊', '🐼', '🐸', '🦉', '🐢', '🐙', '🐶', '🐱'];
 export const GRADES = [1, 2, 3, 4, 5, 6, 7, 8];
 
 export function Onboarding({ onDone, onCancel, first = true }: { onDone: (id: string) => void; onCancel?: () => void; first?: boolean }) {
@@ -41,9 +41,9 @@ export function Onboarding({ onDone, onCancel, first = true }: { onDone: (id: st
         </div>
         <div className="field">
           <span>Bohater</span>
-          <div className="emoji-grid">
+          <div className="emoji-grid" role="group" aria-label="Bohater">
             {FREE_AVATARS.map((a) => (
-              <button key={a} aria-pressed={a === avatar} onClick={() => setAvatar(a)} aria-label={`Awatar ${a}`}>
+              <button key={a} type="button" aria-pressed={a === avatar} onClick={() => setAvatar(a)} aria-label={avatarName(a)} title={avatarName(a)}>
                 {a}
               </button>
             ))}
@@ -85,18 +85,22 @@ export function ProfilePicker({ profiles, onPick, onCancel }: { profiles: Profil
   if (adding) return <Onboarding first={false} onDone={onPick} onCancel={() => setAdding(false)} />;
   return (
     <div className="center-screen">
-      <div className="col" style={{ maxWidth: 760, width: '100%', gap: 22 }}>
-        <h1 style={{ fontSize: 36, textAlign: 'center' }}>Kto się dziś uczy?</h1>
+      <div className="col" style={{ maxWidth: 620, width: '100%', gap: 18 }}>
+        <h1 className="people-title">Kto się dziś uczy?</h1>
         <div className="people">
           {profiles.map((p) => (
             <button key={p.id} className="person" onClick={() => onPick(p.id)}>
-              <span className="avatar avatar-xl">{p.avatar}</span>
-              <span className="person-name">{p.name}</span>
-              <span className="person-grade">klasa {p.grade ?? 3}</span>
+              <span className="avatar" aria-hidden="true">
+                {p.avatar}
+              </span>
+              <span className="person-text">
+                <span className="person-name">{p.name}</span>
+                <span className="person-grade">klasa {p.grade ?? 3}</span>
+              </span>
             </button>
           ))}
           <button className="person person-add" onClick={() => setAdding(true)}>
-            <span className="avatar avatar-xl" aria-hidden="true">
+            <span className="avatar" aria-hidden="true">
               +
             </span>
             <span className="person-name">Dodaj osobę</span>

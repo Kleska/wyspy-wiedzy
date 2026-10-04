@@ -1,27 +1,12 @@
 import { useState } from 'react';
+import { AVATAR_GROUPS, AVATARS, FREE_AVATARS } from '../avatars';
 import { askConfirm } from './dialogs';
 import { nowIso, store, uid } from '../data/store';
 import { FREEZE_COST, FREEZE_ID, FREEZE_MAX } from '../engine';
 import { coinText, plural } from '../themes';
 import { useApp, useProgress } from './hooks';
 import { Icon } from './icons';
-import { FREE_AVATARS } from './Onboarding';
 import { TopBar } from './TopBar';
-
-export const PAID_AVATARS: { emoji: string; cost: number }[] = [
-  { emoji: '🐯', cost: 60 },
-  { emoji: '🦁', cost: 60 },
-  { emoji: '🦈', cost: 80 },
-  { emoji: '🦄', cost: 80 },
-  { emoji: '🦖', cost: 100 },
-  { emoji: '🚀', cost: 100 },
-  { emoji: '✈️', cost: 100 },
-  { emoji: '🐉', cost: 150 },
-  { emoji: '🤖', cost: 150 },
-  { emoji: '👾', cost: 150 },
-  { emoji: '🦸', cost: 200 },
-  { emoji: '🧙', cost: 200 },
-];
 
 type Tab = 'shop' | 'badges' | 'requests';
 
@@ -43,8 +28,9 @@ export function Rewards() {
     toast('Prośba wysłana do rodzica!');
   };
 
-  const buyAvatar = async (emoji: string, cost: number) => {
+  const buyAvatar = async (emoji: string, name: string, cost: number) => {
     if (progress.coins < cost) return;
+    if (!(await askConfirm(`Kupić bohatera ${emoji} (${name}) za ${coinText(cost, theme)}?`, { ok: 'Kupuję' }))) return;
     await store.put('redemption', { id: uid(), profileId: profile.id, rewardId: `avatar:${emoji}`, title: `Bohater ${emoji}`, cost, status: 'approved', real: false, at: nowIso(), decidedAt: nowIso() });
     await store.put('profile', { ...profile, avatar: emoji, updatedAt: nowIso() });
     toast('Nowy bohater odblokowany!');
@@ -132,29 +118,36 @@ export function Rewards() {
               </div>
             )}
             <h2 style={{ fontSize: 22, marginTop: 8 }}>Bohaterowie</h2>
-            <div className="grid-cards">
-              {[...FREE_AVATARS.map((e) => ({ emoji: e, cost: 0 })), ...PAID_AVATARS].map(({ emoji, cost }) => {
-                const has = owned.has(emoji);
-                return (
-                  <div key={emoji} className="card shop-item">
-                    <span className="shop-emoji" aria-hidden="true">
-                      {emoji}
-                    </span>
-                    {profile.avatar === emoji ? (
-                      <span className="pill good">Twój bohater</span>
-                    ) : has ? (
-                      <button className="btn btn-sm btn-block" onClick={() => setAvatar(emoji)}>
-                        Wybierz
-                      </button>
-                    ) : (
-                      <button className="btn btn-sm btn-primary btn-block" disabled={progress.coins < cost} onClick={() => buyAvatar(emoji, cost)}>
-                        Kup za {cost}
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+            {AVATAR_GROUPS.map((g) => (
+              <section key={g.id} className="hero-group" aria-label={g.title}>
+                <h3 className="hero-group-title">{g.title}</h3>
+                <div className="hero-grid">
+                  {AVATARS.filter((x) => x.group === g.id).map(({ emoji, name, cost }) => {
+                    const has = owned.has(emoji);
+                    const current = profile.avatar === emoji;
+                    return (
+                      <div key={emoji} className={`hero-item${current ? ' current' : ''}`}>
+                        <span className="hero-emoji" role="img" aria-label={name} title={name}>
+                          {emoji}
+                        </span>
+                        {current ? (
+                          <span className="pill good">Twój bohater</span>
+                        ) : has ? (
+                          <button className="btn btn-sm btn-block" onClick={() => setAvatar(emoji)} aria-label={`Wybierz: ${name}`}>
+                            Wybierz
+                          </button>
+                        ) : (
+                          <button className="btn btn-sm btn-primary btn-block" disabled={progress.coins < cost} onClick={() => buyAvatar(emoji, name, cost)} aria-label={`Kup za ${cost}: ${name}`}>
+                            <Icon name="coin" size={16} />
+                            {cost}
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            ))}
           </>
         )}
 

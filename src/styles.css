@@ -2327,9 +2327,58 @@ p {
   text-align: center;
 }
 
-.shop-emoji {
-  font-size: 54px;
-  line-height: 1;
+.hero-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.hero-group-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--muted);
+}
+
+.hero-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  gap: 10px;
+}
+
+.hero-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 124px;
+  padding: 12px 8px 8px;
+  border-radius: var(--radius);
+  border: var(--card-border);
+  background: var(--surface);
+  box-shadow: var(--card-shadow);
+  text-align: center;
+}
+
+.hero-item.current {
+  outline: 3px solid var(--good);
+  outline-offset: -3px;
+}
+
+.hero-item .pill {
+  min-height: 40px;
+  padding: 2px 6px;
+  line-height: 1.1;
+}
+
+.hero-item .btn {
+  padding: 0 8px;
+  gap: 5px;
+}
+
+.hero-emoji {
+  font-size: 44px;
+  line-height: 1.15;
 }
 
 .badge {
@@ -2459,18 +2508,18 @@ p {
 }
 
 .emoji-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 8px;
 }
 
 .emoji-grid button {
-  width: 60px;
-  height: 60px;
-  border-radius: 16px;
+  min-height: 56px;
+  border-radius: 14px;
   border: 3px solid var(--line);
   background: var(--surface);
-  font-size: 32px;
+  font-size: 30px;
+  line-height: 1;
 }
 
 .emoji-grid button[aria-pressed='true'] {
@@ -3110,53 +3159,79 @@ p {
   }
 }
 
+.people-title {
+  font-size: 32px;
+  text-align: center;
+}
+
 .people {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 18px;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 12px;
 }
 
 .person {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 10px;
-  padding: 26px 16px;
+  gap: 14px;
+  min-height: 76px;
+  padding: 8px 18px 8px 10px;
   border-radius: var(--radius);
   border: var(--card-border);
   background: var(--surface);
   box-shadow: var(--card-shadow);
   color: var(--text);
+  text-align: left;
 }
 
-.person-add {
-  background: transparent;
-  border: 3px dashed var(--line);
-  box-shadow: none;
+.person .avatar {
+  width: 56px;
+  height: 56px;
+  font-size: 34px;
 }
 
-.person-add .avatar {
-  background: var(--surface);
-  font-family: var(--font-display);
-  font-size: 48px;
-  color: var(--muted);
-}
-
-.avatar-xl {
-  width: 104px;
-  height: 104px;
-  font-size: 60px;
+.person-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.15;
 }
 
 .person-name {
   font-family: var(--font-display);
   font-weight: 700;
-  font-size: 26px;
+  font-size: 22px;
+  overflow-wrap: anywhere;
 }
 
 .person-grade {
   font-weight: 800;
+  font-size: 14px;
   color: var(--muted);
+}
+
+.person-add {
+  grid-column: 1 / -1;
+  justify-content: center;
+  min-height: 56px;
+  padding: 6px 16px;
+  background: transparent;
+  border: 3px dashed var(--line);
+  box-shadow: none;
+  color: var(--muted);
+}
+
+.person-add .avatar {
+  width: 36px;
+  height: 36px;
+  background: var(--surface);
+  font-family: var(--font-display);
+  font-size: 26px;
+  color: var(--muted);
+}
+
+.person-add .person-name {
+  font-size: 18px;
 }
 
 .grade-grid {
@@ -3183,7 +3258,8 @@ p {
 }
 
 @media (max-width: 520px) {
-  .grade-grid {
+  .grade-grid,
+  .emoji-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
