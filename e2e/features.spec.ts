@@ -1,5 +1,6 @@
 import type { Page } from '@playwright/test';
 import { divisionInputs, divisionLayout } from '../src/longdiv';
+import { multiplicationLayout } from '../src/longmul';
 import { expect, test } from './fixtures';
 
 const shots = process.env.SHOTS_DIR;
@@ -873,4 +874,24 @@ test('dzielenie pisemne: lekcja ze słupkiem krok po kroku i słupek z kratkami 
   await expect(page.locator('.pr-foot.good')).toBeVisible();
   await expect(page.locator('.ldiv-in.ok')).toHaveCount(inputs.length);
   await expect(page.getByRole('region', { name: 'Rozwiązanie w słupku' })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Zakończ ćwiczenie' }).click();
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Skończ' }).click();
+
+  // Sprawdzenie mnożeniem pisemnym: też kratki, wpisywane od prawej strony.
+  await page.getByRole('button', { name: /Trening bez końca/ }).click();
+  await page.getByRole('dialog').locator('.gen-row', { hasText: 'Mnożenie pisemne' }).getByRole('button', { name: 'Trening' }).click();
+  await expect(page.locator('.pr-prompt h1')).toContainText('Pomnóż pisemnie');
+  const mulGrid = page.getByRole('group', { name: /Mnożenie pisemne do uzupełnienia/ });
+  const [, x, y] = (await mulGrid.getAttribute('aria-label'))!.match(/(\d+) · (\d+)/)!;
+  const mul = multiplicationLayout(Number(x), Number(y));
+  await expect(page.locator('.ldiv-in')).toHaveCount(mul.inputs.length);
+  // Najpierw z błędem w ostatniej kratce: czerwona kratka i gotowe mnożenie do porównania.
+  for (const c of mul.inputs.slice(0, -1)) await keys.getByRole('button', { name: c.ch, exact: true }).click();
+  await keys.getByRole('button', { name: mul.inputs[mul.inputs.length - 1].ch === '5' ? '6' : '5', exact: true }).click();
+  await snap(page, 'f43-multiplication-grid');
+  await page.getByRole('button', { name: 'Sprawdź' }).click();
+  await expect(page.locator('.pr-foot.bad')).toBeVisible();
+  await expect(page.locator('.ldiv-in.bad')).toHaveCount(1);
+  await expect(page.getByRole('region', { name: 'Rozwiązanie mnożenia' }).getByRole('img', { name: `Mnożenie pisemne: ${x} razy ${y} równa się ${mul.product}` })).toBeVisible();
+  await snap(page, 'f43-multiplication-solution', true);
 });

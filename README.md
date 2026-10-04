@@ -23,7 +23,7 @@ można ją zainstalować na ekranie głównym i używać bez internetu. Postępy
   - klasa 5 — polski: przypadki, stopniowanie przymiotnika, ó/u, „nie” z częściami mowy, części mowy odmienne
     i nieodmienne, podmiot i orzeczenie; matematyka: dzielenie pisemne (przez liczbę jedno- i dwucyfrową, zero w wyniku,
     reszta — z lekcją, w której słupek odsłania się krok po kroku, i słupkiem z kratkami, w które dziecko wpisuje
-    cyfry na ekranie jak na karcie pracy),
+    cyfry na ekranie jak na karcie pracy; sprawdzenie mnożeniem pisemnym też w kratkach),
     ułamki (skracanie, dodawanie, odejmowanie), ułamki dziesiętne,
     pole i obwód, kolejność działań, cechy podzielności;
   - dyktanda dla klasy 3 i 5 (ó, rz, ż, ch, h);

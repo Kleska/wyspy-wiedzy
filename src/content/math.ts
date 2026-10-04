@@ -362,13 +362,27 @@ function fitsLine(part: number, b: number, round: string): string {
   return `wybierz: Ile razy ${b} mieści się w ${part}? Pomóż sobie: ${round}. | *${q} | ${q - 1} | ${q + 1} | ${q + 2} !! ${q} · ${b} = ${q * b}, a ${q + 1} · ${b} = ${(q + 1) * b} to już za dużo.`;
 }
 
-/** Sprawdzanie dzielenia mnożeniem — „od tyłu”: z wyniku (i reszty) odtwarzamy dzielną, której nie ma w poleceniu. */
+/**
+ * Sprawdzanie dzielenia mnożeniem — „od tyłu”: z wyniku (i reszty) odtwarzamy dzielną, której nie ma w poleceniu.
+ * Bez reszty to mnożenie pisemne w kratkach (słowa „Pomnóż pisemnie” w poleceniu — patrz `multiplicationGridOf`).
+ */
 const checkLine = (a: number, b: number) => {
   const d = longDivision(a, b);
   return d.remainder
     ? `wpisz: Pewną liczbę podzielono przez ${b}. Wyszło ${d.quotient} i reszta ${d.remainder}. Jaka to liczba? >> ${d.quotient} · ${b} + ${d.remainder} = [${a}] !! Tak sprawdzamy dzielenie z resztą: wynik razy dzielnik plus reszta daje dzielną.`
-    : `wpisz: Pewną liczbę podzielono przez ${b} i wyszło ${d.quotient}. Jaka to liczba? >> ${d.quotient} · ${b} = [${a}] !! Tak sprawdzamy dzielenie: wynik razy dzielnik daje dzielną.`;
+    : `wpisz: Pewną liczbę podzielono przez ${b} i wyszło ${d.quotient}. Jaka to liczba? Pomnóż pisemnie — wpisz cyfry w kratki. >> ${d.quotient} · ${b} = [${a}] !! Tak sprawdzamy dzielenie: wynik razy dzielnik daje dzielną.`;
 };
+
+/** „Pomnóż pisemnie”: mnożenie w słupku z kratkami — czynniki wydrukowane, dziecko wpisuje iloczyny częściowe i sumę. */
+export function multiplyLine(a: number, b: number): string {
+  if (String(b).includes('0')) throw new Error(`Mnożenie pisemne: mnożnik ${b} ma zero — takiego zapisu nie rysujemy`);
+  const digits = String(b).split('').map(Number).reverse();
+  if (digits.length === 1) {
+    return `wpisz: Pomnóż pisemnie. Wpisz cyfry w kratki — od prawej strony. >> ${a} · ${b} = [${a * b}] ?? Zacznij od jedności: pomnóż ostatnią cyfrę liczby ${a} przez ${b}. Pamiętaj o przeniesieniu. !! ${a} · ${b} = ${a * b}.`;
+  }
+  const [u, t] = digits;
+  return `wpisz: Pomnóż pisemnie. Wpisz cyfry w kratki — od prawej strony. >> ${a} · ${b} = [${a * b}] ?? Najpierw ${a} · ${u}. Potem ${a} · ${t} — ten iloczyn zapisz o jedno miejsce w lewo. Na końcu dodaj. !! ${a} · ${u} = ${a * u} i ${a} · ${t} = ${a * t} (o jedno miejsce w lewo, bo to dziesiątki). Razem: ${a * u} + ${a * t * 10} = ${a * b}.`;
+}
 
 /** Pilnuje, żeby zadania pasowały do tematu (np. bez reszty i bez zera w wyniku tam, gdzie jeszcze ich nie było). */
 function requireDivision(a: number, b: number, want: { remainder?: boolean; zero?: boolean }): void {
@@ -407,10 +421,18 @@ function writtenDivBasic(): string {
     [1235, 5],
     [2952, 8],
     [5348, 7],
+    [356, 4],
+    [518, 7],
+    [432, 8],
+    [756, 6],
+    [628, 4],
+    [402, 6],
   ]) {
     requireDivision(a, b, { remainder: false, zero: false });
     out.push(writtenLine(a, b));
   }
+  out.push(multiplyLine(157, 4));
+  out.push(multiplyLine(213, 3));
   out.push(checkLine(864, 6));
   out.push(checkLine(294, 7));
   out.push('wpisz: Cztery jednakowe bilety do kina kosztowały razem 116 zł. Ile kosztował jeden bilet? >> Jeden bilet kosztował [29] zł. !! 116 : 4 = 29. Sprawdzenie: 29 · 4 = 116.');
@@ -438,6 +460,7 @@ function writtenDivZeroRest(): string {
     [5040, 8],
     [1220, 4],
     [2800, 7],
+    [960, 6],
   ]) {
     requireDivision(a, b, { remainder: false, zero: true });
     out.push(writtenLine(a, b));
@@ -485,10 +508,22 @@ function writtenDivTwoDigit(): string {
     [1008, 42],
     [3264, 32],
     [7626, 31],
+    [1058, 23],
+    [532, 19],
+    [1764, 49],
+    [1200, 25],
   ]) {
     requireDivision(a, b, { remainder: false });
     out.push(writtenLine(a, b));
   }
+  // Mnożenie pisemne jako sprawdzenie — na innych liczbach niż zadania z dzieleniem, żeby jedno nie podpowiadało drugiego.
+  for (const [a, b] of [
+    [37, 24],
+    [54, 18],
+    [63, 27],
+    [45, 32],
+  ])
+    out.push(multiplyLine(a, b));
   for (const [a, b] of [
     [1000, 23],
     [875, 14],

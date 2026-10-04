@@ -1,6 +1,6 @@
 import { parseLine } from '../dsl';
 import type { FillExercise } from '../types';
-import { dec, evalSchool, gcd, writtenLine } from './math';
+import { dec, evalSchool, gcd, multiplyLine, writtenLine } from './math';
 
 /*
  * Trening bez końca: zadania losowane przy każdym ćwiczeniu (wyniki liczone w kodzie).
@@ -117,6 +117,13 @@ function writtenDiv2(rnd: () => number): string {
   return writtenLine(q * b + r, b);
 }
 
+/** Mnożenie pisemne w kratkach: liczba dwu- lub trzycyfrowa razy jedno- albo dwucyfrowa (bez zer w mnożniku). */
+function writtenMul(rnd: () => number): string {
+  const a = rnd() < 0.5 ? int(rnd, 23, 98) : int(rnd, 112, 489);
+  const b = rnd() < 0.4 ? int(rnd, 3, 9) : int(rnd, 1, 5) * 10 + int(rnd, 2, 9);
+  return multiplyLine(a, b);
+}
+
 export const GENERATORS: Generator[] = [
   { id: 'add20', title: 'Dodawanie i odejmowanie do 20', description: 'Rachunki w pamięci do 20.', grades: [1, 2], make: addSub20 },
   { id: 'add100', title: 'Dodawanie i odejmowanie do 100', description: 'Najpierw dziesiątki, potem jedności.', grades: [2, 3, 4], make: addSub100 },
@@ -128,6 +135,7 @@ export const GENERATORS: Generator[] = [
   { id: 'order', title: 'Kolejność działań', description: 'Nawiasy, potem mnożenie i dzielenie.', grades: [4, 5, 6, 7, 8], make: orderOps },
   { id: 'dzp1', title: 'Dzielenie pisemne przez liczbę jednocyfrową', description: 'Słupek z kratkami: wpisujesz cyfry jak na kartce.', grades: [4, 5, 6], make: writtenDiv1, slow: true },
   { id: 'dzp2', title: 'Dzielenie pisemne przez liczbę dwucyfrową', description: 'Słupek z kratkami: wpisujesz cyfry jak na kartce.', grades: [5, 6, 7, 8], make: writtenDiv2, slow: true },
+  { id: 'mnp', title: 'Mnożenie pisemne', description: 'Słupek z kratkami — przyda się do sprawdzania dzielenia.', grades: [4, 5, 6, 7, 8], make: writtenMul, slow: true },
 ];
 
 export const genTopicId = (id: string) => `gen:${id}`;

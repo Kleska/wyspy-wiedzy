@@ -2,10 +2,11 @@ import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import type { ChoiceExercise, DictationExercise, Exercise, FillExercise, Lang, MatchExercise, SortExercise, TapExercise } from '../../types';
 import { dictationText, isFillAnswerCorrect, maskSpelling } from '../../dsl';
 import { divisionGridOf } from '../../longdiv';
+import { multiplicationGridOf } from '../../longmul';
 import { hasVoice, speak } from '../../speech';
 import { plural } from '../../themes';
 import { Icon } from '../icons';
-import { DivisionInput } from '../LongDivision';
+import { DivisionInput, MultiplicationInput } from '../LongDivision';
 import { seededOrder, type Answer } from './logic';
 
 interface Props<E extends Exercise, A extends Answer> {
@@ -71,6 +72,9 @@ export function ExerciseView(p: Props<Exercise, Answer>) {
       // „Oblicz pisemnie”: zamiast luki z wynikiem — cały słupek z kratkami do wypełnienia.
       const div = divisionGridOf(p.ex);
       if (div) return <DivisionFill {...(p as unknown as Props<FillExercise, string[]>)} a={div[0]} b={div[1]} />;
+      // „Pomnóż pisemnie”: mnożenie w słupku z kratkami (np. sprawdzenie dzielenia).
+      const mul = multiplicationGridOf(p.ex);
+      if (mul) return <MultiplicationInput a={mul[0]} b={mul[1]} reveal={p.reveal} onEnter={p.onEnter} onChange={(product) => (p.setAnswer as (a: string[]) => void)([product ?? ''])} />;
       return <Fill {...(p as unknown as Props<FillExercise | DictationExercise, string[]>)} />;
     }
     case 'dictation':

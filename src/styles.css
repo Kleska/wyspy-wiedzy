@@ -5490,6 +5490,11 @@ p {
   cursor: default;
 }
 
+.ldiv-sign {
+  font-size: 1.25em;
+  font-weight: 900;
+}
+
 .ldiv-keys {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));

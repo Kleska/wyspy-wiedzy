@@ -4,6 +4,7 @@ import { LESSONS } from '../src/content/lessons';
 import { MATH_GRADE5 } from '../src/content/math';
 import { parseDsl, parseLesson } from '../src/dsl';
 import { divisionCheck, divisionEntry, divisionGridOf, divisionInputs, divisionLayout, divisionResult, lessonDivision, longDivision, writtenDivisionOf } from '../src/longdiv';
+import { multiplicationEntry, multiplicationGridOf, multiplicationLayout } from '../src/longmul';
 import type { FillExercise } from '../src/types';
 
 const digits = (a: number, b: number) => longDivision(a, b).steps.map((s) => s.digit).join('');
@@ -253,5 +254,70 @@ describe('dzielenie pisemne: tematy, lekcje i ściągi', () => {
     expect(lessonDivision('Spisz następną cyfrę.')).toBeNull();
     const bad = parseLesson('# Krok po kroku\nsłupek: dziewięć : 4')!;
     expect(bad.errors.length).toBe(1);
+  });
+});
+
+describe('mnożenie pisemne w kratkach (sprawdzenie dzielenia)', () => {
+  const draw = (a: number, b: number) => {
+    const L = multiplicationLayout(a, b);
+    const grid = Array.from({ length: L.rows }, () => Array(L.cols).fill(' '));
+    for (const c of [...L.statics, ...L.inputs]) grid[c.row][c.col] = c.ch;
+    for (const r of L.rules) for (let c = r.colFrom; c <= r.colTo; c++) grid[r.row][c] = '─';
+    return grid.map((r) => r.join('').replace(/\s+$/, '')).join('\n');
+  };
+
+  it('mnożnik dwucyfrowy: dwa iloczyny częściowe (drugi przesunięty) i suma', () => {
+    expect(draw(46, 23)).toBe(['   46', '  ·23', ' ────', '  138', ' +92', ' ────', ' 1058'].join('\n'));
+    const L = multiplicationLayout(46, 23);
+    // Kratki w kolejności liczenia: w każdym wierszu od prawej.
+    expect(L.inputs.map((c) => c.ch).join('')).toBe('831' + '29' + '8501');
+    expect(L.inputs.filter((c) => c.kind === 'sum').length).toBe(4);
+    expect(multiplicationEntry(L, L.inputs.map((c) => c.ch))).toBe('1058');
+    expect(multiplicationEntry(L, L.inputs.map((c, i) => (i === 0 ? '' : c.ch)))).toBeNull();
+  });
+
+  it('mnożnik jednocyfrowy: jeden wiersz z wynikiem', () => {
+    expect(draw(144, 6)).toBe([' 144', '  ·6', ' ───', ' 864'].join('\n'));
+    const L = multiplicationLayout(144, 6);
+    expect(L.inputs.map((c) => c.ch).join('')).toBe('468');
+    expect(multiplicationEntry(L, ['4', '6', '8'])).toBe('864');
+    // Pomyłka w kratce zmienia odczytany iloczyn.
+    expect(multiplicationEntry(L, ['4', '6', '9'])).toBe('964');
+  });
+
+  it('dla losowych liczb: ostatni wiersz to iloczyn, a iloczyny częściowe się sumują', () => {
+    let seed = 5;
+    const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+    for (let k = 0; k < 200; k++) {
+      const a = 2 + Math.floor(rnd() * 900);
+      const b = [1 + Math.floor(rnd() * 9), 1 + Math.floor(rnd() * 9)].slice(0, rnd() < 0.4 ? 1 : 2).join('');
+      const L = multiplicationLayout(a, Number(b));
+      expect(multiplicationEntry(L, L.inputs.map((c) => c.ch)), `${a} · ${b}`).toBe(String(a * Number(b)));
+      for (const c of [...L.statics, ...L.inputs]) {
+        expect(c.col).toBeGreaterThanOrEqual(0);
+        expect(c.col).toBeLessThan(L.cols);
+      }
+    }
+  });
+
+  it('zadania „Pomnóż pisemnie” z tematów: liczby z działania i poprawny iloczyn w luce', () => {
+    let n = 0;
+    for (const t of MATH_GRADE5.filter((x) => x.id.startsWith('b-m5-dzp'))) {
+      for (const ex of parseDsl(t.dsl, t.id).exercises) {
+        const m = multiplicationGridOf(ex as FillExercise);
+        expect(!!m, ex.prompt).toBe(/Pomnóż pisemnie/.test(ex.prompt));
+        if (!m) continue;
+        n++;
+        const gaps = (ex as FillExercise).parts.filter((p): p is string[] => Array.isArray(p)).map((p) => Number(p[0]));
+        expect(gaps).toEqual([m[0] * m[1]]);
+        // Słupek z dzieleniem i mnożenie w kratkach to różne zadania.
+        expect(divisionGridOf(ex as FillExercise)).toBeNull();
+      }
+    }
+    expect(n).toBeGreaterThanOrEqual(8);
+    // Zwykłe mnożenie bez słów „Pomnóż pisemnie” i mnożnik z zerem zostają zwykłą luką.
+    const plain = parseDsl('wpisz: Oblicz. >> 46 · 23 = [1058]\nwpisz: Pomnóż pisemnie. >> 46 · 20 = [920]').exercises as FillExercise[];
+    expect(multiplicationGridOf(plain[0])).toBeNull();
+    expect(multiplicationGridOf(plain[1])).toBeNull();
   });
 });
