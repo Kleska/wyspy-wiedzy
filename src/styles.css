@@ -4447,6 +4447,82 @@ p {
   }
 }
 
+/* ───────────────────────── Dzielenie pisemne: karta na starcie ───────────────────────── */
+
+.ic-division {
+  color: var(--accent);
+}
+
+.division-picker {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.division-kinds {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 12px;
+  width: 100%;
+}
+
+.division-kind {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  border: 2px solid var(--line);
+  background: var(--surface-3);
+}
+
+.division-kind-name {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 10px;
+  flex-wrap: wrap;
+}
+
+.division-kind-name b {
+  font-size: 18px;
+}
+
+.division-kind-name small {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.division-kind-btns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+@media (max-width: 640px) {
+  .division-kind {
+    gap: 8px;
+    padding: 10px 12px;
+  }
+  .division-kind-name b {
+    font-size: 17px;
+  }
+  .division-kind-name small {
+    font-size: 14px;
+  }
+  .division-kind-btns .btn {
+    padding: 0 10px;
+  }
+}
+
+[data-theme='pixel'] .division-kind {
+  border-radius: 0;
+  border: 3px solid #0a0d1a;
+}
+
 /* ───────────────────────── Mini-gry: Pary na czas ───────────────────────── */
 
 .ic-games {

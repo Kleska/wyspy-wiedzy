@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { factExercises, generateExercises, generatorById, genTopicId } from '../content/generators';
+import { factExercises, generateExercises, generatorById, genTopicId, SLOW_SESSION } from '../content/generators';
 import { subjectLang, subjectOf } from '../content/seed';
 import { nowIso, store, uid } from '../data/store';
 import { dictationText, parseWords, speakableSentence, wordHints } from '../dsl';
-import { divisionGridOf, writtenDivisionOf } from '../longdiv';
+import { divisionGridOf } from '../longdiv';
 import {
   buildDiagnosticQueue,
   buildExamQueue,
@@ -26,7 +26,6 @@ import { ExerciseView } from './exercises/Exercises';
 import { answerText, correctText, initialAnswer, isCorrect, isReady, questionText, type Answer } from './exercises/logic';
 import { backScreen, isExamRun, useApp, type Run, type SessionResult } from './hooks';
 import { Icon } from './icons';
-import { DivisionSolution } from './LongDivision';
 
 type Item = QueueItem & { retry?: boolean };
 
@@ -78,7 +77,7 @@ function buildQueue(run: Run, topics: ParsedTopic[], before: Progress, n: number
     case 'gen': {
       if (run.facts?.length) return factExercises(run.facts).map((ex) => ({ topicId: genTopicId('mul'), ex }));
       const g = generatorById(run.genId);
-      return g ? generateExercises(g, n).map((ex) => ({ topicId: genTopicId(g.id), ex })) : [];
+      return g ? generateExercises(g, g.slow ? Math.min(n, SLOW_SESSION) : n).map((ex) => ({ topicId: genTopicId(g.id), ex })) : [];
     }
     case 'fix':
       return run.items.flatMap(({ topicId, exerciseId }) => {
@@ -424,9 +423,8 @@ export function Practice({ run }: { run: Run }) {
     ex.type === 'choice' ? speakableSentence(ex.sentence ?? '') : ex.type === 'fill' || ex.type === 'dictation' ? ex.parts.filter((p) => typeof p === 'string').join(' … ') : '';
   const hintWords = glossary.length ? wordHints(visibleText, glossary) : [];
   const hasHint = !!(ex.hint || hintWords.length || exTopic?.description);
-  // „Oblicz pisemnie”: po odpowiedzi pokazujemy cały słupek do porównania z kartką.
-  const division = writtenDivisionOf(ex);
-  const guidedDivision = !!division && ex.type === 'fill' && ex.parts.filter(Array.isArray).length > 2;
+  // „Oblicz pisemnie”: rozwiązanie krok po kroku pokazuje sam słupek z kratkami, więc w stopce nie powtarzamy wyjaśnienia.
+  const division = divisionGridOf(ex);
   const ready = isReady(ex, answer);
   const inRetry = idx >= mainCount;
   const pctDone = inRetry ? 100 : Math.round(((idx + (phase === 'feedback' ? 1 : 0)) / mainCount) * 100);
@@ -490,9 +488,6 @@ export function Practice({ run }: { run: Run }) {
           lang={lang}
         />
 
-        {/* Zadania „za rękę”: po odpowiedzi cały słupek. Przy słupku z kratkami rozwiązanie pokazuje sam słupek. */}
-        {phase === 'feedback' && division && !divisionGridOf(ex) && <DivisionSolution key={`d${idx}`} a={division[0]} b={division[1]} />}
-
         {hint && phase === 'answer' && hasHint && (
           <div className="hint-box">
             <Icon name="bulb" />
@@ -536,7 +531,7 @@ export function Practice({ run }: { run: Run }) {
             </span>
             <div>
               <div className="fb-title">{ok ? praise : theme.oops}</div>
-              {showCorrectText && !guidedDivision && <div className="fb-text">Poprawnie: {correctText(ex)}</div>}
+              {showCorrectText && <div className="fb-text">Poprawnie: {correctText(ex)}</div>}
               {ex.explain && !division && <div className="fb-text">{ex.explain}</div>}
               {lang !== 'pl' && ex.hint && <div className="fb-text fb-translation">{ex.hint}</div>}
               {!ok && !item.retry && (

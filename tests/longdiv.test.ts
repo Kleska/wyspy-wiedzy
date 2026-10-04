@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { GUIDES } from '../src/content/guides';
 import { LESSONS } from '../src/content/lessons';
-import { MATH_GRADE5 } from '../src/content/math';
+import { generateExercises, generatorsFor, GENERATORS, SLOW_SESSION } from '../src/content/generators';
+import { MATH_GRADE5, multiplyLine } from '../src/content/math';
 import { parseDsl, parseLesson } from '../src/dsl';
-import { divisionCheck, divisionEntry, divisionGridOf, divisionInputs, divisionLayout, divisionResult, lessonDivision, longDivision, writtenDivisionOf } from '../src/longdiv';
+import { divisionCheck, divisionEntry, divisionGridOf, divisionInputs, divisionLayout, divisionResult, lessonDivision, longDivision } from '../src/longdiv';
 import { multiplicationEntry, multiplicationGridOf, multiplicationLayout } from '../src/longmul';
 import type { FillExercise } from '../src/types';
 
@@ -156,72 +157,94 @@ describe('dzielenie pisemne: słupek do wypełnienia na ekranie', () => {
     expect(divisionEntry(inputs, v)).toEqual({ quotient: '234', remainder: '6' });
   });
 
-  it('słupek z kratkami dostają zadania „Oblicz pisemnie”, a zadania „za rękę” zostają z lukami', () => {
-    for (const t of MATH_GRADE5.filter((x) => x.id.startsWith('b-m5-dzp'))) {
-      for (const ex of parseDsl(t.dsl, t.id).exercises) {
-        const g = divisionGridOf(ex as FillExercise);
-        expect(!!g, ex.prompt).toBe(/^Oblicz pisemnie/.test(ex.prompt));
-        if (g) expect(g).toEqual(writtenDivisionOf(ex as FillExercise));
-      }
-    }
+  it('słupek z kratkami dostaje tylko zadanie „Oblicz pisemnie” z samym działaniem', () => {
+    const [grid, rest, plain, guided, choice] = parseDsl(
+      [
+        'wpisz: Oblicz pisemnie. Wpisz cyfry w kratki. >> 936 : 4 = [234]',
+        'wpisz: Oblicz pisemnie. >> 587 : 4 = [146] r [3]',
+        'wpisz: Oblicz. >> 936 : 4 = [234]',
+        'wpisz: Dzielimy pisemnie 675 : 5. Uzupełnij. >> 6 : 5 = [1], reszta [1]',
+        'wybierz: Oblicz pisemnie 936 : 4. | *234 | 243',
+      ].join('\n'),
+    ).exercises;
+    expect(divisionGridOf(grid as FillExercise)).toEqual([936, 4]);
+    expect(divisionGridOf(rest as FillExercise)).toEqual([587, 4]);
+    expect(divisionGridOf(plain as FillExercise)).toBeNull();
+    expect(divisionGridOf(guided as FillExercise)).toBeNull();
+    expect(divisionGridOf(choice as FillExercise)).toBeNull();
   });
 });
 
 describe('dzielenie pisemne: tematy, lekcje i ściągi', () => {
   const topics = MATH_GRADE5.filter((t) => t.id.startsWith('b-m5-dzp'));
+  const gaps = (ex: FillExercise) => ex.parts.filter((p): p is string[] => Array.isArray(p)).map((p) => Number(p[0]));
 
-  it('są trzy tematy, na początku matematyki klasy 5', () => {
-    expect(topics.map((t) => t.id)).toEqual(['b-m5-dzp-1', 'b-m5-dzp-zero', 'b-m5-dzp-2cyfr']);
-    const first = [...MATH_GRADE5].sort((a, b) => a.order - b.order).slice(0, 3);
+  it('są dwa tematy — bez reszty i z resztą — na początku matematyki klasy 5', () => {
+    expect(topics.map((t) => t.id)).toEqual(['b-m5-dzp-bez', 'b-m5-dzp-reszta']);
+    const first = [...MATH_GRADE5].sort((a, b) => a.order - b.order).slice(0, 2);
     expect(first.map((t) => t.id)).toEqual(topics.map((t) => t.id));
     for (const t of topics) expect(t.grades).toContain(5);
   });
 
-  it('zadania „Oblicz pisemnie” i „Dzielimy pisemnie”: wynik i reszta zgadzają się z dzieleniem, a aplikacja wie, jaki słupek pokazać', () => {
+  it('w tematach są same słupki z kratkami: wynik i reszta zgadzają się z dzieleniem, a reszta pasuje do tematu', () => {
     for (const t of topics) {
       const { exercises, errors } = parseDsl(t.dsl, t.id);
       expect(errors, t.id).toEqual([]);
       expect(exercises.length, t.id).toBeGreaterThanOrEqual(20);
-      const written = exercises.filter((e): e is FillExercise => e.type === 'fill' && /^Oblicz pisemnie/.test(e.prompt));
-      expect(written.length, t.id).toBeGreaterThanOrEqual(8);
-      for (const ex of written) {
-        const d = writtenDivisionOf(ex);
+      const withRest = t.id === 'b-m5-dzp-reszta';
+      const seen = new Set<string>();
+      for (const e of exercises) {
+        const ex = e as FillExercise;
+        const d = divisionGridOf(ex);
         expect(d, ex.prompt).not.toBeNull();
         const [a, b] = d!;
-        const gaps = ex.parts.filter((p): p is string[] => Array.isArray(p)).map((p) => Number(p[0]));
-        expect(gaps, `${a} : ${b}`).toEqual(a % b ? [Math.floor(a / b), a % b] : [a / b]);
+        expect(seen.has(`${a}:${b}`), `${a} : ${b} powtórzone`).toBe(false);
+        seen.add(`${a}:${b}`);
+        expect(a % b > 0, `${a} : ${b}`).toBe(withRest);
+        expect(gaps(ex), `${a} : ${b}`).toEqual(withRest ? [Math.floor(a / b), a % b] : [a / b]);
         expect(ex.hint, `${a} : ${b}`).toBeTruthy();
         // Podpowiedź nie zdradza wyniku.
         expect(ex.hint).not.toContain(String(Math.floor(a / b)));
+        // Wyjaśnienie kończy się sprawdzeniem mnożeniem — liczby muszą się zgadzać.
+        const m = ex.explain!.match(/Sprawdzenie: (\d+) · (\d+)(?: \+ (\d+))? = (\d+)\.$/)!;
+        expect(m, ex.explain).not.toBeNull();
+        expect(Number(m[1]) * Number(m[2]) + Number(m[3] ?? 0), ex.explain).toBe(a);
+        expect(Number(m[4]), ex.explain).toBe(a);
       }
-      const guided = exercises.filter((e): e is FillExercise => e.type === 'fill' && /^Dzielimy pisemnie/.test(e.prompt));
-      expect(guided.length, t.id).toBe(2);
-      for (const ex of guided) {
-        const [a, b] = writtenDivisionOf(ex)!;
-        const d = longDivision(a, b);
-        const gaps = ex.parts.filter((p): p is string[] => Array.isArray(p)).map((p) => Number(p[0]));
-        const expected = d.steps.flatMap((s, i) => (i === 0 ? [s.digit, s.rest] : [s.part, s.digit, s.rest])).concat(d.remainder ? [d.quotient, d.remainder] : [d.quotient]);
-        expect(gaps, `${a} : ${b}`).toEqual(expected);
-      }
-      // Zwykłe zadania (bez słowa „pisemnie”) nie dostają słupka.
-      for (const ex of exercises.filter((e) => !/pisemnie/.test(e.prompt))) expect(writtenDivisionOf(ex as FillExercise)).toBeNull();
+      // Oba rodzaje dzielnika: jednocyfrowy (jak na karcie pracy z kratkami) i dwucyfrowy.
+      const divisors = [...seen].map((k) => Number(k.split(':')[1]));
+      expect(divisors.filter((b) => b < 10).length, t.id).toBeGreaterThanOrEqual(10);
+      expect(divisors.filter((b) => b >= 10).length, t.id).toBeGreaterThanOrEqual(8);
     }
   });
 
-  it('zadania z treścią i sprawdzenia: odpowiedź zgadza się z działaniem w wyjaśnieniu', () => {
-    for (const t of topics) {
-      for (const ex of parseDsl(t.dsl, t.id).exercises) {
-        if (ex.type !== 'fill' || !ex.explain) continue;
-        const m = ex.explain.match(/^(\d+) : (\d+) = (\d+)(?: r (\d+))?\./);
-        if (!m) continue;
-        const [a, b, q, r] = [Number(m[1]), Number(m[2]), Number(m[3]), Number(m[4] ?? 0)];
-        expect(q * b + r, ex.prompt).toBe(a);
-        expect(r, ex.prompt).toBeLessThan(b);
+  it('trening bez końca: cztery rodzaje słupków (dzielnik jedno- i dwucyfrowy, bez reszty i z resztą) po kilka przykładów', () => {
+    const cases: [string, (b: number) => boolean, boolean][] = [
+      ['dzp1', (b) => b < 10, false],
+      ['dzp1r', (b) => b < 10, true],
+      ['dzp2', (b) => b >= 10, false],
+      ['dzp2r', (b) => b >= 10, true],
+    ];
+    for (const [id, divisorOk, withRest] of cases) {
+      const g = GENERATORS.find((x) => x.id === id)!;
+      expect(g.slow, id).toBe(true);
+      expect(g.title, id).toContain(withRest ? 'z resztą' : 'bez reszty');
+      for (const ex of generateExercises(g, 60)) {
+        const d = divisionGridOf(ex as FillExercise);
+        expect(d, id).not.toBeNull();
+        const [a, b] = d!;
+        expect(divisorOk(b), `${id}: ${a} : ${b}`).toBe(true);
+        expect(a % b > 0, `${id}: ${a} : ${b}`).toBe(withRest);
+        expect(a, `${id}: ${a} : ${b}`).toBeGreaterThanOrEqual(100);
       }
     }
+    expect(SLOW_SESSION).toBeLessThanOrEqual(6);
+    // Klasa 5 ma wszystkie cztery; klasa 3 jeszcze żadnego.
+    expect(generatorsFor(5).filter((g) => g.id.startsWith('dzp')).map((g) => g.id)).toEqual(cases.map((c) => c[0]));
+    expect(generatorsFor(3).some((g) => g.id.startsWith('dzp'))).toBe(false);
   });
 
-  it('każdy temat ma ściągę ze słupkiem i lekcję z dwoma przykładami krok po kroku', () => {
+  it('każdy temat ma ściągę ze słupkiem i lekcję z przykładami krok po kroku', () => {
     for (const t of topics) {
       const guide = GUIDES[t.id];
       expect(guide, t.id).toBeTruthy();
@@ -230,19 +253,24 @@ describe('dzielenie pisemne: tematy, lekcje i ściągi', () => {
       expect(lesson.errors, t.id).toEqual([]);
       expect(lesson.key.length, t.id).toBe(3);
       const divs = lesson.steps.map(lessonDivision).filter(Array.isArray) as [number, number][];
-      expect(divs.length, t.id).toBe(2);
+      expect(divs.length, t.id).toBe(t.id === 'b-m5-dzp-bez' ? 3 : 2);
       expect(lesson.steps.length - divs.length, t.id).toBe(4);
       expect(lesson.pairs.length, t.id).toBeGreaterThanOrEqual(2);
       for (const p of lesson.pairs) expect(p.why, p.good).toBeTruthy();
       expect(lesson.trick.length, t.id).toBeGreaterThanOrEqual(2);
-      expect(lesson.checks.length, t.id).toBe(3);
-      for (const c of lesson.checks) expect(c.explain, c.prompt).toBeTruthy();
-      // Przykłady z lekcji nie są zadaniami tematu.
-      const tasks = parseDsl(t.dsl, t.id).exercises.map((e) => writtenDivisionOf(e as FillExercise)).filter(Boolean) as [number, number][];
+      // Pytania kontrolne to też słupki z kratkami — inne niż przykłady z lekcji i zadania tematu.
+      const tasks = parseDsl(t.dsl, t.id).exercises.map((e) => divisionGridOf(e as FillExercise)!);
       for (const [a, b] of divs) expect(tasks.some(([x, y]) => x === a && y === b), `${a} : ${b}`).toBe(false);
-      const checkDiv = lesson.checks.map((e) => writtenDivisionOf(e as FillExercise)).filter(Boolean) as [number, number][];
-      expect(checkDiv.length, t.id).toBe(1);
-      for (const [a, b] of checkDiv) expect(tasks.some(([x, y]) => x === a && y === b), `${a} : ${b}`).toBe(false);
+      expect(lesson.checks.length, t.id).toBe(2);
+      for (const c of lesson.checks) {
+        expect(c.explain, c.prompt).toBeTruthy();
+        const d = divisionGridOf(c as FillExercise);
+        expect(d, c.prompt).not.toBeNull();
+        const [a, b] = d!;
+        expect(a % b > 0, `${a} : ${b}`).toBe(t.id === 'b-m5-dzp-reszta');
+        expect(tasks.some(([x, y]) => x === a && y === b), `${a} : ${b}`).toBe(false);
+        expect(divs.some(([x, y]) => x === a && y === b), `${a} : ${b}`).toBe(false);
+      }
     }
   });
 
@@ -300,21 +328,20 @@ describe('mnożenie pisemne w kratkach (sprawdzenie dzielenia)', () => {
     }
   });
 
-  it('zadania „Pomnóż pisemnie” z tematów: liczby z działania i poprawny iloczyn w luce', () => {
-    let n = 0;
-    for (const t of MATH_GRADE5.filter((x) => x.id.startsWith('b-m5-dzp'))) {
-      for (const ex of parseDsl(t.dsl, t.id).exercises) {
-        const m = multiplicationGridOf(ex as FillExercise);
-        expect(!!m, ex.prompt).toBe(/Pomnóż pisemnie/.test(ex.prompt));
-        if (!m) continue;
-        n++;
-        const gaps = (ex as FillExercise).parts.filter((p): p is string[] => Array.isArray(p)).map((p) => Number(p[0]));
-        expect(gaps).toEqual([m[0] * m[1]]);
-        // Słupek z dzieleniem i mnożenie w kratkach to różne zadania.
-        expect(divisionGridOf(ex as FillExercise)).toBeNull();
-      }
+  it('zadania „Pomnóż pisemnie”: liczby z działania i poprawny iloczyn w luce', () => {
+    const lines = [multiplyLine(46, 23), multiplyLine(144, 6), multiplyLine(312, 27)];
+    const made = generateExercises(GENERATORS.find((g) => g.id === 'mnp')!, 40) as FillExercise[];
+    const exercises = [...(parseDsl(lines.join('\n')).exercises as FillExercise[]), ...made];
+    expect(exercises.length).toBeGreaterThanOrEqual(43);
+    for (const ex of exercises) {
+      const m = multiplicationGridOf(ex);
+      expect(m, ex.prompt).not.toBeNull();
+      const gaps = ex.parts.filter((p): p is string[] => Array.isArray(p)).map((p) => Number(p[0]));
+      expect(gaps).toEqual([m![0] * m![1]]);
+      // Słupek z dzieleniem i mnożenie w kratkach to różne zadania.
+      expect(divisionGridOf(ex)).toBeNull();
     }
-    expect(n).toBeGreaterThanOrEqual(8);
+    expect(() => multiplyLine(46, 20)).toThrow();
     // Zwykłe mnożenie bez słów „Pomnóż pisemnie” i mnożnik z zerem zostają zwykłą luką.
     const plain = parseDsl('wpisz: Oblicz. >> 46 · 23 = [1058]\nwpisz: Pomnóż pisemnie. >> 46 · 20 = [920]').exercises as FillExercise[];
     expect(multiplicationGridOf(plain[0])).toBeNull();

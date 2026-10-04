@@ -47,7 +47,8 @@ export function Summary({ result }: { result: SessionResult }) {
   const acc = result.firstTotal ? result.firstCorrect / result.firstTotal : 0;
   const run = result.run;
   const exam = result.exam;
-  const back = () => go(backScreen(result.run, result.subjectId));
+  const backTo = backScreen(result.run, result.subjectId);
+  const back = () => go(backTo);
   const mins = Math.floor(result.seconds / 60);
   const secs = result.seconds % 60;
   const celebrate = acc >= 0.7 || !!result.milestone || result.weekDone;
@@ -228,7 +229,7 @@ export function Summary({ result }: { result: SessionResult }) {
           </button>
         )}
         <button className="btn btn-primary btn-lg" onClick={back}>
-          {run.kind === 'gen' && run.facts?.length ? 'Wróć do tabliczki' : result.subjectId ? 'Wróć do tematów' : 'Wróć na start'}
+          {backTo.name === 'times' ? 'Wróć do tabliczki' : backTo.name === 'subject' ? 'Wróć do tematów' : 'Wróć na start'}
         </button>
       </div>
     </div>

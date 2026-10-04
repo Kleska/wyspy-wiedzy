@@ -3,7 +3,7 @@ import { subjectLang } from '../content/seed';
 import { nowIso, store, uid } from '../data/store';
 import { parseLesson } from '../dsl';
 import { LESSON_COINS } from '../engine';
-import { divisionGridOf, divisionLayout, lessonDivision, writtenDivisionOf } from '../longdiv';
+import { divisionLayout, lessonDivision } from '../longdiv';
 import { playSound } from '../speech';
 import { coinText } from '../themes';
 import type { Exercise, Lesson, LessonPair, Session } from '../types';
@@ -12,7 +12,7 @@ import { ExerciseView } from './exercises/Exercises';
 import { correctText, initialAnswer, isCorrect, isReady, type Answer } from './exercises/logic';
 import { practice, useApp, useProgress, type Screen } from './hooks';
 import { Icon } from './icons';
-import { DivisionSolution, DivisionSteps } from './LongDivision';
+import { DivisionSteps } from './LongDivision';
 import { TopBar } from './TopBar';
 
 /** Każda karta ma zmieścić się na jednym ekranie telefonu: przykład jest osobno, a pary idą po dwie. */
@@ -246,7 +246,6 @@ export function Learn({ topicId, from }: { topicId: string; from?: 'home' | 'sub
   const isCheck = card.kind === 'check';
   // Słupek odsłaniamy krok po kroku tym samym dużym przyciskiem; dopiero po ostatnim kroku idziemy do następnej karty.
   const stepsLeft = card.kind === 'division' ? divisionLayout(card.a, card.b).frames.length - 1 - frame : 0;
-  const checkDivision = isCheck && !divisionGridOf(card.ex) ? writtenDivisionOf(card.ex) : null;
   return (
     <div className="practice lesson">
       <div className="pr-top">
@@ -305,7 +304,6 @@ export function Learn({ topicId, from }: { topicId: string; from?: 'home' | 'sub
             lang={lang}
           />
         )}
-        {checkDivision && checked !== null && <DivisionSolution key={`d${idx}`} a={checkDivision[0]} b={checkDivision[1]} />}
       </div>
 
       {isCheck && checked !== null ? (

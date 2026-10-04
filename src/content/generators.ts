@@ -13,7 +13,7 @@ export interface Generator {
   description: string;
   grades: number[];
   make: (rnd: () => number) => string;
-  /** Zadania na kartkę (np. dzielenie pisemne) — nie nadają się do Błyskawicy ani Par na czas. */
+  /** Długie zadania (słupki z kratkami) — nie nadają się do Błyskawicy ani Par na czas, a sesja treningu jest krótsza. */
   slow?: boolean;
 }
 
@@ -101,20 +101,20 @@ function orderOps(rnd: () => number): string {
   }
 }
 
-/** Dzielenie pisemne przez liczbę jednocyfrową: wynik trzy- lub czterocyfrowy, co trzecie zadanie z resztą. */
-function writtenDiv1(rnd: () => number): string {
-  const b = int(rnd, 3, 9);
-  const q = rnd() < 0.7 ? int(rnd, 101, 999) : int(rnd, 1001, 2400);
-  const r = rnd() < 0.34 ? int(rnd, 1, b - 1) : 0;
-  return writtenLine(q * b + r, b);
+/** Dzielenie pisemne przez liczbę jednocyfrową (dzielna trzy-, czasem czterocyfrowa) — bez reszty albo z resztą. */
+function writtenDiv1(rnd: () => number, rest: boolean): string {
+  const b = int(rnd, 2, 9);
+  const big = rnd() < 0.25;
+  const q = int(rnd, Math.ceil((big ? 1000 : 100) / b), Math.floor((big ? 4999 : 999) / b) - 1);
+  return writtenLine(q * b + (rest ? int(rnd, 1, b - 1) : 0), b);
 }
 
-/** Dzielenie pisemne przez liczbę dwucyfrową: wynik dwu- lub trzycyfrowy, co trzecie zadanie z resztą. */
-function writtenDiv2(rnd: () => number): string {
-  const b = int(rnd, 12, 49);
-  const q = rnd() < 0.7 ? int(rnd, 12, 99) : int(rnd, 101, 240);
-  const r = rnd() < 0.34 ? int(rnd, 1, b - 1) : 0;
-  return writtenLine(q * b + r, b);
+/** Dzielenie pisemne przez liczbę dwucyfrową (wynik dwucyfrowy, czasem trzycyfrowy) — bez reszty albo z resztą. */
+function writtenDiv2(rnd: () => number, rest: boolean): string {
+  let b = int(rnd, 12, 49);
+  if (b % 10 === 0) b++;
+  const q = rnd() < 0.8 ? int(rnd, 12, 99) : int(rnd, 101, 160);
+  return writtenLine(q * b + (rest ? int(rnd, 1, b - 1) : 0), b);
 }
 
 /** Mnożenie pisemne w kratkach: liczba dwu- lub trzycyfrowa razy jedno- albo dwucyfrowa (bez zer w mnożniku). */
@@ -133,8 +133,10 @@ export const GENERATORS: Generator[] = [
   { id: 'frac', title: 'Skracanie ułamków', description: 'Dziel licznik i mianownik przez tę samą liczbę.', grades: [4, 5, 6, 7, 8], make: fracSimplify },
   { id: 'dec', title: 'Ułamki dziesiętne', description: 'Dodawanie i odejmowanie.', grades: [5, 6, 7, 8], make: decimals },
   { id: 'order', title: 'Kolejność działań', description: 'Nawiasy, potem mnożenie i dzielenie.', grades: [4, 5, 6, 7, 8], make: orderOps },
-  { id: 'dzp1', title: 'Dzielenie pisemne przez liczbę jednocyfrową', description: 'Słupek z kratkami: wpisujesz cyfry jak na kartce.', grades: [4, 5, 6], make: writtenDiv1, slow: true },
-  { id: 'dzp2', title: 'Dzielenie pisemne przez liczbę dwucyfrową', description: 'Słupek z kratkami: wpisujesz cyfry jak na kartce.', grades: [5, 6, 7, 8], make: writtenDiv2, slow: true },
+  { id: 'dzp1', title: 'Dzielenie pisemne przez liczbę jednocyfrową — bez reszty', description: 'Słupek z kratkami: wpisujesz cyfry jak w zeszycie.', grades: [4, 5, 6], make: (r) => writtenDiv1(r, false), slow: true },
+  { id: 'dzp1r', title: 'Dzielenie pisemne przez liczbę jednocyfrową — z resztą', description: 'Słupek z kratkami: wpisujesz cyfry jak w zeszycie.', grades: [4, 5, 6], make: (r) => writtenDiv1(r, true), slow: true },
+  { id: 'dzp2', title: 'Dzielenie pisemne przez liczbę dwucyfrową — bez reszty', description: 'Słupek z kratkami: wpisujesz cyfry jak w zeszycie.', grades: [5, 6, 7, 8], make: (r) => writtenDiv2(r, false), slow: true },
+  { id: 'dzp2r', title: 'Dzielenie pisemne przez liczbę dwucyfrową — z resztą', description: 'Słupek z kratkami: wpisujesz cyfry jak w zeszycie.', grades: [5, 6, 7, 8], make: (r) => writtenDiv2(r, true), slow: true },
   { id: 'mnp', title: 'Mnożenie pisemne', description: 'Słupek z kratkami — przyda się do sprawdzania dzielenia.', grades: [4, 5, 6, 7, 8], make: writtenMul, slow: true },
 ];
 
@@ -158,6 +160,9 @@ export function factExercises(facts: [number, number][]): FillExercise[] {
     return ex?.type === 'fill' ? [ex] : [];
   });
 }
+
+/** Ile zadań w jednej sesji treningu ze słupkami: każdy słupek to kilkanaście kratek, więc mniej niż w zwykłym treningu. */
+export const SLOW_SESSION = 5;
 
 export function generatorById(id: string): Generator | undefined {
   return GENERATORS.find((g) => g.id === id);

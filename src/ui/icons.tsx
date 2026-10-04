@@ -2,6 +2,13 @@ import type { CSSProperties } from 'react';
 
 // Ikony liniowe (ścieżki na licencji ISC, Lucide).
 const PATHS: Record<string, JSX.Element> = {
+  divide: (
+    <>
+      <circle cx="12" cy="6" r="1" />
+      <line x1="5" x2="19" y1="12" y2="12" />
+      <circle cx="12" cy="18" r="1" />
+    </>
+  ),
   rocket: (
     <>
       <path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5" />

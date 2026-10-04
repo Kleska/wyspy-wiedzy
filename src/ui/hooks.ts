@@ -43,7 +43,7 @@ export type Run =
   | { kind: 'review' }
   | { kind: 'test'; topicIds: string[]; title: string; subjectId: string; count: number; quizId?: string; /** Kartkówka z konkretnych zadań (np. z błędów). */ items?: { topicId: string; exerciseId: string }[] }
   | { kind: 'diagnostic'; subjectId: string }
-  | { kind: 'gen'; genId: string; facts?: [number, number][] }
+  | { kind: 'gen'; genId: string; facts?: [number, number][]; /** Trening zaczęty z ekranu startowego (karta „Dzielenie pisemne”) — po nim wracamy na start, nie do przedmiotu. */ home?: boolean }
   | { kind: 'fix'; items: { topicId: string; exerciseId: string }[]; subjectId: string | null };
 
 /** Błyskawica: 60 sekund z generatora (matematyka) albo szybkie pytania z tematów przedmiotu. */
@@ -70,6 +70,7 @@ export const isExamRun = (run: Run) => run.kind === 'test' || run.kind === 'diag
 /** Dokąd wrócić po ćwiczeniu. */
 export function backScreen(run: Run, subjectId: string | null): Screen {
   if (run.kind === 'gen' && run.facts?.length) return { name: 'times' };
+  if (run.kind === 'gen' && run.home) return { name: 'home' };
   return subjectId ? { name: 'subject', subjectId } : { name: 'home' };
 }
 

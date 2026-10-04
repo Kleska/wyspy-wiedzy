@@ -337,42 +337,6 @@ export function writtenLine(a: number, b: number): string {
   return `wpisz: Oblicz pisemnie. Wpisz cyfry w kratki. >> ${a} : ${b} = [${d.quotient}] ${tail}`;
 }
 
-/** Słupek „za rękę”: dziecko wpisuje cyfrę wyniku i resztę w każdym kroku oraz liczbę, która powstaje po spisaniu cyfry. */
-function guidedLine(a: number, b: number): string {
-  const d = longDivision(a, b);
-  const steps = d.steps.map((s, i) => `${i === 0 ? s.part : `[${s.part}]`} : ${b} = [${s.digit}] r [${s.rest}]`);
-  const result = `[${d.quotient}]${d.remainder ? ` r [${d.remainder}]` : ''}`;
-  // „ // ” = nowa linia: każdy krok w osobnym wierszu, żeby na telefonie nic się nie łamało w połowie.
-  return `wpisz: Dzielimy pisemnie ${a} : ${b}. Uzupełnij kolejne kroki (r to reszta). >> ${steps.join(' // → ')} // Wynik: ${result} !! Po każdym kroku spisujemy następną cyfrę obok reszty. Sprawdzenie: ${divisionCheck(d)}.`;
-}
-
-/** Którą liczbę dzielimy w pierwszym kroku? */
-function firstPartLine(a: number, b: number, wrong: number[]): string {
-  const first = longDivision(a, b).steps[0].part;
-  const len = String(first).length;
-  const lead = Number(String(a).slice(0, len - 1));
-  const why = len === 1 ? `W ${first} dzielnik ${b} już się mieści, więc wystarczy jedna cyfra.` : `${lead} jest mniejsze od ${b}, więc bierzemy ${len === 2 ? 'dwie cyfry' : 'trzy cyfry'}: ${first}.`;
-  if (wrong.includes(first)) throw new Error(`Błędna odpowiedź równa poprawnej: ${a} : ${b}`);
-  return `wybierz: Dzielimy pisemnie ${a} : ${b}. Którą liczbę dzielimy w pierwszym kroku? | *${first} | ${wrong.join(' | ')} !! ${why}`;
-}
-
-/** Ile razy dzielnik mieści się w liczbie (szacowanie cyfry wyniku). */
-function fitsLine(part: number, b: number, round: string): string {
-  const q = Math.floor(part / b);
-  return `wybierz: Ile razy ${b} mieści się w ${part}? Pomóż sobie: ${round}. | *${q} | ${q - 1} | ${q + 1} | ${q + 2} !! ${q} · ${b} = ${q * b}, a ${q + 1} · ${b} = ${(q + 1) * b} to już za dużo.`;
-}
-
-/**
- * Sprawdzanie dzielenia mnożeniem — „od tyłu”: z wyniku (i reszty) odtwarzamy dzielną, której nie ma w poleceniu.
- * Bez reszty to mnożenie pisemne w kratkach (słowa „Pomnóż pisemnie” w poleceniu — patrz `multiplicationGridOf`).
- */
-const checkLine = (a: number, b: number) => {
-  const d = longDivision(a, b);
-  return d.remainder
-    ? `wpisz: Pewną liczbę podzielono przez ${b}. Wyszło ${d.quotient} i reszta ${d.remainder}. Jaka to liczba? >> ${d.quotient} · ${b} + ${d.remainder} = [${a}] !! Tak sprawdzamy dzielenie z resztą: wynik razy dzielnik plus reszta daje dzielną.`
-    : `wpisz: Pewną liczbę podzielono przez ${b} i wyszło ${d.quotient}. Jaka to liczba? Pomnóż pisemnie — wpisz cyfry w kratki. >> ${d.quotient} · ${b} = [${a}] !! Tak sprawdzamy dzielenie: wynik razy dzielnik daje dzielną.`;
-};
-
 /** „Pomnóż pisemnie”: mnożenie w słupku z kratkami — czynniki wydrukowane, dziecko wpisuje iloczyny częściowe i sumę. */
 export function multiplyLine(a: number, b: number): string {
   if (String(b).includes('0')) throw new Error(`Mnożenie pisemne: mnożnik ${b} ma zero — takiego zapisu nie rysujemy`);
@@ -384,188 +348,90 @@ export function multiplyLine(a: number, b: number): string {
   return `wpisz: Pomnóż pisemnie. Wpisz cyfry w kratki — od prawej strony. >> ${a} · ${b} = [${a * b}] ?? Najpierw ${a} · ${u}. Potem ${a} · ${t} — ten iloczyn zapisz o jedno miejsce w lewo. Na końcu dodaj. !! ${a} · ${u} = ${a * u} i ${a} · ${t} = ${a * t} (o jedno miejsce w lewo, bo to dziesiątki). Razem: ${a * u} + ${a * t * 10} = ${a * b}.`;
 }
 
-/** Pilnuje, żeby zadania pasowały do tematu (np. bez reszty i bez zera w wyniku tam, gdzie jeszcze ich nie było). */
-function requireDivision(a: number, b: number, want: { remainder?: boolean; zero?: boolean }): void {
-  const d = longDivision(a, b);
-  const zero = String(d.quotient).includes('0');
-  if (want.remainder !== undefined && want.remainder !== d.remainder > 0) throw new Error(`${a} : ${b} — reszta ${d.remainder} nie pasuje do tematu`);
-  if (want.zero !== undefined && want.zero !== zero) throw new Error(`${a} : ${b} = ${d.quotient} — zero w wyniku nie pasuje do tematu`);
+/** Same słupki z kratkami; pilnuje, żeby każde działanie pasowało do tematu (z resztą albo bez). */
+function writtenSet(pairs: [number, number][], remainder: boolean): string {
+  return lines(
+    ...pairs.map(([a, b]) => {
+      if (a % b > 0 !== remainder) throw new Error(`${a} : ${b} — reszta ${a % b} nie pasuje do tematu`);
+      return writtenLine(a, b);
+    }),
+  );
 }
 
-function writtenDivBasic(): string {
-  const out: string[] = [];
-  out.push('wybierz: Od której strony zaczynamy dzielenie pisemne? | *od lewej — od pierwszej cyfry | od prawej — od jedności !! Dodawanie, odejmowanie i mnożenie pisemne zaczynamy od prawej. Dzielenie — odwrotnie, od lewej.');
-  out.push('wybierz: Co robimy po kolei w każdym kroku dzielenia pisemnego? | *dzielę, mnożę, odejmuję, spisuję | mnożę, dzielę, spisuję, odejmuję | spisuję, odejmuję, mnożę, dzielę | odejmuję, dzielę, mnożę, spisuję !! Dzielę, mnożę, odejmuję, spisuję — i znowu od początku, aż skończą się cyfry.');
-  out.push(firstPartLine(752, 4, [75, 2, 752]));
-  out.push(firstPartLine(148, 4, [1, 8, 148]));
-  out.push('wybierz: Ile cyfr ma wynik dzielenia 852 : 4? | *3 | 2 | 4 !! 8 da się podzielić przez 4, więc pierwsza cyfra wyniku stoi już nad 8. Każda następna cyfra dzielnej daje jedną cyfrę wyniku: razem trzy.');
-  out.push('wybierz: Ile cyfr ma wynik dzielenia 252 : 4? | *2 | 3 | 1 !! 2 jest mniejsze od 4, więc zaczynamy od 25. Pierwsza cyfra wyniku stoi nad 5, druga nad 2: razem dwie.');
-  out.push('wybierz: W jednym z kroków dzielenia przez 6 wyszła reszta 7. Co to znaczy? | *cyfra w wyniku jest za mała | wszystko jest dobrze | trzeba spisać dwie cyfry naraz !! Reszta musi być mniejsza od dzielnika. W 7 szóstka mieści się jeszcze raz, więc trzeba wziąć cyfrę o 1 większą.');
-  for (const [a, b] of [
-    [675, 5],
-    [288, 6],
-  ]) {
-    requireDivision(a, b, { remainder: false, zero: false });
-    out.push(guidedLine(a, b));
-  }
-  for (const [a, b] of [
-    [738, 6],
-    [852, 4],
-    [795, 5],
-    [868, 7],
-    [972, 3],
-    [252, 4],
-    [315, 7],
-    [448, 8],
-    [216, 9],
-    [1235, 5],
-    [2952, 8],
-    [5348, 7],
-    [356, 4],
-    [518, 7],
-    [432, 8],
-    [756, 6],
-    [628, 4],
-    [402, 6],
-  ]) {
-    requireDivision(a, b, { remainder: false, zero: false });
-    out.push(writtenLine(a, b));
-  }
-  out.push(multiplyLine(157, 4));
-  out.push(multiplyLine(213, 3));
-  out.push(checkLine(864, 6));
-  out.push(checkLine(294, 7));
-  out.push('wpisz: Cztery jednakowe bilety do kina kosztowały razem 116 zł. Ile kosztował jeden bilet? >> Jeden bilet kosztował [29] zł. !! 116 : 4 = 29. Sprawdzenie: 29 · 4 = 116.');
-  out.push('wpisz: Na 7 półkach ułożono po równo 525 książek. Ile książek stoi na jednej półce? >> Na jednej półce stoi [75] książek. !! 525 : 7 = 75. Sprawdzenie: 75 · 7 = 525.');
-  return lines(...out);
-}
+/** Bez reszty: najpierw dzielnik jednocyfrowy (jak na karcie pracy z kratkami), potem dwucyfrowy. */
+const WRITTEN_NO_REST: [number, number][] = [
+  [180, 5],
+  [356, 4],
+  [225, 3],
+  [518, 7],
+  [402, 6],
+  [192, 2],
+  [282, 3],
+  [960, 6],
+  [432, 8],
+  [756, 6],
+  [628, 4],
+  [639, 3],
+  [738, 6],
+  [852, 4],
+  [612, 6],
+  [832, 8],
+  [1235, 5],
+  [2952, 8],
+  [1058, 23],
+  [532, 19],
+  [1764, 49],
+  [1200, 25],
+  [918, 27],
+  [805, 23],
+  [2075, 25],
+  [1456, 13],
+  [1008, 42],
+  [3264, 32],
+];
 
-function writtenDivZeroRest(): string {
-  const out: string[] = [];
-  out.push('wybierz: Dzielimy pisemnie 618 : 6. Po pierwszym kroku spisujemy 1. Co robimy, skoro 1 jest mniejsze od 6? | *piszemy 0 w wyniku i spisujemy następną cyfrę | nic nie piszemy i spisujemy następną cyfrę | piszemy 1 w wyniku !! 6 nie mieści się w 1 ani razu, więc cyfrą wyniku jest 0. Bez tego zera wyszłoby 13 zamiast 103.');
-  out.push('wybierz: Kuba obliczył: 918 : 9 = 12. Co poszło nie tak? | *zgubił zero w środku wyniku | zaczął od prawej strony | nic — wynik jest dobry !! 9 : 9 = 1, potem 1 : 9 = 0 (to zero trzeba zapisać!), na końcu 18 : 9 = 2. Wynik: 102. Sprawdzenie: 12 · 9 = 108, a nie 918.');
-  out.push('wybierz: Ola obliczyła: 840 : 4 = 21. Co poszło nie tak? | *zgubiła zero na końcu wyniku | źle odjęła | nic — wynik jest dobry !! Ostatnia cyfra 0 też daje cyfrę wyniku: 0 : 4 = 0. Wynik: 210. Sprawdzenie: 21 · 4 = 84, a nie 840.');
-  out.push('wybierz: Która reszta NIE może wyjść przy dzieleniu przez 6? | *6 | 0 | 3 | 5 !! Reszta jest zawsze mniejsza od dzielnika. Przy dzieleniu przez 6 największa możliwa reszta to 5.');
-  out.push('wybierz: Jak sprawdzić dzielenie z resztą 47 : 5 = 9 r 2? | *9 · 5 + 2 | 9 · 5 − 2 | 9 · 2 + 5 | 9 + 5 + 2 !! Wynik mnożymy przez dzielnik i dodajemy resztę: 9 · 5 + 2 = 45 + 2 = 47.');
-  for (const [a, b] of [
-    [618, 6],
-    [437, 3],
-  ])
-    out.push(guidedLine(a, b));
-  for (const [a, b] of [
-    [612, 6],
-    [832, 8],
-    [525, 5],
-    [3609, 9],
-    [5040, 8],
-    [1220, 4],
-    [2800, 7],
-    [960, 6],
-  ]) {
-    requireDivision(a, b, { remainder: false, zero: true });
-    out.push(writtenLine(a, b));
-  }
-  for (const [a, b] of [
-    [745, 6],
-    [359, 7],
-    [1000, 3],
-    [823, 4],
-    [964, 9],
-    [500, 8],
-  ]) {
-    requireDivision(a, b, { remainder: true });
-    out.push(writtenLine(a, b));
-  }
-  out.push(checkLine(647, 6));
-  out.push(checkLine(816, 8));
-  out.push('wpisz: Jajka pakujemy do pudełek po 6 sztuk. Mamy 184 jajka. Ile pudełek będzie pełnych i ile jajek zostanie? >> Pełnych pudełek: [30], zostaną [4] jajka. !! 184 : 6 = 30 r 4. Sprawdzenie: 30 · 6 + 4 = 184.');
-  out.push('wpisz: W jednej łódce mieszczą się 4 osoby. Ile łódek potrzeba, żeby popłynęło 150 osób? >> Potrzeba [38] łódek. !! 150 : 4 = 37 r 2. 37 łódek to za mało — dwie osoby też muszą popłynąć, więc potrzeba 38.');
-  out.push('wpisz: Tata zapłacił 824 zł za 8 jednakowych krzeseł. Ile kosztowało jedno krzesło? >> Jedno krzesło kosztowało [103] zł. !! 824 : 8 = 103. Sprawdzenie: 103 · 8 = 824.');
-  return lines(...out);
-}
-
-function writtenDivTwoDigit(): string {
-  const out: string[] = [];
-  out.push(firstPartLine(952, 17, [9, 52, 952]));
-  out.push(firstPartLine(1672, 44, [16, 1, 1672]));
-  out.push(fitsLine(130, 41, '41 to około 40'));
-  out.push(fitsLine(140, 19, '19 to prawie 20'));
-  out.push(fitsLine(215, 43, '43 to około 40'));
-  out.push('wybierz: W kroku dzielenia przez 24 wybrano cyfrę 3 i wyszła reszta 30. Co to znaczy? | *cyfra jest za mała — 24 zmieści się jeszcze raz | cyfra jest za duża | wszystko jest dobrze !! Reszta musi być mniejsza od dzielnika. 30 jest większe od 24, więc bierzemy cyfrę o 1 większą.');
-  out.push('wybierz: Dzielimy 150 przez 38. Wybrano cyfrę 4, ale 4 · 38 = 152. Co robimy? | *bierzemy cyfrę o 1 mniejszą: 3 | bierzemy cyfrę o 1 większą: 5 | odejmujemy mimo to !! 152 jest większe od 150, więc 38 nie mieści się w 150 cztery razy. Bierzemy 3: 3 · 38 = 114.');
-  out.push(`wpisz: Zanim zaczniesz dzielić przez 23, przygotuj ściągę: pomnóż 23 przez 2, 3, 4 i 5. >> 2 · 23 = [${2 * 23}], 3 · 23 = [${3 * 23}], 4 · 23 = [${4 * 23}], 5 · 23 = [${5 * 23}] !! Taka ściąga na marginesie pomaga szybko wybrać cyfrę wyniku.`);
-  for (const [a, b] of [
-    [952, 17],
-    [1672, 44],
-  ])
-    out.push(guidedLine(a, b));
-  for (const [a, b] of [
-    [918, 27],
-    [805, 23],
-    [2075, 25],
-    [1456, 13],
-    [4592, 56],
-    [1008, 42],
-    [3264, 32],
-    [7626, 31],
-    [1058, 23],
-    [532, 19],
-    [1764, 49],
-    [1200, 25],
-  ]) {
-    requireDivision(a, b, { remainder: false });
-    out.push(writtenLine(a, b));
-  }
-  // Mnożenie pisemne jako sprawdzenie — na innych liczbach niż zadania z dzieleniem, żeby jedno nie podpowiadało drugiego.
-  for (const [a, b] of [
-    [37, 24],
-    [54, 18],
-    [63, 27],
-    [45, 32],
-  ])
-    out.push(multiplyLine(a, b));
-  for (const [a, b] of [
-    [1000, 23],
-    [875, 14],
-    [2500, 48],
-  ]) {
-    requireDivision(a, b, { remainder: true });
-    out.push(writtenLine(a, b));
-  }
-  out.push(checkLine(828, 23));
-  out.push('wpisz: W sali kinowej są 432 miejsca w 18 równych rzędach. Ile miejsc jest w jednym rzędzie? >> W jednym rzędzie są [24] miejsca. !! 432 : 18 = 24. Sprawdzenie: 24 · 18 = 432.');
-  out.push('wpisz: Za 15 jednakowych biletów zapłacono 645 zł. Ile kosztował jeden bilet? >> Jeden bilet kosztował [43] zł. !! 645 : 15 = 43. Sprawdzenie: 43 · 15 = 645.');
-  out.push('wpisz: Jajka pakujemy po 12 sztuk. Ile opakowań potrzeba, żeby zapakować 500 jajek? >> Potrzeba [42] opakowań. !! 500 : 12 = 41 r 8. Na 8 jajek, które zostały, potrzebne jest jeszcze jedno opakowanie: 41 + 1 = 42.');
-  return lines(...out);
-}
+/** Z resztą: dzielnik jednocyfrowy i dwucyfrowy. */
+const WRITTEN_REST: [number, number][] = [
+  [745, 6],
+  [359, 7],
+  [823, 4],
+  [964, 9],
+  [500, 8],
+  [437, 3],
+  [275, 4],
+  [668, 5],
+  [917, 8],
+  [386, 7],
+  [1000, 3],
+  [2531, 6],
+  [1000, 23],
+  [875, 14],
+  [700, 16],
+  [950, 27],
+  [1234, 31],
+  [2500, 48],
+  [1111, 12],
+  [1000, 37],
+];
 
 export const MATH_GRADE5: Topic[] = [
   builtin(
-    'b-m5-dzp-1',
+    'b-m5-dzp-bez',
     'mat',
     1,
-    'Dzielenie pisemne przez liczbę jednocyfrową',
+    'Dzielenie pisemne bez reszty',
     'Zaczynamy od lewej strony. W każdym kroku: podziel, pomnóż, odejmij, spisz następną cyfrę.',
-    writtenDivBasic(),
+    writtenSet(WRITTEN_NO_REST, false),
     [4, 5, 6],
   ),
   builtin(
-    'b-m5-dzp-zero',
+    'b-m5-dzp-reszta',
     'mat',
     2,
-    'Dzielenie pisemne: zero w wyniku i reszta',
-    'Gdy liczba jest za mała, żeby ją podzielić, piszemy 0 w wyniku i spisujemy następną cyfrę. Reszta jest zawsze mniejsza od dzielnika.',
-    writtenDivZeroRest(),
+    'Dzielenie pisemne z resztą',
+    'Dziel jak zwykle. To, co zostaje po ostatnim odejmowaniu, jest resztą — zawsze mniejszą od dzielnika.',
+    writtenSet(WRITTEN_REST, true),
     [4, 5, 6],
-  ),
-  builtin(
-    'b-m5-dzp-2cyfr',
-    'mat',
-    3,
-    'Dzielenie pisemne przez liczbę dwucyfrową',
-    'Bierzemy tyle cyfr, żeby powstała liczba nie mniejsza od dzielnika. Cyfrę wyniku szacujemy i sprawdzamy mnożeniem.',
-    writtenDivTwoDigit(),
-    [5, 6],
   ),
   builtin('b-m5-ulamki', 'mat', 10, 'Ułamki: skracanie i rozszerzanie', 'Skracamy: dzielimy licznik i mianownik przez tę samą liczbę. Rozszerzamy: mnożymy oba przez tę samą liczbę.', fractionsSimplify(), [5]),
   builtin('b-m5-ulamki-dzialania', 'mat', 20, 'Dodawanie i odejmowanie ułamków', 'Przy tych samych mianownikach dodajemy tylko liczniki. Przy różnych — najpierw sprowadzamy do wspólnego mianownika.', fractionsOps(), [5]),

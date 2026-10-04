@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { generatorsFor } from '../content/generators';
+import { generatorsFor, SLOW_SESSION } from '../content/generators';
 import { SUBJECTS, subjectOf } from '../content/seed';
 import { gradeOf, store } from '../data/store';
 import {
@@ -73,6 +73,7 @@ export function Home() {
         <HelloCard progress={progress} />
         <PlanCard progress={progress} />
         <QuizCard progress={progress} />
+        <DivisionCard />
 
         <section className="col" style={{ gap: 14 }}>
           <h2 className="section-title">Co dziś ćwiczymy?</h2>
@@ -379,6 +380,72 @@ function QuizCard({ progress }: { progress: Progress }) {
           </div>
         );
       })}
+    </section>
+  );
+}
+
+// ─── Dzielenie pisemne: słupki z kratkami, wejście jednym dotknięciem ────────
+
+/** Rodzaje słupków: dzielnik jedno- i dwucyfrowy, każdy bez reszty (`id`) i z resztą (`id` + „r”). */
+const DIVISION_KINDS = [
+  { id: 'dzp1', label: 'Dzielnik jednocyfrowy', name: 'przez liczbę jednocyfrową', sample: '936 : 4' },
+  { id: 'dzp2', label: 'Dzielnik dwucyfrowy', name: 'przez liczbę dwucyfrową', sample: '864 : 24' },
+];
+
+/** Przyciski do słupków dla klasy dziecka; `null`, gdy w tej klasie nie ma jeszcze dzielenia pisemnego. `home` — po serii wracamy na ekran startowy. */
+function DivisionPicker({ home }: { home?: boolean }) {
+  const { profile, go } = useApp();
+  const gens = generatorsFor(gradeOf(profile));
+  const has = (id: string) => gens.some((g) => g.id === id);
+  const kinds = DIVISION_KINDS.filter((k) => has(k.id) && has(`${k.id}r`));
+  if (!kinds.length) return null;
+  const start = (genId: string) => go(practice({ kind: 'gen', genId, home }));
+  return (
+    <div className="division-picker">
+      <div className="division-kinds">
+        {kinds.map((k) => (
+          <div key={k.id} className="division-kind">
+            <div className="division-kind-name">
+              <b>{k.label}</b>
+              <small>np. {k.sample}</small>
+            </div>
+            <div className="division-kind-btns">
+              <button className="btn btn-primary" onClick={() => start(k.id)} aria-label={`Dzielenie pisemne ${k.name} bez reszty`}>
+                Bez reszty
+              </button>
+              <button className="btn btn-primary" onClick={() => start(`${k.id}r`)} aria-label={`Dzielenie pisemne ${k.name} z resztą`}>
+                Z resztą
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+      {has('mnp') && (
+        <button className="btn btn-sm division-check" onClick={() => start('mnp')}>
+          <Icon name="check" size={16} /> Sprawdzenie: mnożenie pisemne
+        </button>
+      )}
+    </div>
+  );
+}
+
+const hasDivision = (grade: number) => generatorsFor(grade).some((g) => g.id === 'dzp1' || g.id === 'dzp2');
+
+function DivisionCard() {
+  const { profile } = useApp();
+  if (!hasDivision(gradeOf(profile))) return null;
+  return (
+    <section className="card col division-card" style={{ gap: 12 }}>
+      <div className="row" style={{ gap: 10 }}>
+        <Icon name="divide" size={26} className="ic-division" />
+        <h2 className="card-title" style={{ margin: 0 }}>
+          Dzielenie pisemne
+        </h2>
+      </div>
+      <p className="muted" style={{ fontWeight: 700, fontSize: 15 }}>
+        Słupek w kratkach — wpisujesz cyfry jak w zeszycie. W serii jest {SLOW_SESSION} przykładów, za każdym razem inne.
+      </p>
+      <DivisionPicker home />
     </section>
   );
 }
@@ -745,7 +812,7 @@ function Challenges({
   planIds: string[];
 }) {
   const { profile, go } = useApp();
-  const [modal, setModal] = useState<'test' | 'gen' | null>(null);
+  const [modal, setModal] = useState<'test' | 'gen' | 'division' | null>(null);
   const untouched = untouchedTopics(allTopics, progress).length;
   const gens = subjectId === 'mat' ? generatorsFor(gradeOf(profile)) : [];
   const quizOk = subjectId !== 'mat' && quizPool(profile.id, subjectId).length >= 5;
@@ -798,6 +865,15 @@ function Challenges({
           </span>
         </button>
       )}
+      {subjectId === 'mat' && hasDivision(gradeOf(profile)) && (
+        <button className="challenge" onClick={() => setModal('division')}>
+          <Icon name="divide" size={28} />
+          <span>
+            <b>Dzielenie pisemne</b>
+            <small>Słupki w kratkach · bez reszty i z resztą</small>
+          </span>
+        </button>
+      )}
       {gens.length > 0 && (
         <button className="challenge" onClick={() => setModal('gen')}>
           <Icon name="infinity" size={28} />
@@ -826,6 +902,14 @@ function Challenges({
         </button>
       )}
       {modal === 'test' && <TestSetup subjectId={subjectId} topics={topics} scope={scope} progress={progress} planIds={planIds} onClose={() => setModal(null)} />}
+      {modal === 'division' && (
+        <Modal title="Dzielenie pisemne" onClose={() => setModal(null)}>
+          <p className="muted" style={{ fontWeight: 700 }}>
+            Słupek w kratkach — wpisujesz cyfry jak w zeszycie. W serii jest {SLOW_SESSION} przykładów, za każdym razem inne.
+          </p>
+          <DivisionPicker />
+        </Modal>
+      )}
       {modal === 'gen' && (
         <Modal title="Trening bez końca i mini-gry" onClose={() => setModal(null)}>
           <p className="muted" style={{ fontWeight: 700 }}>

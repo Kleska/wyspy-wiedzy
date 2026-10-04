@@ -67,26 +67,19 @@ Dzielenie po równo: 24 cukierki dla 4 dzieci → 24 : 4 = 6 cukierków dla każ
 4. Oblicz i sprawdź, czy wynik ma sens.
 Przykład: Ola miała 35 zł i wydała 18 zł. Ile jej zostało? 35 − 18 = 17 zł.`,
 
-  'b-m5-dzp-1': `Dzielenie pisemne zaczynamy od lewej strony — od pierwszej cyfry.
+  'b-m5-dzp-bez': `Dzielenie pisemne zaczynamy od lewej strony — od pierwszej cyfry.
 W każdym kroku robimy to samo: dzielę, mnożę, odejmuję, spisuję następną cyfrę.
 Jeśli pierwsza cyfra jest mniejsza od dzielnika, bierzemy od razu dwie cyfry: w 156 : 3 zaczynamy od 15.
 Reszta po odjęciu musi być mniejsza od dzielnika. Jeśli nie jest, cyfra w wyniku jest za mała.
 słupek: 936 : 4
+Gdy po spisaniu cyfry liczba jest mniejsza od dzielnika, piszemy 0 w wyniku i spisujemy następną cyfrę: 824 : 4 = 206.
 Sprawdzenie: wynik razy dzielnik daje dzielną. 234 · 4 = 936.`,
 
-  'b-m5-dzp-zero': `Każda spisana cyfra daje jedną cyfrę wyniku — nawet jeśli tą cyfrą jest 0.
-Gdy po spisaniu cyfry liczba jest mniejsza od dzielnika, piszemy 0 w wyniku i spisujemy następną cyfrę.
-słupek: 824 : 4
+  'b-m5-dzp-reszta': `Dzielimy jak zwykle: dzielę, mnożę, odejmuję, spisuję następną cyfrę.
 Jeśli po ostatnim kroku coś zostaje, to jest to reszta. Zapisujemy ją po literze r: 587 : 4 = 146 r 3.
-Reszta jest zawsze mniejsza od dzielnika.
+słupek: 587 : 4
+Reszta jest zawsze mniejsza od dzielnika. Jeśli wyszła większa, cyfra w wyniku jest za mała.
 Sprawdzenie: wynik razy dzielnik plus reszta daje dzielną. 146 · 4 + 3 = 587.`,
-
-  'b-m5-dzp-2cyfr': `Przez liczbę dwucyfrową dzielimy tak samo: dzielę, mnożę, odejmuję, spisuję.
-Na początku bierzemy tyle cyfr, żeby powstała liczba nie mniejsza od dzielnika. W 864 : 24 zaczynamy od 86.
-Cyfrę wyniku szacujemy. Pomaga wygodna liczba blisko dzielnika: 24 to prawie 25, a 25 mieści się w 86 trzy razy.
-Sprawdzamy mnożeniem: 3 · 24 = 72. Iloczyn za duży — bierzemy cyfrę o 1 mniejszą. Reszta za duża — o 1 większą.
-słupek: 864 : 24
-Sposób: wypisz na marginesie iloczyny dzielnika przez 2, 3, 4, 5… (w razie potrzeby aż do 9). Potem wybierasz największy iloczyn, który się mieści.`,
 
   'b-m5-ulamki': `W ułamku licznik (na górze) mówi, ile części bierzemy, a mianownik (na dole) — na ile równych części dzielimy całość.
 Skracanie: dzielimy licznik i mianownik przez tę samą liczbę. 6/8 = 3/4 (dzielimy przez 2).

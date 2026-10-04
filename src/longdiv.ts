@@ -228,9 +228,18 @@ export function divisionEntry(inputs: DivInput[], values: string[]): { quotient:
   return { quotient: digits((c) => c.kind === 'quotient'), remainder: String(Number(rest || '0')) };
 }
 
-/** Zadanie „Oblicz pisemnie…” — dziecko wypełnia cały słupek na ekranie (a nie same luki z wynikiem). */
+/**
+ * Zadanie „Oblicz pisemnie… >> 936 : 4 = […]” → [936, 4] — dziecko wypełnia cały słupek na ekranie (a nie same luki z wynikiem).
+ * Inne zadania → null.
+ */
 export function divisionGridOf(ex: { type: string; prompt: string; parts?: (string | string[])[] }): [number, number] | null {
-  return /^Oblicz pisemnie/.test(ex.prompt) ? writtenDivisionOf(ex) : null;
+  if (ex.type !== 'fill' || !ex.parts || !/^Oblicz pisemnie/.test(ex.prompt)) return null;
+  const first = ex.parts[0];
+  const m = typeof first === 'string' ? first.match(/^\s*(\d+) : (\d+) =\s*$/) : null;
+  if (!m) return null;
+  const a = Number(m[1]);
+  const b = Number(m[2]);
+  return b > 0 && a < 1_000_000 ? [a, b] : null;
 }
 
 /** Linia lekcji „słupek: 936 : 4” → [936, 4]. Zwraca `false`, gdy linia zaczyna się od „słupek”, ale jest źle zapisana. */
@@ -239,16 +248,4 @@ export function lessonDivision(line: string): [number, number] | false | null {
   const m = line.trim().match(/^s[łl]upek\s*:\s*(\d{1,6})\s*:\s*(\d{1,3})$/i);
   if (!m || Number(m[2]) === 0) return false;
   return [Number(m[1]), Number(m[2])];
-}
-
-/** „Oblicz pisemnie. >> 936 : 4 = […]” → [936, 4]; inne zadania → null. */
-export function writtenDivisionOf(ex: { type: string; prompt: string; parts?: (string | string[])[] }): [number, number] | null {
-  if (ex.type !== 'fill' || !ex.parts) return null;
-  const first = ex.parts[0];
-  // Albo liczby są w poleceniu („Dzielimy pisemnie 675 : 5. Uzupełnij kroki”), albo w samym działaniu („Oblicz pisemnie… >> 936 : 4 = […]”).
-  const m = ex.prompt.match(/pisemnie (\d+) : (\d+)/) ?? (/^Oblicz pisemnie/.test(ex.prompt) && typeof first === 'string' ? first.match(/^\s*(\d+) : (\d+) =\s*$/) : null);
-  if (!m) return null;
-  const a = Number(m[1]);
-  const b = Number(m[2]);
-  return b > 0 && a < 1_000_000 ? [a, b] : null;
 }
