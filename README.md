@@ -50,6 +50,10 @@ można ją zainstalować na ekranie głównym i używać bez internetu. Postępy
   naraz, a listy tematów w panelu rodzica są nimi pogrupowane (z przyciskiem „Zaznacz rozdział”).
 - Kartkówka od rodzica: w panelu rodzica wybierasz dziecko, tematy, liczbę pytań i termin; dziecko widzi ją na
   ekranie startowym, pisze raz, bez podpowiedzi, a ocena wraca do panelu rodzica (przy koncie rodziny — na żywo).
+- Błędy z kartkówek i sprawdzianów: dziecko po napisaniu widzi pytania, w których się pomyliło (swoją odpowiedź,
+  poprawną i wyjaśnienie), i może do nich wrócić z karty kartkówki („Zobacz błędy”). Rodzic widzi te same pytania
+  w „Plan i sprawdziany” i jednym przyciskiem zadaje kartkówkę dokładnie z nich — albo ze wszystkich niepoprawionych
+  błędów z ostatnich 30 dni („Kartkówka z błędów”).
 - Plan od rodzica (tematy przypięte np. przed sprawdzianem w szkole, z terminem i sprawdzianem próbnym),
   cel tygodnia, zamrożenie serii, kamienie milowe serii, wspólny cel rodzeństwa.
 - Powtórki rozłożone w czasie: błędne zadania wracają na końcu ćwiczenia i w kolejnych dniach (1, 2, 4, 7, 14 dni).

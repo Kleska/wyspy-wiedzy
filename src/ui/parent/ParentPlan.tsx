@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { nowIso, store } from '../../data/store';
 import { dateKey, GRADE_NAMES, planActive, planExamCount, planStatus } from '../../engine';
 import type { Profile } from '../../types';
 import { useProgress, useStoreVersion } from '../hooks';
 import { Icon } from '../icons';
+import { examMistakeRows, ExamMistakes } from './ExamMistakes';
 import { ParentQuiz } from './ParentQuiz';
 import { PlanFromPhoto } from './PlanFromPhoto';
 import { TopicChecklist } from './TopicChecklist';
@@ -33,13 +34,13 @@ export function ParentPlan({ pin }: { pin: string }) {
       </div>
       {profiles.length === 1 && (
         <p className="muted" style={{ fontSize: 14 }}>
-          Na liście jest na razie jedna osoba. Kolejne dzieci pojawią się tu same, gdy zalogujesz konto rodziny na ich urządzeniach — albo dodaj je w zakładce Ustawienia →
-          „Osoby (dzieci)”.
+          Na liście jest na razie jedna osoba. Kolejne dzieci pojawią się tu same, gdy zalogujesz konto rodziny na ich urządzeniach — albo dodaj je w zakładce Ustawienia → „Osoby
+          (dzieci)”.
         </p>
       )}
       <p className="muted">
-        Wszystko tutaj dotyczy jednej osoby (gdy dzieci jest kilka, wybierasz ją u góry). Plan: przypnij tematy, które dziecko ma teraz ćwiczyć (np. przed sprawdzianem w szkole) — zobaczy je na górze ekranu
-        startowego, a aplikacja będzie je polecać w pierwszej kolejności. Kartkówka: krótki sprawdzian z wybranych tematów, pisany raz.
+        Wszystko tutaj dotyczy jednej osoby (gdy dzieci jest kilka, wybierasz ją u góry). Plan: przypnij tematy, które dziecko ma teraz ćwiczyć (np. przed sprawdzianem w szkole) —
+        zobaczy je na górze ekranu startowego, a aplikacja będzie je polecać w pierwszej kolejności. Kartkówka: krótki sprawdzian z wybranych tematów, pisany raz.
       </p>
       <ParentQuiz key={`quiz-${p.id}`} p={p} />
       <PlanEditor key={`${p.id}:${ver}`} p={p} />
@@ -142,11 +143,19 @@ function PlanEditor({ p }: { p: Profile }) {
 
 function ExamHistory({ profileId }: { profileId: string }) {
   const progress = useProgress(profileId);
+  const p = store.get('profile', profileId);
   const all = store.allTopics();
+  const [shown, setShown] = useState<string | null>(null);
+  const [msg, setMsg] = useState('');
   const exams = [...(progress?.exams ?? [])].sort((a, b) => b.at - a.at).slice(0, 20);
   return (
     <section className="card">
       <h2 className="card-title">Sprawdziany i testy na start</h2>
+      {msg && (
+        <div className="note" role="status" style={{ marginBottom: 10 }}>
+          {msg}
+        </div>
+      )}
       {exams.length === 0 ? (
         <p className="muted">Jeszcze nie było sprawdzianu. Dziecko uruchamia go na ekranie przedmiotu („Wyzwania”) albo z planu („Sprawdzian próbny”).</p>
       ) : (
@@ -159,37 +168,71 @@ function ExamHistory({ profileId }: { profileId: string }) {
                 <th>Tematy</th>
                 <th>Wynik</th>
                 <th>Ocena</th>
+                <th>Błędy</th>
               </tr>
             </thead>
             <tbody>
               {exams.map((e) => (
-                <tr key={e.sessionId}>
-                  <td>
-                    {new Date(e.at).toLocaleString('pl-PL', {
-                      dateStyle: 'short',
-                      timeStyle: 'short',
-                    })}
-                  </td>
-                  <td>{e.quizId ? 'Kartkówka' : e.mode === 'test' ? 'Sprawdzian' : 'Test na start'}</td>
-                  <td style={{ maxWidth: 320 }}>{e.topicIds.map((id) => all.find((t) => t.id === id)?.title ?? '?').join(', ')}</td>
-                  <td>
-                    {e.correct}/{e.total} ({Math.round((e.correct / e.total) * 100)}%)
-                  </td>
-                  <td>
-                    {e.mode === 'test' ? (
-                      <span className={`pill ${e.grade >= 4 ? 'good' : e.grade <= 2 ? 'bad' : ''}`}>
-                        {e.grade} — {GRADE_NAMES[e.grade]}
-                      </span>
-                    ) : (
-                      '—'
-                    )}
-                  </td>
-                </tr>
+                <Fragment key={e.sessionId}>
+                  <tr>
+                    <td>
+                      {new Date(e.at).toLocaleString('pl-PL', {
+                        dateStyle: 'short',
+                        timeStyle: 'short',
+                      })}
+                    </td>
+                    <td>{e.quizId ? 'Kartkówka' : e.mode === 'test' ? 'Sprawdzian' : 'Test na start'}</td>
+                    <td style={{ maxWidth: 320 }}>{e.topicIds.map((id) => all.find((t) => t.id === id)?.title ?? '?').join(', ')}</td>
+                    <td>
+                      {e.correct}/{e.total} ({Math.round((e.correct / e.total) * 100)}%)
+                    </td>
+                    <td>
+                      {e.mode === 'test' ? (
+                        <span className={`pill ${e.grade >= 4 ? 'good' : e.grade <= 2 ? 'bad' : ''}`}>
+                          {e.grade} — {GRADE_NAMES[e.grade]}
+                        </span>
+                      ) : (
+                        '—'
+                      )}
+                    </td>
+                    <td>
+                      {e.correct < e.total ? (
+                        <button className="btn btn-sm" aria-expanded={shown === e.sessionId} onClick={() => setShown(shown === e.sessionId ? null : e.sessionId)}>
+                          <Icon name="eye" size={16} /> {shown === e.sessionId ? 'Ukryj' : `Pokaż (${e.total - e.correct})`}
+                        </button>
+                      ) : (
+                        <span className="muted">brak</span>
+                      )}
+                    </td>
+                  </tr>
+                </Fragment>
               ))}
             </tbody>
           </table>
         </div>
       )}
+      {p &&
+        exams
+          .filter((e) => shown === e.sessionId)
+          .map((e) => {
+            const kind = e.quizId ? 'kartkówka' : e.mode === 'test' ? 'sprawdzian' : 'test na start';
+            return (
+              <div key={e.sessionId} className="detail-box">
+                <b>
+                  Błędy: {kind} z {new Date(e.at).toLocaleDateString('pl-PL')}
+                </b>
+                <ExamMistakes
+                  p={p}
+                  rows={examMistakeRows(profileId, e.sessionId)}
+                  title={kind}
+                  onAssigned={(m) => {
+                    setMsg(m);
+                    setTimeout(() => setMsg(''), 5000);
+                  }}
+                />
+              </div>
+            );
+          })}
     </section>
   );
 }

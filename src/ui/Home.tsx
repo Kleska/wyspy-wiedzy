@@ -11,6 +11,7 @@ import {
   GRADE_NAMES,
   groupByUnit,
   mistakesToFix,
+  sessionMistakes,
   planActive,
   planExamCount,
   planStatus,
@@ -28,6 +29,7 @@ import type { ParsedTopic } from '../types';
 import { LevelChip, LevelSteps, Modal } from './bits';
 import { practice, useApp, useProgress } from './hooks';
 import { Icon, Stars } from './icons';
+import { MistakeList, mistakeRows } from './Mistakes';
 import { canPlayPairs, fmtTime } from './Pairs';
 import { TimesGrid, useTimesMap } from './TimesTable';
 import { quizPool } from './Sprint';
@@ -302,6 +304,9 @@ function QuizCard({ progress }: { progress: Progress }) {
   const { profile, go } = useApp();
   const topics = store.topicsFor(profile.id);
   const now = Date.now();
+  // Która napisana kartkówka ma otwarty przegląd błędów.
+  const [review, setReview] = useState<string | null>(null);
+  const attempts = store.list('attempt');
   const items = quizStates(profile.quizzes, progress)
     .map((q) => ({ ...q, topics: topics.filter((t) => q.quiz.topicIds.includes(t.id)) }))
     // Napisana kartkówka zostaje na ekranie przez tydzień, potem wynik jest już tylko w panelu rodzica.
@@ -319,7 +324,11 @@ function QuizCard({ progress }: { progress: Progress }) {
         </div>
       </div>
       {items.map(({ quiz, result, topics: ts }) => {
-        const n = Math.min(quiz.count, ts.reduce((a, t) => a + t.exercises.length, 0));
+        // Kartkówka z konkretnych zadań (np. z błędów) ma tyle pytań, ile z tych zadań jeszcze istnieje.
+        const own = quiz.items?.filter((it) => ts.some((t) => t.id === it.topicId && t.exercises.some((e) => e.id === it.exerciseId)));
+        const n = own ? Math.min(quiz.count, own.length) : Math.min(quiz.count, ts.reduce((a, t) => a + t.exercises.length, 0));
+        if (!result && n === 0) return null;
+        const wrong = result ? mistakeRows(sessionMistakes(result.sessionId, attempts), topics) : [];
         const days = quiz.until ? daysUntil(quiz.until, now) : null;
         const when = days === null ? '' : days < 0 ? ' · termin minął' : days === 0 ? ' · termin dziś' : days === 1 ? ' · termin jutro' : ` · termin za ${days} dni`;
         return (
@@ -333,16 +342,39 @@ function QuizCard({ progress }: { progress: Progress }) {
               </div>
             </div>
             {result ? (
-              <span className={`pill ${result.grade >= 4 ? 'good' : result.grade <= 2 ? 'bad' : ''}`}>
-                ocena {result.grade} — {GRADE_NAMES[result.grade]}
-              </span>
+              <>
+                <span className={`pill ${result.grade >= 4 ? 'good' : result.grade <= 2 ? 'bad' : ''}`}>
+                  ocena {result.grade} — {GRADE_NAMES[result.grade]}
+                </span>
+                {wrong.length > 0 && (
+                  <button className="btn btn-sm" onClick={() => setReview(quiz.id)}>
+                    <Icon name="eye" size={16} /> Zobacz błędy ({wrong.length})
+                  </button>
+                )}
+              </>
             ) : (
               <button
                 className="btn btn-primary"
-                onClick={() => go(practice({ kind: 'test', topicIds: ts.map((t) => t.id), title: `Kartkówka: ${quiz.title}`, subjectId: ts[0].subject, count: n, quizId: quiz.id }))}
+                onClick={() =>
+                  go(practice({ kind: 'test', topicIds: ts.map((t) => t.id), title: `Kartkówka: ${quiz.title}`, subjectId: ts[0].subject, count: n, quizId: quiz.id, ...(own ? { items: own } : {}) }))
+                }
               >
                 Piszę kartkówkę <Icon name="arrowRight" />
               </button>
+            )}
+            {review === quiz.id && (
+              <Modal title={`Błędy: ${quiz.title}`} onClose={() => setReview(null)} wide>
+                <p className="muted" style={{ fontWeight: 700 }}>
+                  To zadania z błędną odpowiedzią. Przeczytaj wyjaśnienia, a potem popraw je — tak najszybciej zostaną w głowie.
+                </p>
+                <MistakeList mine rows={wrong} />
+                <button
+                  className="btn btn-primary btn-lg"
+                  onClick={() => go(practice({ kind: 'fix', items: wrong.map(({ topicId, exerciseId }) => ({ topicId, exerciseId })), subjectId: null }))}
+                >
+                  <Icon name="repeat" /> Popraw błędy ({wrong.length})
+                </button>
+              </Modal>
             )}
           </div>
         );

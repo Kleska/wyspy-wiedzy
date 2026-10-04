@@ -13,16 +13,17 @@ import {
   PLACE_MIN,
   PLACE_RATIO,
   schoolGrade,
+  shuffle,
   STREAK_MILESTONES,
   type Progress,
   type QueueItem,
 } from '../engine';
 import { playSound, speak, speakParts, stopSpeaking } from '../speech';
-import type { Attempt, Exercise, ParsedTopic, Session } from '../types';
+import type { Attempt, ParsedTopic, Session } from '../types';
 import { GuideModal, PassageCard } from './bits';
 import { askConfirm } from './dialogs';
 import { ExerciseView } from './exercises/Exercises';
-import { answerText, correctText, exerciseSummary, initialAnswer, isCorrect, isReady, type Answer } from './exercises/logic';
+import { answerText, correctText, initialAnswer, isCorrect, isReady, questionText, type Answer } from './exercises/logic';
 import { backScreen, isExamRun, useApp, type Run, type SessionResult } from './hooks';
 import { Icon } from './icons';
 import { DivisionSolution } from './LongDivision';
@@ -57,6 +58,14 @@ function buildQueue(run: Run, topics: ParsedTopic[], before: Progress, n: number
     case 'review':
       return buildReviewQueue(topics, before, n, now);
     case 'test':
+      // Kartkówka z konkretnych zadań (np. z błędów): dokładnie te zadania, w losowej kolejności.
+      if (run.items?.length)
+        return shuffle(
+          run.items.flatMap(({ topicId, exerciseId }) => {
+            const ex = topics.find((t) => t.id === topicId)?.exercises.find((e) => e.id === exerciseId);
+            return ex ? [{ topicId, ex }] : [];
+          }),
+        ).slice(0, run.count);
       return buildExamQueue(
         topics.filter((t) => run.topicIds.includes(t.id)),
         run.count,
@@ -110,13 +119,6 @@ function runSubject(run: Run, topics: ParsedTopic[]): string | null {
     case 'fix':
       return run.subjectId;
   }
-}
-
-/** Treść pytania w jednej linii (do listy błędów po sprawdzianie). */
-function questionText(ex: Exercise): string {
-  if (ex.type === 'dictation') return ex.parts.map((p) => (Array.isArray(p) ? '___' : p)).join('');
-  if (ex.type === 'match') return ex.pairs.map((p) => p[0]).join(', ');
-  return exerciseSummary(ex);
 }
 
 /** Polecenie w całości po angielsku zaczyna się jak pytanie: „Who…?”, „Where…?”, „True or false?”. */

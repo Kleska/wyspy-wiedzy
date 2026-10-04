@@ -960,6 +960,22 @@ export interface MistakeItem {
 }
 
 /**
+ * Błędy z jednej sesji (sprawdzian, kartkówka, zwykłe ćwiczenie): zadania, w których pierwsza odpowiedź była zła,
+ * razem z tym, co dziecko odpowiedziało. W kolejności odpowiadania.
+ */
+export function sessionMistakes(sessionId: string, attempts: Attempt[]): { topicId: string; exerciseId: string; answer: string }[] {
+  const seen = new Set<string>();
+  const out: { topicId: string; exerciseId: string; answer: string }[] = [];
+  for (const a of attempts.filter((x) => x.sessionId === sessionId && !x.retry).sort(byAt)) {
+    const key = itemKey(a.topicId, a.exerciseId);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    if (!a.correct) out.push({ topicId: a.topicId, exerciseId: a.exerciseId, answer: a.answer ?? '' });
+  }
+  return out;
+}
+
+/**
  * Zadania z błędną odpowiedzią z ostatnich dni, których dziecko jeszcze nie poprawiło
  * (poprawione = dobra odpowiedź w późniejszej sesji). Najnowsze najpierw.
  */

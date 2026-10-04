@@ -128,6 +128,13 @@ export function seededOrder(n: number, seed: string): number[] {
 }
 
 /** Jednolinijkowy opis zadania (dla rodzica). */
+/** Treść pytania w jednej linii (do listy błędów po sprawdzianie i w panelu rodzica). */
+export function questionText(ex: Exercise): string {
+  if (ex.type === 'dictation') return ex.parts.map((p) => (Array.isArray(p) ? '___' : p)).join('');
+  if (ex.type === 'match') return ex.pairs.map((p) => p[0]).join(', ');
+  return exerciseSummary(ex);
+}
+
 export function exerciseSummary(ex: Exercise): string {
   switch (ex.type) {
     case 'choice':

@@ -21,14 +21,24 @@ export function DivisionGrid({ layout, frame }: { layout: DivLayout; frame?: num
     if (frame !== undefined && frame > 0) box.current?.querySelector('.fresh')?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' });
   }, [frame]);
   return (
-    <div ref={box} className="ldiv" role="img" aria-label={`Dzielenie pisemne: ${layout.dividend} podzielić przez ${layout.divisor}`} style={{ gridTemplateColumns: `repeat(${n + 1}, 1.12em) auto`, gridTemplateRows: rows }}>
+    <div
+      ref={box}
+      className="ldiv"
+      role="img"
+      aria-label={`Dzielenie pisemne: ${layout.dividend} podzielić przez ${layout.divisor}`}
+      style={{ gridTemplateColumns: `repeat(${n + 1}, 1.12em) auto`, gridTemplateRows: rows }}
+    >
       {layout.cells
         .filter((c) => c.from <= at)
         .map((c, i) => {
           const inPart = f?.part && c.row === f.part.row && c.col >= f.part.colFrom && c.col <= f.part.colTo;
           const fresh = frame !== undefined && c.from === at && at > 0;
           return (
-            <span key={i} className={`ldiv-c ldiv-${c.kind}${c.muted ? ' muted' : ''}${inPart ? ' part' : ''}${fresh ? ' fresh' : ''}`} style={{ gridRow: c.row + 1, gridColumn: c.col + 2 }}>
+            <span
+              key={i}
+              className={`ldiv-c ldiv-${c.kind}${c.muted ? ' muted' : ''}${inPart ? ' part' : ''}${fresh ? ' fresh' : ''}`}
+              style={{ gridRow: c.row + 1, gridColumn: c.col + 2 }}
+            >
               {c.ch}
             </span>
           );

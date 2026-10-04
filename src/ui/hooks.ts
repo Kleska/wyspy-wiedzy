@@ -41,7 +41,7 @@ export function useProgress(profileId: string | null): Progress | null {
 export type Run =
   | { kind: 'topic'; topicId: string }
   | { kind: 'review' }
-  | { kind: 'test'; topicIds: string[]; title: string; subjectId: string; count: number; quizId?: string }
+  | { kind: 'test'; topicIds: string[]; title: string; subjectId: string; count: number; quizId?: string; /** Kartkówka z konkretnych zadań (np. z błędów). */ items?: { topicId: string; exerciseId: string }[] }
   | { kind: 'diagnostic'; subjectId: string }
   | { kind: 'gen'; genId: string; facts?: [number, number][] }
   | { kind: 'fix'; items: { topicId: string; exerciseId: string }[]; subjectId: string | null };

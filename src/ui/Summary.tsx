@@ -3,9 +3,9 @@ import { store } from '../data/store';
 import { GRADE_NAMES, GRADE_SCALE, WEEK_BONUS } from '../engine';
 import { coinText } from '../themes';
 import { LevelChip } from './bits';
-import { withFractions } from './exercises/Exercises';
 import { backScreen, practice, useApp, type SessionResult } from './hooks';
 import { Icon, Stars } from './icons';
+import { MistakeList, mistakeRows } from './Mistakes';
 
 const COLORS = ['#E0512E', '#F2B705', '#2A7F45', '#1F6FA8', '#8A4FD1', '#FF5C8A', '#A6E35A'];
 
@@ -206,20 +206,7 @@ export function Summary({ result }: { result: SessionResult }) {
           <h2 className="card-title" style={{ margin: 0 }}>
             Błędy do poprawy ({exam.mistakes.length})
           </h2>
-          {exam.mistakes.map((m, i) => (
-            <div key={i} className="mistake">
-              <div className="mistake-q">
-                {withFractions(m.prompt)}
-                <span className="muted"> · {topics.find((t) => t.id === m.topicId)?.title}</span>
-              </div>
-              <div>
-                <span className="pill bad">Twoja odpowiedź</span> {withFractions(m.given || '—')}
-              </div>
-              <div>
-                <span className="pill good">Poprawnie</span> {withFractions(m.correct)}
-              </div>
-            </div>
-          ))}
+          <MistakeList mine rows={mistakeRows(exam.mistakes.map((m) => ({ topicId: m.topicId, exerciseId: m.exerciseId, answer: m.given })), topics)} />
           <button
             className="btn btn-primary btn-lg"
             onClick={() => go(practice({ kind: 'fix', items: exam.mistakes.map((m) => ({ topicId: m.topicId, exerciseId: m.exerciseId })), subjectId: result.subjectId }))}

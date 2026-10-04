@@ -546,6 +546,19 @@ test('kartkówka od rodzica: zadanie, napisanie i wynik w panelu rodzica', async
   // Kartkówkę pisze się raz: na ekranie startowym zostaje wynik.
   await expect(card).toContainText(/Napisana: \d\/5/);
   await expect(card.getByRole('button', { name: /Piszę kartkówkę/ })).toHaveCount(0);
+  // Dziecko może wrócić do swoich błędów: pytanie, własna odpowiedź, poprawna odpowiedź i wyjaśnienie.
+  const good = Number((await card.innerText()).match(/Napisana: (\d)\/5/)![1]);
+  const wrong = 5 - good;
+  expect(wrong).toBeGreaterThan(0);
+  await card.getByRole('button', { name: `Zobacz błędy (${wrong})` }).click();
+  const review = page.getByRole('dialog', { name: 'Błędy: Have got na piątek' });
+  await expect(review.locator('.mistake')).toHaveCount(wrong);
+  await expect(review.locator('.mistake').first()).toContainText('Twoja odpowiedź');
+  await expect(review.locator('.mistake').first()).toContainText('Poprawnie');
+  await expect(review.locator('.mistake-why').first()).toBeVisible();
+  await expect(review.getByRole('button', { name: `Popraw błędy (${wrong})` })).toBeVisible();
+  await snap(page, 'f42b-quiz-review');
+  await review.getByRole('button', { name: 'Zamknij' }).click();
 
   await page.getByRole('button', { name: 'Panel rodzica' }).click();
   for (const d of '123456') await page.getByRole('button', { name: d, exact: true }).click();
@@ -556,6 +569,31 @@ test('kartkówka od rodzica: zadanie, napisanie i wynik w panelu rodzica', async
   await expect(row).not.toContainText('czeka na napisanie');
   await expect(page.locator('tr', { hasText: 'Kartkówka' }).last()).toContainText('Have got');
   await snap(page, 'f43-quiz-result', true);
+
+  // Rodzic widzi, w których pytaniach były błędy, i jednym przyciskiem zadaje kartkówkę właśnie z nich.
+  const quizzes = page.locator('section', { hasText: 'Kartkówki: Zosia' });
+  await expect(quizzes.getByRole('button', { name: `Kartkówka z błędów (${wrong})` })).toBeVisible();
+  await row.getByRole('button', { name: `Błędy (${wrong})` }).click();
+  const detail = quizzes.locator('.detail-box');
+  await expect(detail.locator('.mistake')).toHaveCount(wrong);
+  await expect(detail.locator('.mistake').first()).toContainText('Odpowiedź');
+  await snap(page, 'f44-quiz-mistakes-parent', true);
+  await detail.getByRole('button', { name: `Zadaj kartkówkę z tych błędów (${wrong})` }).click();
+  await expect(quizzes.getByRole('status')).toContainText('Zadano kartkówkę');
+  const retake = quizzes.locator('tr', { hasText: 'Poprawa: Have got na piątek' });
+  await expect(retake).toContainText('czeka na napisanie');
+  await expect(retake).toContainText('wybrane zadania z:');
+  // W historii sprawdzianów też da się rozwinąć błędy.
+  const history = page.locator('section', { hasText: 'Sprawdziany i testy na start' });
+  await history.getByRole('button', { name: `Pokaż (${wrong})` }).click();
+  await expect(history.locator('.detail-box .mistake')).toHaveCount(wrong);
+  await page.getByRole('button', { name: 'Wyjdź' }).click();
+
+  // Dziecko dostaje kartkówkę dokładnie z tych pytań.
+  const again = card.locator('.quiz-row', { hasText: 'Poprawa: Have got na piątek' });
+  await expect(again).toContainText(new RegExp(`${wrong} pyta(nie|nia|ń) bez podpowiedzi`));
+  await again.getByRole('button', { name: /Piszę kartkówkę/ }).click();
+  await expect(page.getByText(`Pytanie 1 z ${wrong}`)).toBeVisible();
 });
 
 test('PIN rodzica: nowy ma 6 cyfr, stary 4-cyfrowy wpuszcza raz i każe ustawić nowy', async ({ page }) => {

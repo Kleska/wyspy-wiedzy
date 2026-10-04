@@ -361,6 +361,31 @@ describe('rozdziały i kartkówki od rodzica', () => {
   });
 });
 
+describe('błędy z jednej sesji', () => {
+  it('liczy się pierwsza odpowiedź w sesji; poprawka po błędzie i inne sesje nie zmieniają listy', async () => {
+    const { sessionMistakes } = await import('../src/engine');
+    const wrong = (i: number, at: string, answer: string, sessionId = 'q', retry = false): Attempt => ({ ...att(noun, i, false, at, sessionId, retry), answer });
+    const attempts: Attempt[] = [
+      att(noun, 0, true, '2026-10-02T10:00:00', 'q'),
+      wrong(2, '2026-10-02T10:02:00', 'biega'),
+      wrong(1, '2026-10-02T10:01:00', 'skacze'),
+      // Druga próba tego samego zadania (dobra) nie usuwa błędu z listy — to nadal pytanie, w którym była pomyłka.
+      att(noun, 1, true, '2026-10-02T10:03:00', 'q', true),
+      // Dobra pierwsza odpowiedź, a potem zła powtórka w tej samej sesji — to nie błąd sprawdzianu.
+      att(noun, 3, true, '2026-10-02T10:04:00', 'q'),
+      wrong(3, '2026-10-02T10:05:00', 'x', 'q', true),
+      // Inna sesja.
+      wrong(4, '2026-10-02T11:00:00', 'y', 'inna'),
+    ];
+    expect(sessionMistakes('q', attempts)).toEqual([
+      { topicId: noun.id, exerciseId: noun.exercises[1].id, answer: 'skacze' },
+      { topicId: noun.id, exerciseId: noun.exercises[2].id, answer: 'biega' },
+    ]);
+    expect(sessionMistakes('inna', attempts)).toHaveLength(1);
+    expect(sessionMistakes('brak', attempts)).toEqual([]);
+  });
+});
+
 describe('tryb nauki w postępach', () => {
   it('pierwsze przejście lekcji daje monety i dzień nauki; powtórka lekcji już nie', async () => {
     const { LESSON_COINS } = await import('../src/engine');

@@ -242,6 +242,8 @@ export interface AssignedQuiz {
   topicIds: string[];
   /** Liczba pytań. */
   count: number;
+  /** Kartkówka z konkretnych zadań (np. z tych, w których dziecko się pomyliło) — zamiast losowania z tematów. */
+  items?: { topicId: string; exerciseId: string }[];
   /** Termin (RRRR-MM-DD), opcjonalnie. */
   until?: string;
   createdAt: string;

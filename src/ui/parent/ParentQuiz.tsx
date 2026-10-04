@@ -1,11 +1,12 @@
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { nowIso, store, uid } from '../../data/store';
-import { dateKey, GRADE_NAMES, quizStates } from '../../engine';
+import { dateKey, GRADE_NAMES, mistakesToFix, quizStates } from '../../engine';
 import { plural } from '../../themes';
 import type { AssignedQuiz, Profile } from '../../types';
 import { askConfirm } from '../dialogs';
 import { useProgress } from '../hooks';
 import { Icon } from '../icons';
+import { assignMistakeQuiz, examMistakeRows, ExamMistakes, MISTAKE_QUIZ_MAX } from './ExamMistakes';
 import { TopicChecklist } from './TopicChecklist';
 
 const COUNTS = [5, 10, 15, 20];
@@ -23,13 +24,18 @@ export function ParentQuiz({ p }: { p: Profile }) {
   const [count, setCount] = useState(10);
   const [sel, setSel] = useState<string[]>([]);
   const [msg, setMsg] = useState('');
+  // Kartkówka z rozwiniętą listą błędów.
+  const [shown, setShown] = useState<string | null>(null);
   const states = progress ? quizStates(p.quizzes, progress) : [];
+  // Zadania, w których dziecko pomyliło się w ostatnich 30 dniach i jeszcze ich nie poprawiło.
+  const open30 = mistakesToFix({ profileId: p.id, attempts: store.list('attempt'), topics, now: Date.now(), since: p.resetAt, days: 30 });
+  const fromMistakes = Math.min(open30.length, MISTAKE_QUIZ_MAX);
   const available = topics.filter((t) => sel.includes(t.id)).reduce((a, t) => a + t.exercises.length, 0);
   const n = Math.min(count, available);
 
   const flash = (m: string) => {
     setMsg(m);
-    setTimeout(() => setMsg(''), 3000);
+    setTimeout(() => setMsg(''), 5000);
   };
 
   const assign = async () => {
@@ -61,6 +67,17 @@ export function ParentQuiz({ p }: { p: Profile }) {
         <h2 className="card-title" style={{ margin: 0, flex: 1 }}>
           Kartkówki: {p.name}
         </h2>
+        {!open && fromMistakes > 0 && (
+          <button
+            className="btn btn-sm"
+            onClick={async () => {
+              const k = await assignMistakeQuiz(p.id, 'Poprawa błędów', open30);
+              flash(`Zadano kartkówkę z ${k} ${plural(k, ['zadania', 'zadań', 'zadań'])}, w których ${p.name} ostatnio się pomylił(a).`);
+            }}
+          >
+            <Icon name="repeat" size={16} /> Kartkówka z błędów ({fromMistakes})
+          </button>
+        )}
         {!open && (
           <button className="btn btn-primary btn-sm" onClick={() => setOpen(true)}>
             <Icon name="plus" size={16} /> Zadaj kartkówkę
@@ -68,7 +85,8 @@ export function ParentQuiz({ p }: { p: Profile }) {
         )}
       </div>
       <p className="muted" style={{ fontSize: 14 }}>
-        Krótki sprawdzian z wybranych tematów: bez podpowiedzi, pisany raz, z oceną 1–6. {p.name} zobaczy go na ekranie startowym, a wynik pojawi się tutaj.
+        Krótki sprawdzian z wybranych tematów: bez podpowiedzi, pisany raz, z oceną 1–6. {p.name} zobaczy go na ekranie startowym, a wynik pojawi się tutaj — razem z listą pytań, w
+        których były błędy. „Kartkówka z błędów” układa się sama z zadań, w których {p.name} pomylił(a) się w ostatnich 30 dniach i jeszcze ich nie poprawił(a).
       </p>
       {msg && (
         <div className="note" role="status">
@@ -101,7 +119,8 @@ export function ParentQuiz({ p }: { p: Profile }) {
           <TopicChecklist topics={topics} sel={sel} setSel={setSel} progress={progress} />
           {sel.length > 0 && n < count && (
             <p className="muted" style={{ fontSize: 14 }}>
-              W wybranych tematach jest tylko {available} {plural(available, ['zadanie', 'zadania', 'zadań'])} — kartkówka będzie miała {n} {plural(n, ['pytanie', 'pytania', 'pytań'])}.
+              W wybranych tematach jest tylko {available} {plural(available, ['zadanie', 'zadania', 'zadań'])} — kartkówka będzie miała {n}{' '}
+              {plural(n, ['pytanie', 'pytania', 'pytań'])}.
             </p>
           )}
           <div className="row" style={{ flexWrap: 'wrap' }}>
@@ -130,41 +149,71 @@ export function ParentQuiz({ p }: { p: Profile }) {
               </tr>
             </thead>
             <tbody>
-              {[...states].reverse().map(({ quiz, result }) => (
-                <tr key={quiz.id}>
-                  <td>
-                    <b>{quiz.title}</b>
-                    <div className="muted" style={{ fontSize: 12 }}>
-                      {quiz.count} {plural(quiz.count, ['pytanie', 'pytania', 'pytań'])} · zadana {new Date(quiz.createdAt).toLocaleDateString('pl-PL')}
-                    </div>
-                  </td>
-                  <td style={{ maxWidth: 280 }}>{quiz.topicIds.map((id) => topics.find((t) => t.id === id)?.title ?? '?').join(', ')}</td>
-                  <td>{quiz.until ? new Date(quiz.until + 'T12:00:00').toLocaleDateString('pl-PL') : '—'}</td>
-                  <td>
-                    {result ? (
-                      <>
-                        <span className={`pill ${result.grade >= 4 ? 'good' : result.grade <= 2 ? 'bad' : ''}`}>
-                          {result.grade} — {GRADE_NAMES[result.grade]}
-                        </span>
+              {[...states].reverse().map(({ quiz, result }) => {
+                return (
+                  <Fragment key={quiz.id}>
+                    <tr>
+                      <td>
+                        <b>{quiz.title}</b>
                         <div className="muted" style={{ fontSize: 12 }}>
-                          {result.correct}/{result.total} · {new Date(result.at).toLocaleString('pl-PL', { dateStyle: 'short', timeStyle: 'short' })}
+                          {quiz.count} {plural(quiz.count, ['pytanie', 'pytania', 'pytań'])} · zadana {new Date(quiz.createdAt).toLocaleDateString('pl-PL')}
                         </div>
-                      </>
-                    ) : (
-                      <span className="pill">czeka na napisanie</span>
-                    )}
-                  </td>
-                  <td>
-                    <button className="btn btn-sm btn-danger" onClick={() => void remove(quiz)} aria-label={`Usuń kartkówkę: ${quiz.title}`}>
-                      <Icon name="trash" size={16} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
+                      </td>
+                      <td style={{ maxWidth: 280 }}>
+                        {quiz.items && (
+                          <div className="muted" style={{ fontSize: 12 }}>
+                            wybrane zadania z:
+                          </div>
+                        )}
+                        {quiz.topicIds.map((id) => topics.find((t) => t.id === id)?.title ?? '?').join(', ')}
+                      </td>
+                      <td>{quiz.until ? new Date(quiz.until + 'T12:00:00').toLocaleDateString('pl-PL') : '—'}</td>
+                      <td>
+                        {result ? (
+                          <>
+                            <span className={`pill ${result.grade >= 4 ? 'good' : result.grade <= 2 ? 'bad' : ''}`}>
+                              {result.grade} — {GRADE_NAMES[result.grade]}
+                            </span>
+                            <div className="muted" style={{ fontSize: 12 }}>
+                              {result.correct}/{result.total} · {new Date(result.at).toLocaleString('pl-PL', { dateStyle: 'short', timeStyle: 'short' })}
+                            </div>
+                            {result.correct < result.total && (
+                              <button
+                                className="btn btn-sm"
+                                style={{ marginTop: 6 }}
+                                aria-expanded={shown === quiz.id}
+                                onClick={() => setShown(shown === quiz.id ? null : quiz.id)}
+                              >
+                                <Icon name="eye" size={16} /> {shown === quiz.id ? 'Ukryj błędy' : `Błędy (${result.total - result.correct})`}
+                              </button>
+                            )}
+                          </>
+                        ) : (
+                          <span className="pill">czeka na napisanie</span>
+                        )}
+                      </td>
+                      <td>
+                        <button className="btn btn-sm btn-danger" onClick={() => void remove(quiz)} aria-label={`Usuń kartkówkę: ${quiz.title}`}>
+                          <Icon name="trash" size={16} />
+                        </button>
+                      </td>
+                    </tr>
+                  </Fragment>
+                );
+              })}
             </tbody>
           </table>
         </div>
       )}
+      {/* Błędy pokazujemy pod tabelą (a nie w jej wierszu), żeby na telefonie nie trzeba było przewijać w bok. */}
+      {states
+        .filter(({ quiz, result }) => result && shown === quiz.id)
+        .map(({ quiz, result }) => (
+          <div key={quiz.id} className="detail-box">
+            <b>Błędy: {quiz.title}</b>
+            <ExamMistakes p={p} rows={examMistakeRows(p.id, result!.sessionId)} title={quiz.title.replace(/^Poprawa: /, '')} onAssigned={flash} />
+          </div>
+        ))}
     </section>
   );
 }
