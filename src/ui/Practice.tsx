@@ -505,7 +505,7 @@ export function Practice({ run }: { run: Run }) {
       </div>
 
       {phase === 'answer' ? (
-        <div className="pr-foot">
+        <div className="pr-foot pr-foot-answer">
           {!exam && (
             <button className="btn" onClick={() => setHint(true)} disabled={hint}>
               <Icon name="bulb" />

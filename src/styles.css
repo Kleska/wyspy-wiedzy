@@ -1691,6 +1691,75 @@ p {
   background: #b05a12;
 }
 
+/*
+ * Telefon (albo niski ekran): całe sortowanie — pula słów i wszystkie koszyki — ma się mieścić nad stopką.
+ * Słowa są mniejsze, a koszyki to niskie pasy na całą szerokość (jeden pod drugim) z wąskim nagłówkiem.
+ */
+@media (max-width: 640px), (max-height: 560px) {
+  .bank {
+    min-height: 60px;
+    padding: 8px;
+    gap: 8px;
+    border-width: 2px;
+  }
+  .token {
+    min-height: 44px;
+    padding: 0 12px;
+    font-size: 18px;
+    border-width: 2px;
+    box-shadow: 0 3px 0 var(--line);
+  }
+  .baskets {
+    gap: 8px;
+  }
+  .basket {
+    min-height: 0;
+    border-width: 2px;
+  }
+  .basket-head {
+    padding: 4px 12px;
+    font-size: 16px;
+  }
+  .basket-body {
+    min-height: 60px;
+    padding: 8px;
+    gap: 8px;
+    align-items: center;
+    align-content: center;
+  }
+  .basket-hint {
+    padding: 2px 4px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 640px) {
+  .baskets {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Niski telefon (np. z paskiem przeglądarki): jeszcze ciaśniej, żeby trzeci koszyk nie chował się pod stopką. */
+@media (max-width: 640px) and (max-height: 680px) {
+  .bank,
+  .baskets,
+  .basket-body {
+    gap: 6px;
+  }
+  .token {
+    min-height: 40px;
+    font-size: 17px;
+  }
+  .basket-head {
+    padding: 3px 12px;
+    font-size: 15px;
+  }
+  .basket-body {
+    min-height: 50px;
+    padding: 5px 6px;
+  }
+}
+
 [data-theme='pixel'] .token,
 [data-theme='pixel'] .basket,
 [data-theme='pixel'] .bank {
@@ -1863,6 +1932,56 @@ p {
   align-items: center;
   gap: 14px;
   flex-wrap: wrap;
+}
+
+/* Przed odpowiedzią: „Podpowiedź” i „Sprawdź” zawsze w jednym rzędzie (dwa rzędy zasłaniały zadanie na telefonie). */
+.pr-foot-answer {
+  flex-wrap: nowrap;
+}
+
+.pr-foot-answer .btn {
+  white-space: nowrap;
+}
+
+@media (max-width: 640px), (max-height: 560px) {
+  .pr-body {
+    padding: 14px 0;
+    gap: 14px;
+  }
+  .pr-foot {
+    padding: 10px 20px calc(10px + env(safe-area-inset-bottom));
+    gap: 10px;
+  }
+  .pr-foot-answer .btn {
+    padding: 0 14px;
+  }
+  .pr-foot-answer .btn-lg {
+    min-height: 52px;
+    font-size: 20px;
+    padding: 0 22px;
+  }
+}
+
+@media (max-width: 640px) and (max-height: 680px) {
+  .practice {
+    padding-top: 8px;
+  }
+  .pr-body {
+    padding: 8px 0 10px;
+    gap: 10px;
+  }
+}
+
+@media (max-width: 380px) {
+  .pr-foot-answer .btn {
+    padding: 0 10px;
+    gap: 6px;
+    font-size: 16px;
+  }
+  .pr-foot-answer .btn-lg {
+    font-size: 19px;
+    padding: 0 18px;
+  }
 }
 
 .pr-foot.good {

@@ -7,12 +7,15 @@ async function snap(page: Page, name: string) {
 }
 
 const DSL = [
-  'sortuj: Posegreguj słowa. >> rzeczownik = kot, szkoła ; czasownik = biega, czyta ; przymiotnik = mały, zielona',
+  'sortuj: Posegreguj słowa. >> rzeczownik = morze, piłka, brat ; czasownik = skacze, płacze, jedzie ; przymiotnik = głośny, mokra, wesoły',
   'wpisz: Odmień czasownik „pisać”. >> ja piszę, ty [piszesz], oni [piszą]',
   'pary: Połącz osobę z czasownikiem. >> ja = skaczę ; ty = skaczesz ; oni = skaczą',
 ].join('\n');
 
 test('sortowanie (przeciąganie), luki i pary działają i dają poprawny wynik', async ({ page }) => {
+  // Mały telefon (jak u dziecka): 9 słów i 3 koszyki muszą się zmieścić nad stopką bez przewijania.
+  const phone = test.info().project.name === 'phone';
+  if (phone) await page.setViewportSize({ width: 360, height: 740 });
   await page.goto('/');
   await page.getByPlaceholder('Imię').fill('Kuba');
   await page.getByRole('group', { name: 'Klasa' }).getByRole('button', { name: '3', exact: true }).click();
@@ -36,7 +39,25 @@ test('sortowanie (przeciąganie), luki i pary działają i dają poprawny wynik'
   for (let step = 0; step < 3; step++) {
     if (await page.locator('.token').count()) {
       // Przeciągnij pierwsze słowo palcem/myszą do właściwego koszyka, resztę stuknięciami.
-      const words: Record<string, number> = { kot: 0, szkoła: 0, biega: 1, czyta: 1, mały: 2, zielona: 2 };
+      const words: Record<string, number> = { morze: 0, piłka: 0, brat: 0, skacze: 1, płacze: 1, jedzie: 1, głośny: 2, mokra: 2, wesoły: 2 };
+      const fits = async () => {
+        const foot = (await page.locator('.pr-foot').boundingBox())!;
+        const last = (await page.locator('.basket').last().boundingBox())!;
+        const bank = (await page.locator('.bank').boundingBox())!;
+        expect(await page.evaluate(() => window.scrollY)).toBe(0);
+        expect(bank.y).toBeGreaterThanOrEqual(0);
+        expect(last.y + last.height).toBeLessThanOrEqual(foot.y + 1);
+        expect(foot.y + foot.height).toBeLessThanOrEqual(page.viewportSize()!.height + 1);
+      };
+      await expect(page.locator('.bank .token')).toHaveCount(9);
+      if (phone) {
+        await snap(page, 't0-sort-start');
+        await fits();
+        // „Podpowiedź” i „Sprawdź” stoją w jednym rzędzie.
+        const hint = (await page.getByRole('button', { name: 'Podpowiedź' }).boundingBox())!;
+        const check = (await page.getByRole('button', { name: 'Sprawdź' }).boundingBox())!;
+        expect(Math.abs(hint.y + hint.height / 2 - (check.y + check.height / 2))).toBeLessThan(8);
+      }
       const first = page.locator('.bank .token').first();
       const text = (await first.innerText()).trim();
       const box = (await first.boundingBox())!;
@@ -53,6 +74,7 @@ test('sortowanie (przeciąganie), luki i pary działają i dają poprawny wynik'
         await page.locator('.basket').nth(words[w]).click();
       }
       await snap(page, 't2-sort-ready');
+      if (phone) await fits();
     } else if (await page.locator('.gap').count()) {
       await page.locator('.gap').nth(0).fill('piszesz');
       await page.locator('.gap').nth(1).fill('pisz');
