@@ -3,7 +3,7 @@ import { GUIDES } from '../src/content/guides';
 import { LESSONS } from '../src/content/lessons';
 import { MATH_GRADE5 } from '../src/content/math';
 import { parseDsl, parseLesson } from '../src/dsl';
-import { divisionCheck, divisionLayout, divisionResult, lessonDivision, longDivision, writtenDivisionOf } from '../src/longdiv';
+import { divisionCheck, divisionEntry, divisionGridOf, divisionInputs, divisionLayout, divisionResult, lessonDivision, longDivision, writtenDivisionOf } from '../src/longdiv';
 import type { FillExercise } from '../src/types';
 
 const digits = (a: number, b: number) => longDivision(a, b).steps.map((s) => s.digit).join('');
@@ -104,6 +104,65 @@ describe('dzielenie pisemne: zapis w słupku', () => {
     }
     expect(divisionLayout(824, 4).frames.some((f) => f.text.includes('Piszemy 0 w wyniku'))).toBe(true);
     expect(divisionLayout(156, 3).frames[1].text).toContain('bierzemy dwie cyfry: 15');
+  });
+});
+
+describe('dzielenie pisemne: słupek do wypełnienia na ekranie', () => {
+  const grid = (a: number, b: number) => divisionInputs(divisionLayout(a, b));
+
+  it('kratki idą w kolejności pisania: cyfra wyniku, iloczyn, reszta, spisana cyfra…', () => {
+    expect(grid(936, 4).map((c) => `${c.kind[0]}${c.ch}`).join(' ')).toBe('q2 p8 r1 b3 q3 p1 p2 r1 b6 q4 p1 p6 r0');
+    // Dzielna, minusy i kreski są wydrukowane — nie ma ich wśród kratek.
+    expect(grid(936, 4).some((c) => c.kind === 'dividend' || c.kind === 'minus')).toBe(false);
+    // Zero w wyniku: cyfra 0 i od razu następna spisana cyfra, bez odejmowania.
+    expect(grid(824, 4).map((c) => `${c.kind[0]}${c.ch}`).join(' ')).toBe('q2 p8 r0 b2 q0 b4 q6 p2 p4 r0');
+  });
+
+  it('wynik i resztę czytamy z kratek; zero przed spisaną cyfrą można zostawić puste', () => {
+    for (const [a, b] of [
+      [936, 4],
+      [824, 4],
+      [938, 4],
+      [842, 4],
+      [840, 4],
+      [864, 24],
+      [1000, 23],
+      [4032, 4],
+      [3264, 32],
+    ]) {
+      const inputs = grid(a, b);
+      const full = inputs.map((c) => c.ch);
+      expect(divisionEntry(inputs, full), `${a} : ${b}`).toEqual({ quotient: String(Math.floor(a / b)), remainder: String(a % b) });
+      // Bez nieobowiązkowych zer wynik jest ten sam.
+      const lean = inputs.map((c) => (c.optional ? '' : c.ch));
+      expect(divisionEntry(inputs, lean), `${a} : ${b}`).toEqual({ quotient: String(Math.floor(a / b)), remainder: String(a % b) });
+      for (const c of inputs.filter((x) => x.optional)) expect(c.ch).toBe('0');
+      // Brak którejkolwiek obowiązkowej cyfry = słupek niegotowy.
+      const k = inputs.findIndex((c) => !c.optional);
+      expect(divisionEntry(inputs, full.map((v, i) => (i === k ? '' : v)))).toBeNull();
+    }
+    expect(grid(824, 4).filter((c) => c.optional).length).toBe(1);
+    expect(grid(936, 4).filter((c) => c.optional).length).toBe(0);
+  });
+
+  it('pomyłka w wyniku albo w ostatniej reszcie zmienia odczytaną odpowiedź', () => {
+    const inputs = grid(938, 4);
+    const v = inputs.map((c) => c.ch);
+    v[0] = '3';
+    expect(divisionEntry(inputs, v)).toEqual({ quotient: '334', remainder: '2' });
+    v[0] = '2';
+    v[v.length - 1] = '6';
+    expect(divisionEntry(inputs, v)).toEqual({ quotient: '234', remainder: '6' });
+  });
+
+  it('słupek z kratkami dostają zadania „Oblicz pisemnie”, a zadania „za rękę” zostają z lukami', () => {
+    for (const t of MATH_GRADE5.filter((x) => x.id.startsWith('b-m5-dzp'))) {
+      for (const ex of parseDsl(t.dsl, t.id).exercises) {
+        const g = divisionGridOf(ex as FillExercise);
+        expect(!!g, ex.prompt).toBe(/^Oblicz pisemnie/.test(ex.prompt));
+        if (g) expect(g).toEqual(writtenDivisionOf(ex as FillExercise));
+      }
+    }
   });
 });
 

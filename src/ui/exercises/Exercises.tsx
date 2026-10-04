@@ -1,9 +1,11 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import type { ChoiceExercise, DictationExercise, Exercise, FillExercise, Lang, MatchExercise, SortExercise, TapExercise } from '../../types';
 import { dictationText, isFillAnswerCorrect, maskSpelling } from '../../dsl';
+import { divisionGridOf } from '../../longdiv';
 import { hasVoice, speak } from '../../speech';
 import { plural } from '../../themes';
 import { Icon } from '../icons';
+import { DivisionInput } from '../LongDivision';
 import { seededOrder, type Answer } from './logic';
 
 interface Props<E extends Exercise, A extends Answer> {
@@ -65,12 +67,31 @@ export function ExerciseView(p: Props<Exercise, Answer>) {
       return <Tap {...(p as unknown as Props<TapExercise, number[]>)} />;
     case 'sort':
       return <Sort {...(p as unknown as Props<SortExercise, (number | null)[]>)} />;
-    case 'fill':
+    case 'fill': {
+      // „Oblicz pisemnie”: zamiast luki z wynikiem — cały słupek z kratkami do wypełnienia.
+      const div = divisionGridOf(p.ex);
+      if (div) return <DivisionFill {...(p as unknown as Props<FillExercise, string[]>)} a={div[0]} b={div[1]} />;
+      return <Fill {...(p as unknown as Props<FillExercise | DictationExercise, string[]>)} />;
+    }
     case 'dictation':
       return <Fill {...(p as unknown as Props<FillExercise | DictationExercise, string[]>)} />;
     case 'match':
       return <Match {...(p as unknown as Props<MatchExercise, number[]>)} />;
   }
+}
+
+/** Słupek dzielenia pisemnego: odpowiedzią zadania (luki „wynik” i „reszta”) jest to, co dziecko wpisało w kratki. */
+function DivisionFill({ ex, setAnswer, reveal, onEnter, a, b }: Props<FillExercise, string[]> & { a: number; b: number }) {
+  const gaps = ex.parts.filter((p) => Array.isArray(p)).length;
+  return (
+    <DivisionInput
+      a={a}
+      b={b}
+      reveal={reveal}
+      onEnter={onEnter}
+      onChange={(entry) => setAnswer(entry ? [entry.quotient, entry.remainder].slice(0, gaps) : Array.from({ length: gaps }, () => ''))}
+    />
+  );
 }
 
 // ─── Wybór ───────────────────────────────────────────────────────────────────

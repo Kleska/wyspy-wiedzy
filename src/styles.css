@@ -5431,6 +5431,122 @@ p {
   font-weight: 700;
 }
 
+/* Słupek do wypełnienia: kratki jak na karcie pracy + mała klawiatura z cyframi. */
+.ldiv-task {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+  --ldiv-cell: 44px;
+}
+
+.ldiv-input {
+  font-size: 28px;
+  gap: 0 3px;
+  padding: 12px 14px;
+  outline: none;
+}
+
+.ldiv-in {
+  width: 100%;
+  height: calc(100% - 4px);
+  padding: 0;
+  border-radius: 8px;
+  border: 2px solid var(--line);
+  background: var(--surface-3);
+  color: var(--text);
+  font: inherit;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ldiv-in.ldiv-quotient {
+  color: var(--good);
+  border-color: var(--good);
+}
+
+.ldiv-in.active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.ldiv-in.ok {
+  border-color: var(--good);
+  background: var(--good-bg);
+  color: var(--text);
+}
+
+.ldiv-in.bad {
+  border-color: var(--bad);
+  background: var(--bad-bg);
+  color: var(--bad);
+}
+
+.ldiv-in:disabled {
+  opacity: 1;
+  cursor: default;
+}
+
+.ldiv-keys {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+  width: 100%;
+  max-width: 420px;
+}
+
+.ldiv-keys button {
+  min-height: 52px;
+  border-radius: 14px;
+  border: 2px solid var(--line);
+  background: var(--surface);
+  color: var(--text);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 3px 0 var(--line);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.ldiv-keys button:active {
+  transform: translateY(2px);
+}
+
+.ldiv-keys .key-back {
+  background: var(--surface-2);
+}
+
+@media (max-width: 640px), (max-height: 560px) {
+  .ldiv-task {
+    --ldiv-cell: 36px;
+    gap: 10px;
+  }
+  .ldiv-input {
+    font-size: 23px;
+    padding: 8px 10px;
+  }
+  .ldiv-keys {
+    gap: 6px;
+    max-width: none;
+  }
+  .ldiv-keys button {
+    min-height: 46px;
+    font-size: 22px;
+  }
+}
+
+[data-theme='pixel'] .ldiv-in,
+[data-theme='pixel'] .ldiv-keys button {
+  border-radius: 0;
+}
+
 [data-theme='pixel'] .ldiv,
 [data-theme='pixel'] .ldiv-c,
 [data-theme='pixel'] .ldiv-text,

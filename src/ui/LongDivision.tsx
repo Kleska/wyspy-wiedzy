@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { divisionCheck, divisionLayout, type DivLayout } from '../longdiv';
+import { divisionCheck, divisionEntry, divisionInputs, divisionLayout, type DivCellKind, type DivLayout } from '../longdiv';
 import { Icon } from './icons';
 
 /**
@@ -86,7 +86,7 @@ export function DivisionSolution({ a, b }: { a: number; b: number }) {
     <section className="ldiv-solution" aria-label="Rozwiązanie w słupku">
       <div className="ldiv-head">
         <b>Tak wygląda słupek</b>
-        <span className="muted">Porównaj ze swoją kartką.</span>
+        <span className="muted">Porównaj ze swoim zapisem.</span>
       </div>
       {frame !== null && (
         <p className="ldiv-text" aria-live="polite">
@@ -123,5 +123,129 @@ export function DivisionSolution({ a, b }: { a: number; b: number }) {
         </>
       )}
     </section>
+  );
+}
+
+const KIND_LABEL: Record<DivCellKind, string> = { quotient: 'Wynik', product: 'Iloczyn', rest: 'Reszta', brought: 'Spisana cyfra', dividend: 'Dzielna', minus: 'Minus' };
+
+/**
+ * Słupek do wypełnienia na ekranie — jak karta pracy z kratkami: dzielna i dzielnik są wydrukowane,
+ * dziecko wpisuje cyfry wyniku, iloczyny i reszty. Kratkę wybiera się stuknięciem; po wpisaniu cyfry
+ * zaznaczenie samo przechodzi do następnej kratki w kolejności pisania.
+ * `onChange` dostaje wynik i resztę odczytane ze słupka albo null, gdy słupek nie jest jeszcze pełny.
+ */
+export function DivisionInput({
+  a,
+  b,
+  reveal,
+  onChange,
+  onEnter,
+}: {
+  a: number;
+  b: number;
+  reveal: boolean;
+  onChange: (entry: { quotient: string; remainder: string } | null) => void;
+  onEnter?: () => void;
+}) {
+  const layout = useMemo(() => divisionLayout(a, b), [a, b]);
+  const inputs = useMemo(() => divisionInputs(layout), [layout]);
+  const [values, setValues] = useState<string[]>(() => inputs.map(() => ''));
+  const [active, setActive] = useState(0);
+  const n = layout.digits.length;
+  const ruleRows = new Set(layout.rules.map((r) => r.row));
+  const rows = Array.from({ length: layout.rows }, (_, r) => (ruleRows.has(r) ? '5px' : 'var(--ldiv-cell)')).join(' ');
+
+  const put = (i: number, v: string) => {
+    const next = values.slice();
+    next[i] = v;
+    setValues(next);
+    onChange(divisionEntry(inputs, next));
+  };
+  const type = (d: string) => {
+    if (reveal) return;
+    put(active, d);
+    if (active < inputs.length - 1) setActive(active + 1);
+  };
+  const erase = () => {
+    if (reveal) return;
+    if (values[active]) put(active, '');
+    else if (active > 0) {
+      put(active - 1, '');
+      setActive(active - 1);
+    }
+  };
+  const move = (d: number) => setActive(Math.max(0, Math.min(inputs.length - 1, active + d)));
+  const good = (i: number) => values[i] === inputs[i].ch || (inputs[i].optional && !values[i]);
+  const allGood = inputs.every((_, i) => good(i));
+
+  return (
+    <div className="ldiv-task">
+      <div
+        className="ldiv ldiv-input"
+        role="group"
+        aria-label={`Słupek do uzupełnienia: ${a} : ${b}`}
+        tabIndex={0}
+        style={{ gridTemplateColumns: `repeat(${n + 1}, var(--ldiv-cell)) auto`, gridTemplateRows: rows }}
+        onKeyDown={(e) => {
+          if (/^\d$/.test(e.key)) type(e.key);
+          else if (e.key === 'Backspace' || e.key === 'Delete') erase();
+          else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') move(1);
+          else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') move(-1);
+          else if (e.key === 'Enter') onEnter?.();
+          else return;
+          e.preventDefault();
+        }}
+      >
+        {layout.cells
+          .filter((c) => c.kind === 'dividend' || c.kind === 'minus')
+          .map((c, i) => (
+            <span key={`s${i}`} className={`ldiv-c ldiv-${c.kind}`} style={{ gridRow: c.row + 1, gridColumn: c.col + 2 }}>
+              {c.ch}
+            </span>
+          ))}
+        {inputs.map((c, i) => (
+          <button
+            key={i}
+            type="button"
+            className={`ldiv-in ldiv-${c.kind}${!reveal && i === active ? ' active' : ''}${reveal ? (good(i) ? ' ok' : ' bad') : ''}`}
+            style={{ gridRow: c.row + 1, gridColumn: c.col + 2 }}
+            aria-label={`${KIND_LABEL[c.kind]}, kratka ${i + 1} z ${inputs.length}${values[i] ? `: ${values[i]}` : ', pusta'}`}
+            aria-pressed={!reveal && i === active}
+            disabled={reveal}
+            tabIndex={-1}
+            onClick={() => setActive(i)}
+          >
+            {values[i]}
+          </button>
+        ))}
+        {layout.rules.map((r, i) => (
+          <span key={`r${i}`} className="ldiv-rule" style={{ gridRow: r.row + 1, gridColumn: `${r.colFrom + 2} / ${r.colTo + 3}` }} />
+        ))}
+        <span className="ldiv-side" style={{ gridRow: 3, gridColumn: n + 2 }}>
+          : {layout.divisor}
+        </span>
+      </div>
+      {!reveal && (
+        <div className="ldiv-keys" role="group" aria-label="Cyfry do wpisania">
+          {['1', '2', '3', '4', '5'].map((d) => (
+            <button key={d} type="button" onClick={() => type(d)}>
+              {d}
+            </button>
+          ))}
+          <button type="button" className="key-back" onClick={erase} aria-label="Usuń cyfrę">
+            ⌫
+          </button>
+          {['6', '7', '8', '9', '0'].map((d) => (
+            <button key={d} type="button" onClick={() => type(d)}>
+              {d}
+            </button>
+          ))}
+          <button type="button" className="key-back" onClick={() => move(1)} aria-label="Następna kratka">
+            <Icon name="arrowRight" size={20} />
+          </button>
+        </div>
+      )}
+      {reveal && !allGood && <DivisionSolution a={a} b={b} />}
+    </div>
   );
 }

@@ -3,7 +3,7 @@ import { factExercises, generateExercises, generatorById, genTopicId } from '../
 import { subjectLang, subjectOf } from '../content/seed';
 import { nowIso, store, uid } from '../data/store';
 import { dictationText, parseWords, speakableSentence, wordHints } from '../dsl';
-import { writtenDivisionOf } from '../longdiv';
+import { divisionGridOf, writtenDivisionOf } from '../longdiv';
 import {
   buildDiagnosticQueue,
   buildExamQueue,
@@ -490,7 +490,8 @@ export function Practice({ run }: { run: Run }) {
           lang={lang}
         />
 
-        {phase === 'feedback' && division && <DivisionSolution key={`d${idx}`} a={division[0]} b={division[1]} />}
+        {/* Zadania „za rękę”: po odpowiedzi cały słupek. Przy słupku z kratkami rozwiązanie pokazuje sam słupek. */}
+        {phase === 'feedback' && division && !divisionGridOf(ex) && <DivisionSolution key={`d${idx}`} a={division[0]} b={division[1]} />}
 
         {hint && phase === 'answer' && hasHint && (
           <div className="hint-box">

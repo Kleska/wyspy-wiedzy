@@ -188,6 +188,51 @@ export function divisionLayout(dividend: number, divisor: number): DivLayout {
   return { ...d, cells, rules, frames, rows: row + 1 };
 }
 
+// ─── Słupek do wypełnienia na ekranie ────────────────────────────────────────
+
+/** Kratka, do której dziecko wpisuje cyfrę. */
+export interface DivInput {
+  row: number;
+  col: number;
+  /** Poprawna cyfra. */
+  ch: string;
+  kind: DivCellKind;
+  /** Zero reszty przed spisaną cyfrą („02”) — można je zostawić puste, tak jak wiele osób pisze na kartce. */
+  optional: boolean;
+}
+
+/**
+ * Kratki do wypełnienia, w kolejności pisania na kartce: cyfra wyniku → iloczyn → reszta → spisana cyfra → …
+ * Dzielna, dzielnik, minusy i kreski są wydrukowane.
+ */
+export function divisionInputs(layout: DivLayout): DivInput[] {
+  return layout.cells.filter((c) => c.kind !== 'dividend' && c.kind !== 'minus').map((c) => ({ row: c.row, col: c.col, ch: c.ch, kind: c.kind, optional: !!c.muted }));
+}
+
+/**
+ * Co dziecko wpisało w słupek: wynik (cyfry nad kreską) i reszta (liczba w ostatnim wierszu).
+ * Zwraca null, dopóki nie wszystkie obowiązkowe kratki są wypełnione.
+ */
+export function divisionEntry(inputs: DivInput[], values: string[]): { quotient: string; remainder: string } | null {
+  if (inputs.some((c, i) => !c.optional && !values[i])) return null;
+  const digits = (pick: (c: DivInput) => boolean) =>
+    inputs
+      .map((c, i) => ({ c, v: values[i] ?? '' }))
+      .filter(({ c }) => pick(c))
+      .sort((x, y) => x.c.col - y.c.col)
+      .map(({ v }) => v)
+      .join('');
+  const lower = inputs.filter((c) => c.kind === 'rest' || c.kind === 'brought');
+  const lastRow = Math.max(...lower.map((c) => c.row));
+  const rest = digits((c) => (c.kind === 'rest' || c.kind === 'brought') && c.row === lastRow);
+  return { quotient: digits((c) => c.kind === 'quotient'), remainder: String(Number(rest || '0')) };
+}
+
+/** Zadanie „Oblicz pisemnie…” — dziecko wypełnia cały słupek na ekranie (a nie same luki z wynikiem). */
+export function divisionGridOf(ex: { type: string; prompt: string; parts?: (string | string[])[] }): [number, number] | null {
+  return /^Oblicz pisemnie/.test(ex.prompt) ? writtenDivisionOf(ex) : null;
+}
+
 /** Linia lekcji „słupek: 936 : 4” → [936, 4]. Zwraca `false`, gdy linia zaczyna się od „słupek”, ale jest źle zapisana. */
 export function lessonDivision(line: string): [number, number] | false | null {
   if (!/^s[łl]upek\b/i.test(line.trim())) return null;

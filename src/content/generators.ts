@@ -126,8 +126,8 @@ export const GENERATORS: Generator[] = [
   { id: 'frac', title: 'Skracanie ułamków', description: 'Dziel licznik i mianownik przez tę samą liczbę.', grades: [4, 5, 6, 7, 8], make: fracSimplify },
   { id: 'dec', title: 'Ułamki dziesiętne', description: 'Dodawanie i odejmowanie.', grades: [5, 6, 7, 8], make: decimals },
   { id: 'order', title: 'Kolejność działań', description: 'Nawiasy, potem mnożenie i dzielenie.', grades: [4, 5, 6, 7, 8], make: orderOps },
-  { id: 'dzp1', title: 'Dzielenie pisemne przez liczbę jednocyfrową', description: 'Licz na kartce, wpisz wynik i porównaj słupek.', grades: [4, 5, 6], make: writtenDiv1, slow: true },
-  { id: 'dzp2', title: 'Dzielenie pisemne przez liczbę dwucyfrową', description: 'Licz na kartce, wpisz wynik i porównaj słupek.', grades: [5, 6, 7, 8], make: writtenDiv2, slow: true },
+  { id: 'dzp1', title: 'Dzielenie pisemne przez liczbę jednocyfrową', description: 'Słupek z kratkami: wpisujesz cyfry jak na kartce.', grades: [4, 5, 6], make: writtenDiv1, slow: true },
+  { id: 'dzp2', title: 'Dzielenie pisemne przez liczbę dwucyfrową', description: 'Słupek z kratkami: wpisujesz cyfry jak na kartce.', grades: [5, 6, 7, 8], make: writtenDiv2, slow: true },
 ];
 
 export const genTopicId = (id: string) => `gen:${id}`;

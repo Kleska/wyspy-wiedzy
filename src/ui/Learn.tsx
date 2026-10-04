@@ -3,7 +3,7 @@ import { subjectLang } from '../content/seed';
 import { nowIso, store, uid } from '../data/store';
 import { parseLesson } from '../dsl';
 import { LESSON_COINS } from '../engine';
-import { divisionLayout, lessonDivision, writtenDivisionOf } from '../longdiv';
+import { divisionGridOf, divisionLayout, lessonDivision, writtenDivisionOf } from '../longdiv';
 import { playSound } from '../speech';
 import { coinText } from '../themes';
 import type { Exercise, Lesson, LessonPair, Session } from '../types';
@@ -246,7 +246,7 @@ export function Learn({ topicId, from }: { topicId: string; from?: 'home' | 'sub
   const isCheck = card.kind === 'check';
   // Słupek odsłaniamy krok po kroku tym samym dużym przyciskiem; dopiero po ostatnim kroku idziemy do następnej karty.
   const stepsLeft = card.kind === 'division' ? divisionLayout(card.a, card.b).frames.length - 1 - frame : 0;
-  const checkDivision = isCheck ? writtenDivisionOf(card.ex) : null;
+  const checkDivision = isCheck && !divisionGridOf(card.ex) ? writtenDivisionOf(card.ex) : null;
   return (
     <div className="practice lesson">
       <div className="pr-top">

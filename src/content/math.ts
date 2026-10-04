@@ -326,14 +326,15 @@ function divisionHint(a: number, b: number): string {
 }
 
 /**
- * „Oblicz pisemnie”: dziecko liczy na kartce i wpisuje wynik (z resztą, jeśli jest).
- * Po odpowiedzi aplikacja sama rysuje cały słupek (patrz `writtenDivisionOf`), więc wyjaśnienie jest krótkie.
+ * „Oblicz pisemnie”: na ekranie pojawia się słupek z kratkami (patrz `divisionGridOf` i `DivisionInput`) — dziecko
+ * wpisuje cyfry wyniku, iloczyny i reszty jak na karcie pracy. Luki w tej linii (wynik i reszta) to to, co aplikacja
+ * odczytuje ze słupka i ocenia; widać je też w raportach dla rodzica.
  */
 export function writtenLine(a: number, b: number): string {
   const d = longDivision(a, b);
   const tail = `?? ${divisionHint(a, b)} !! ${divisionSummary(d)}. Sprawdzenie: ${divisionCheck(d)}.`;
-  if (d.remainder) return `wpisz: Oblicz pisemnie (na kartce). Wpisz wynik i resztę. >> ${a} : ${b} = [${d.quotient}] r [${d.remainder}] ${tail}`;
-  return `wpisz: Oblicz pisemnie (na kartce) i wpisz wynik. >> ${a} : ${b} = [${d.quotient}] ${tail}`;
+  if (d.remainder) return `wpisz: Oblicz pisemnie. Wpisz cyfry w kratki — na dole zostanie reszta. >> ${a} : ${b} = [${d.quotient}] r [${d.remainder}] ${tail}`;
+  return `wpisz: Oblicz pisemnie. Wpisz cyfry w kratki. >> ${a} : ${b} = [${d.quotient}] ${tail}`;
 }
 
 /** Słupek „za rękę”: dziecko wpisuje cyfrę wyniku i resztę w każdym kroku oraz liczbę, która powstaje po spisaniu cyfry. */
