@@ -571,7 +571,7 @@ export function SubjectScreen({ subjectId }: { subjectId: string }) {
                   const ns = nodeState(t, progress, suggested?.id);
                   return (
                     <button key={t.id} className={`stop ${ns}`} onClick={() => openTopic(t.id)}>
-                      <span className="dot">{ns === 'next' ? <Icon name="plane" /> : ns === 'done' ? <Icon name="check" stroke={3} /> : i + 1}</span>
+                      <span className="dot">{ns === 'next' ? <Icon name={theme.icon} /> : ns === 'done' ? <Icon name="check" stroke={3} /> : i + 1}</span>
                       <span className="stop-label">{t.title}</span>
                       <Stars n={s?.stars ?? 0} size={16} />
                     </button>
@@ -644,7 +644,7 @@ export function SubjectScreen({ subjectId }: { subjectId: string }) {
             {subject.short}
           </span>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <h1>{theme.layout === 'map' ? subject.island : theme.layout === 'grid' ? `ŚWIAT: ${subject.name.toUpperCase()}` : subject.name}</h1>
+            <h1>{theme.subjectTitle(subject)}</h1>
             <div className="subject-meta">
               {pct(st.mastery)} opanowane · {st.stars} z {st.maxStars} gwiazdek
             </div>

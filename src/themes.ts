@@ -6,6 +6,10 @@ export interface ThemeDef {
   appName: string;
   tagline: string;
   layout: 'map' | 'route' | 'grid' | 'list';
+  /** Ikona motywu: znak przy nazwie aplikacji i „następny przystanek” na trasie. */
+  icon: string;
+  /** Nagłówek ekranu przedmiotu w języku motywu. */
+  subjectTitle: (subject: { name: string; island: string }) => string;
   /** Formy liczebnikowe waluty: 1, 2–4, 5+ */
   coin: [string, string, string];
   topicWord: string;
@@ -27,6 +31,8 @@ export const THEMES: Record<ThemeId, ThemeDef> = {
     appName: 'Wyspy Wiedzy',
     tagline: 'Mapa przygody, skrzynie i muszelki',
     layout: 'map',
+    icon: 'flag',
+    subjectTitle: (s) => s.island,
     coin: ['muszelka', 'muszelki', 'muszelek'],
     topicWord: 'kraina',
     start: 'Graj!',
@@ -43,6 +49,8 @@ export const THEMES: Record<ThemeId, ThemeDef> = {
     appName: 'Akademia Pilotów',
     tagline: 'Trasy lotów, hangar i stopnie pilota',
     layout: 'route',
+    icon: 'plane',
+    subjectTitle: (s) => s.name,
     coin: ['moneta', 'monety', 'monet'],
     topicWord: 'misja',
     start: 'Startuj!',
@@ -59,6 +67,8 @@ export const THEMES: Record<ThemeId, ThemeDef> = {
     appName: 'PIXEL QUEST',
     tagline: 'Światy, etapy, combo i ekwipunek',
     layout: 'grid',
+    icon: 'zap',
+    subjectTitle: (s) => `ŚWIAT: ${s.name.toUpperCase()}`,
     coin: ['moneta', 'monety', 'monet'],
     topicWord: 'etap',
     start: 'GRAJ ▶',
@@ -75,6 +85,8 @@ export const THEMES: Record<ThemeId, ThemeDef> = {
     appName: 'zeszyt.',
     tagline: 'Spokojnie i konkretnie — na starsze lata',
     layout: 'list',
+    icon: 'flag',
+    subjectTitle: (s) => s.name,
     coin: ['punkt', 'punkty', 'punktów'],
     topicWord: 'temat',
     start: 'Zacznij',
@@ -85,9 +97,48 @@ export const THEMES: Record<ThemeId, ThemeDef> = {
     swatch: ['#FAF7F0', '#1E2A3A', '#1F5FD6'],
     themeColor: '#FAF7F0',
   },
+  kosmos: {
+    id: 'kosmos',
+    name: 'Kosmos',
+    appName: 'Kosmiczna Wyprawa',
+    tagline: 'Planety, rakieta i kryształy',
+    layout: 'map',
+    icon: 'rocket',
+    subjectTitle: (s) => `Galaktyka: ${s.name}`,
+    coin: ['kryształ', 'kryształy', 'kryształów'],
+    topicWord: 'planeta',
+    start: 'Lecimy!',
+    hello: 'Cześć',
+    praise: ['Kosmicznie!', 'Prosto do celu!', 'Pełna moc silników!', 'Orbita zdobyta!'],
+    oops: 'Mała awaria! Poprawnie:',
+    levelLabel: (l) => `Poziom ${l}`,
+    swatch: ['#17123A', '#34297A', '#FFCB47'],
+    themeColor: '#17123A',
+  },
+  wyscigi: {
+    id: 'wyscigi',
+    name: 'Wyścigi',
+    appName: 'Wielki Wyścig',
+    tagline: 'Tor, bolid i medale',
+    layout: 'route',
+    icon: 'car',
+    subjectTitle: (s) => s.name,
+    coin: ['medal', 'medale', 'medali'],
+    topicWord: 'okrążenie',
+    start: 'Start!',
+    hello: 'Cześć',
+    praise: ['Pierwsze miejsce!', 'Pełny gaz!', 'Idealny zakręt!', 'Rekord toru!'],
+    oops: 'Poślizg! Poprawnie:',
+    levelLabel: (l) => `Poziom ${l}`,
+    swatch: ['#ECEEF2', '#16181D', '#E2231A'],
+    themeColor: '#16181D',
+  },
 };
 
-export const THEME_ORDER: ThemeId[] = ['wyspy', 'piloci', 'pixel', 'zeszyt'];
+export const THEME_ORDER: ThemeId[] = ['wyspy', 'piloci', 'pixel', 'zeszyt', 'kosmos', 'wyscigi'];
+
+/** Motyw osoby; nieznany identyfikator (np. z nowszej wersji aplikacji na innym urządzeniu) daje motyw domyślny. */
+export const themeOf = (id: ThemeId | string | undefined): ThemeDef => THEMES[id as ThemeId] ?? THEMES.wyspy;
 
 export function plural(n: number, forms: [string, string, string]): string {
   const abs = Math.abs(n);
@@ -155,6 +206,32 @@ export async function loadThemeFonts(id: ThemeId) {
         import('@fontsource/lexend/latin-ext-700.css'),
         import('@fontsource/caveat/latin-700.css'),
         import('@fontsource/caveat/latin-ext-700.css'),
+      ]);
+      break;
+    case 'kosmos':
+      await Promise.all([
+        import('@fontsource/exo-2/latin-700.css'),
+        import('@fontsource/exo-2/latin-ext-700.css'),
+        import('@fontsource/exo-2/latin-800.css'),
+        import('@fontsource/exo-2/latin-ext-800.css'),
+        import('@fontsource/nunito/latin-600.css'),
+        import('@fontsource/nunito/latin-ext-600.css'),
+        import('@fontsource/nunito/latin-800.css'),
+        import('@fontsource/nunito/latin-ext-800.css'),
+      ]);
+      break;
+    case 'wyscigi':
+      await Promise.all([
+        import('@fontsource/barlow-condensed/latin-600.css'),
+        import('@fontsource/barlow-condensed/latin-ext-600.css'),
+        import('@fontsource/barlow-condensed/latin-700.css'),
+        import('@fontsource/barlow-condensed/latin-ext-700.css'),
+        import('@fontsource/barlow-condensed/latin-700-italic.css'),
+        import('@fontsource/barlow-condensed/latin-ext-700-italic.css'),
+        import('@fontsource/nunito/latin-600.css'),
+        import('@fontsource/nunito/latin-ext-600.css'),
+        import('@fontsource/nunito/latin-800.css'),
+        import('@fontsource/nunito/latin-ext-800.css'),
       ]);
       break;
   }

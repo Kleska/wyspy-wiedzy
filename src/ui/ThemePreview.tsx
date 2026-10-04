@@ -37,7 +37,7 @@ export function ThemePreview({ id }: { id: ThemeId }) {
             </span>
             <span className="tp-line" />
             <span className="tp-dot next">
-              <Icon name="plane" size={12} />
+              <Icon name={t.icon} size={12} />
             </span>
             <span className="tp-line" />
             <span className="tp-dot">3</span>

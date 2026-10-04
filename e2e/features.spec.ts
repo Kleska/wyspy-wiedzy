@@ -241,18 +241,36 @@ test('mini-gry na ekranie startowym: Pary na czas', async ({ page }) => {
 
 test('wybór wyglądu pokazuje podgląd każdego motywu', async ({ page }) => {
   await page.goto('/');
-  await expect(page.locator('.tp')).toHaveCount(4);
+  await expect(page.locator('.tp')).toHaveCount(6);
   await snap(page, 'f23-onboarding-themes', true);
   await page.getByPlaceholder('Imię').fill('Kuba');
   await page.getByRole('group', { name: 'Klasa' }).getByRole('button', { name: '3', exact: true }).click();
   await page.getByRole('button', { name: 'Zaczynamy!' }).click();
   await page.getByRole('button', { name: 'Wygląd' }).click();
-  const dlg = page.getByRole('dialog', { name: 'Wybierz wygląd' });
-  await expect(dlg.locator('.tp')).toHaveCount(4);
+  const dlg = page.getByRole('dialog', { name: 'Wygląd i bohater' });
+  await expect(dlg.locator('.tp')).toHaveCount(6);
   await page.waitForTimeout(400);
-  await snap(page, 'f24-theme-picker');
+  await snap(page, 'f24-theme-picker', true);
+  // Bohatera dziecko zmienia samo — w tym samym oknie co wygląd, bez zamykania okna.
+  await expect(dlg.getByRole('button', { name: 'Bohater: lis', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await dlg.getByRole('button', { name: 'Bohater: pilot', exact: true }).click();
+  await expect(dlg.getByRole('button', { name: 'Bohater: pilot', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('.topbar .avatar')).toHaveText('👨‍✈️');
+  // Płatnych bohaterów tu nie ma — po nich idzie się do sklepu.
+  await expect(dlg.getByRole('button', { name: 'Bohater: smok' })).toHaveCount(0);
+  await expect(dlg.getByRole('button', { name: 'Więcej bohaterów w sklepie' })).toBeVisible();
   await dlg.getByRole('button', { name: /Pixel Quest/ }).click();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'pixel');
+  // Nowe motywy: Kosmos (mapa-galaktyka) i Wyścigi (trasa z bolidem).
+  await page.getByRole('button', { name: 'Wygląd' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: /Kosmos/ }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'kosmos');
+  await page.locator('.subject-big', { hasText: 'Matematyka' }).click();
+  await expect(page.getByRole('heading', { name: 'Galaktyka: Matematyka' })).toBeVisible();
+  await page.getByRole('button', { name: 'Wygląd' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: /Wyścigi/ }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'wyscigi');
+  await expect(page.getByRole('heading', { name: 'Trasa: Matematyka' })).toBeVisible();
 });
 
 test('moje błędy i mapa tabliczki mnożenia', async ({ page }) => {

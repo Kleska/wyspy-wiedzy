@@ -210,7 +210,7 @@ export interface Reward {
   cost: number;
 }
 
-export type ThemeId = 'wyspy' | 'piloci' | 'pixel' | 'zeszyt';
+export type ThemeId = 'wyspy' | 'piloci' | 'pixel' | 'zeszyt' | 'kosmos' | 'wyscigi';
 
 export interface Profile {
   id: string;

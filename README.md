@@ -9,8 +9,8 @@ można ją zainstalować na ekranie głównym i używać bez internetu. Postępy
   Przy uruchomieniu aplikacja pyta „Kto się dziś uczy?”.
 - Start od wyboru przedmiotu (Język polski, Matematyka, Angielski), potem plansza z tematami dla klasy dziecka.
 
-- 4 wyglądy do przełączania przez dziecko: *Wyspy Wiedzy* (domyślny), *Akademia Pilotów*, *Pixel Quest*, *Zeszyt* —
-  przy wyborze widać miniaturę każdego.
+- 6 wyglądów do przełączania przez dziecko: *Wyspy Wiedzy* (domyślny), *Akademia Pilotów*, *Pixel Quest*, *Zeszyt*, *Kosmos*, *Wyścigi* —
+  przy wyborze widać miniaturę każdego. W tym samym oknie („Wygląd”) dziecko zmienia też swojego bohatera.
 - 6 typów zadań: wybór odpowiedzi, klikanie słów w zdaniu, sortowanie do koszyków (przeciąganie lub stuknięcia),
   uzupełnianie luk (z przyciskami ą ć ę ł ń ó ś ź ż), łączenie w pary i dyktando (aplikacja czyta zdanie na głos).
 - Każdy temat ma ściągę (zasada z przykładami): widać ją przed tematem i po błędnej odpowiedzi.

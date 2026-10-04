@@ -95,7 +95,7 @@ test('pełna ścieżka: profil → przedmiot → ćwiczenie → podsumowanie →
   await snap(page, '07-rewards');
   // Bohaterowie: nie tylko zwierzaki — darmowego pilota można wybrać od razu
   await expect(page.getByRole('heading', { name: 'Postacie' })).toBeVisible();
-  await page.getByRole('button', { name: 'Wybierz: pilot' }).click();
+  await page.getByRole('button', { name: 'Wybierz: pilot', exact: true }).click();
   await expect(page.locator('.hero-item.current')).toContainText('Twój bohater');
   await expect(page.locator('.hero-item.current .hero-emoji')).toHaveAttribute('aria-label', 'pilot');
   await expect(page.locator('.topbar .avatar')).toHaveText('👨‍✈️');
@@ -109,6 +109,8 @@ test('pełna ścieżka: profil → przedmiot → ćwiczenie → podsumowanie →
     ['Akademia Pilotów', 'piloci'],
     ['Pixel Quest', 'pixel'],
     ['Zeszyt', 'zeszyt'],
+    ['Kosmos', 'kosmos'],
+    ['Wyścigi', 'wyscigi'],
   ] as const) {
     await page.getByRole('button', { name: 'Wygląd' }).click();
     await page.getByRole('dialog').getByRole('button', { name: new RegExp(name) }).click();
@@ -178,7 +180,7 @@ test('dwie osoby: każda ma swoją klasę, tematy i postępy', async ({ page }) 
   await page.goto('/');
   await page.getByPlaceholder('Imię').fill('Kuba');
   await page.getByRole('group', { name: 'Klasa' }).getByRole('button', { name: '3', exact: true }).click();
-  await page.getByRole('group', { name: 'Bohater' }).getByRole('button', { name: 'astronauta' }).click();
+  await page.getByRole('group', { name: 'Bohater' }).getByRole('button', { name: 'astronauta', exact: true }).click();
   await snap(page, '14-onboarding-heroes');
   await page.getByRole('button', { name: 'Zaczynamy!' }).click();
   await expect(page.getByText('Cześć, Kuba!')).toBeVisible();

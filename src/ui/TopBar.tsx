@@ -16,7 +16,7 @@ export function TopBar({ back }: { back?: () => void }) {
       ) : (
         <div className="brand">
           <span className="brand-mark" aria-hidden="true">
-            <Icon name={theme.id === 'piloci' ? 'plane' : theme.id === 'pixel' ? 'zap' : 'flag'} size={22} />
+            <Icon name={theme.icon} size={22} />
           </span>
           <span className="hide-md">{theme.appName}</span>
         </div>

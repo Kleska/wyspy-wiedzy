@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { AVATAR_GROUPS, AVATARS, FREE_AVATARS } from '../avatars';
+import { AVATAR_GROUPS, AVATARS, ownedAvatars } from '../avatars';
 import { askConfirm } from './dialogs';
 import { nowIso, store, uid } from '../data/store';
 import { FREEZE_COST, FREEZE_ID, FREEZE_MAX } from '../engine';
@@ -19,7 +19,7 @@ export function Rewards() {
     .list('redemption')
     .filter((r) => r.profileId === profile.id)
     .sort((a, b) => b.at.localeCompare(a.at));
-  const owned = new Set([...FREE_AVATARS, ...mine.filter((r) => r.rewardId.startsWith('avatar:') && r.status !== 'rejected').map((r) => r.rewardId.slice(7))]);
+  const owned = ownedAvatars(profile.id, profile.avatar, mine);
 
   const requestReal = async (rewardId: string, title: string, cost: number) => {
     if (progress.coins < cost) return;

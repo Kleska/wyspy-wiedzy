@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { DialogHost } from './ui/dialogs';
 import { store } from './data/store';
-import { loadThemeFonts, THEMES } from './themes';
+import { loadThemeFonts, themeOf } from './themes';
 import type { Profile } from './types';
 import { Home, SubjectScreen } from './ui/Home';
 import { Learn, ReviewSheet } from './ui/Learn';
@@ -59,7 +59,7 @@ export function App() {
   useEffect(() => {
     if (!profileId && only) setProfileId(only.id);
   }, [profileId, only]);
-  const theme = THEMES[profile?.theme ?? 'wyspy'];
+  const theme = themeOf(profile?.theme);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme.id;

@@ -163,6 +163,89 @@
   --hl: #ffe27a;
 }
 
+[data-theme='kosmos'] {
+  --bg: #17123a;
+  --surface: #261d5c;
+  --surface-2: #34297a;
+  --surface-3: #1f1850;
+  --text: #f3f0ff;
+  --muted: #b9b1e0;
+  --line: #43378f;
+  --accent: #ffcb47;
+  --accent-ink: #2b1b00;
+  --accent-shadow: #b78414;
+  --accent-soft: #4a3d99;
+  --secondary: #5ad8e6;
+  --secondary-ink: #0d2a33;
+  --secondary-shadow: #2a94a3;
+  --good: #6ee7a0;
+  --good-bg: #17403c;
+  --bad: #ff8fa8;
+  --bad-bg: #4a1d3d;
+  --gold: #ffd75e;
+  --gold-ink: #ffd75e;
+  --radius: 22px;
+  --radius-sm: 14px;
+  --card-shadow: 0 5px 0 rgba(6, 4, 24, 0.55);
+  --card-border: 1px solid #43378f;
+  --btn-depth: 5px;
+  --font-display: 'Exo 2', 'Nunito', system-ui, sans-serif;
+  --font-body: 'Nunito', system-ui, sans-serif;
+  --display-weight: 700;
+  --panel: #0f0b2b;
+  --panel-ink: #ffffff;
+  --panel-muted: #b9b1e0;
+  --sand: #3b2d8c;
+  --grass: #120d33;
+  --track: #34297a;
+  --node-new: #34297a;
+  --node-new-ink: #f3f0ff;
+  --focus: #5ad8e6;
+  /* Ciemny tusz na jasnej zieleni, różu i złocie (biały byłby nieczytelny). */
+  --on-bright: #151033;
+}
+
+[data-theme='wyscigi'] {
+  --bg: #eceef2;
+  --surface: #ffffff;
+  --surface-2: #f0f2f6;
+  --surface-3: #f7f8fa;
+  --text: #16181d;
+  --muted: #555c68;
+  --line: #d3d8e0;
+  --accent: #e2231a;
+  --accent-ink: #ffffff;
+  --accent-shadow: #9c120c;
+  --accent-soft: #fde1de;
+  --secondary: #16181d;
+  --secondary-ink: #ffffff;
+  --secondary-shadow: #000000;
+  --good: #1c8a4a;
+  --good-bg: #e2f5e9;
+  --bad: #b5361c;
+  --bad-bg: #fdeee6;
+  --gold: #f2b705;
+  --gold-ink: #7a5600;
+  --radius: 14px;
+  --radius-sm: 10px;
+  --card-shadow: 0 3px 0 rgba(22, 24, 29, 0.12);
+  --card-border: 0 solid transparent;
+  --btn-depth: 4px;
+  --font-display: 'Barlow Condensed', 'Nunito', system-ui, sans-serif;
+  --font-body: 'Nunito', system-ui, sans-serif;
+  --display-weight: 700;
+  --panel: #16181d;
+  --panel-ink: #ffffff;
+  --panel-muted: #b8bdc7;
+  --sand: #ffffff;
+  --grass: #f0f2f6;
+  --track: #e3e6eb;
+  --node-new: #e3e6eb;
+  --node-new-ink: #555c68;
+  --focus: #1d6fb8;
+  --asphalt: #2a2e37;
+}
+
 /* ───────────────────────── Podstawy ───────────────────────── */
 
 *,
@@ -2019,8 +2102,11 @@ p {
   border-bottom: 1px solid var(--line);
 }
 
-[data-theme='piloci'] .tp-top,
-[data-theme='pixel'] .tp-top {
+/* Reguły miniatur zaczynają się od `.tp[data-theme]`, żeby motyw całej strony nie przebijał się do miniatur innych motywów. */
+.tp[data-theme='piloci'] .tp-top,
+.tp[data-theme='pixel'] .tp-top,
+.tp[data-theme='wyscigi'] .tp-top,
+.tp[data-theme='kosmos'] .tp-top {
   background: var(--panel);
   color: var(--panel-ink);
   border-bottom-color: transparent;
@@ -2048,7 +2134,7 @@ p {
   color: var(--text);
 }
 
-[data-theme='pixel'] .tp-chip {
+.tp[data-theme='pixel'] .tp-chip {
   border-radius: 0;
 }
 
@@ -2079,7 +2165,7 @@ p {
   min-width: 0;
 }
 
-[data-theme='pixel'] .tp-card {
+.tp[data-theme='pixel'] .tp-card {
   border-width: 2px;
   box-shadow: 3px 3px 0 #0a0d1a;
 }
@@ -2325,6 +2411,41 @@ p {
   align-items: center;
   gap: 10px;
   text-align: center;
+}
+
+.look-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.look-title {
+  font-size: 18px;
+}
+
+.look-more {
+  align-self: flex-start;
+}
+
+.hero-pick {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(48px, 1fr));
+  gap: 8px;
+}
+
+.hero-pick button {
+  min-height: 48px;
+  padding: 0;
+  border-radius: 12px;
+  border: 3px solid var(--line);
+  background: var(--surface-3);
+  font-size: 26px;
+  line-height: 1;
+}
+
+.hero-pick button[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
 }
 
 .hero-group {
@@ -5021,4 +5142,202 @@ p {
   .plan-topic .level-steps {
     display: none;
   }
+}
+
+/* ───────────────────────── Motyw: Kosmos ───────────────────────── */
+
+/* Gwiazdy w tle (rzadkie i przygaszone, żeby nie przeszkadzały w czytaniu). */
+[data-theme='kosmos'] body,
+.tp[data-theme='kosmos'] {
+  background-image: radial-gradient(1.5px 1.5px at 24px 34px, rgba(255, 255, 255, 0.55) 50%, transparent 51%), radial-gradient(1px 1px at 96px 128px, rgba(255, 255, 255, 0.45) 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 158px 62px, rgba(255, 255, 255, 0.4) 50%, transparent 51%), radial-gradient(1px 1px at 64px 178px, rgba(255, 255, 255, 0.5) 50%, transparent 51%),
+    radial-gradient(2px 2px at 196px 204px, rgba(255, 215, 94, 0.55) 50%, transparent 51%);
+  background-size: 230px 230px;
+}
+
+[data-theme='kosmos'] .topbar {
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+}
+
+[data-theme='kosmos'] .brand {
+  letter-spacing: 0.02em;
+  font-weight: 800;
+}
+
+[data-theme='kosmos'] .brand-mark {
+  box-shadow: 0 0 0 4px rgba(255, 203, 71, 0.22);
+}
+
+[data-theme='kosmos'] .hello-card {
+  background: linear-gradient(135deg, #3a2a9a 0%, #261d5c 70%);
+}
+
+/* Mapa jako galaktyka: mgławica zamiast plaży, planety zamiast wysp. */
+[data-theme='kosmos'] .island {
+  background: radial-gradient(120% 60% at 50% 0%, #5a3fc0 0%, var(--sand) 55%, #2a2070 100%);
+}
+
+[data-theme='kosmos'] .island-inner {
+  background-color: var(--grass);
+  background-image: radial-gradient(1.5px 1.5px at 30px 40px, rgba(255, 255, 255, 0.7) 50%, transparent 51%), radial-gradient(1px 1px at 110px 90px, rgba(255, 255, 255, 0.55) 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 70px 150px, rgba(90, 216, 230, 0.7) 50%, transparent 51%);
+  background-size: 160px 190px;
+}
+
+[data-theme='kosmos'] .node-btn {
+  border-color: rgba(255, 255, 255, 0.35);
+  box-shadow: 0 5px 0 rgba(0, 0, 0, 0.4);
+}
+
+[data-theme='kosmos'] .node-btn.started {
+  color: var(--accent);
+}
+
+[data-theme='kosmos'] .node-btn.next {
+  border-color: #fff3c9;
+  box-shadow: 0 0 0 10px rgba(255, 203, 71, 0.25), 0 0 26px rgba(255, 203, 71, 0.55), 0 6px 0 var(--accent-shadow);
+}
+
+[data-theme='kosmos'] .node-label {
+  background: rgba(15, 11, 43, 0.82);
+}
+
+[data-theme='kosmos'] .quest.done .quest-badge,
+[data-theme='kosmos'] .node-btn.done,
+[data-theme='kosmos'] .stop.done .dot,
+[data-theme='kosmos'] .mark,
+[data-theme='kosmos'] .word.correct,
+[data-theme='kosmos'] .word.wrong,
+[data-theme='kosmos'] .fb-icon,
+[data-theme='kosmos'] .badge.earned .badge-icon,
+[data-theme='kosmos'] .week-day.on .week-dot,
+[data-theme='kosmos'] .grade-num,
+[data-theme='kosmos'] .diag-mark.good,
+[data-theme='kosmos'] .keypad .key-ok,
+[data-theme='kosmos'] .plan-steps li.done > b {
+  color: var(--on-bright);
+}
+
+[data-theme='kosmos'] .input,
+[data-theme='kosmos'] .select,
+[data-theme='kosmos'] .textarea,
+[data-theme='kosmos'] .gap {
+  background: var(--surface-3);
+}
+
+[data-theme='kosmos'] .toast {
+  background: #f3f0ff;
+  color: #151033;
+}
+
+/* ───────────────────────── Motyw: Wyścigi ───────────────────────── */
+
+[data-theme='wyscigi'] .topbar {
+  background: var(--panel);
+  color: var(--panel-ink);
+}
+
+/* Szachownica pod paskiem — jak flaga na mecie. */
+[data-theme='wyscigi'] .topbar::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  height: 8px;
+  background: repeating-conic-gradient(#16181d 0 25%, #ffffff 0 50%) 0 0 / 8px 8px;
+}
+
+[data-theme='wyscigi'] .topbar .chip,
+[data-theme='wyscigi'] .topbar .btn,
+[data-theme='wyscigi'] .person-btn {
+  background: var(--asphalt);
+  color: #fff;
+  box-shadow: none;
+}
+
+[data-theme='wyscigi'] .person-btn-text small {
+  color: var(--panel-muted);
+}
+
+[data-theme='wyscigi'] .brand {
+  font-style: italic;
+  font-size: 28px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+[data-theme='wyscigi'] .brand-mark {
+  border-radius: 8px;
+  transform: skewX(-8deg);
+}
+
+[data-theme='wyscigi'] .start,
+[data-theme='wyscigi'] .subject-page,
+[data-theme='wyscigi'] .page {
+  padding-top: 22px;
+}
+
+[data-theme='wyscigi'] h1,
+[data-theme='wyscigi'] h2,
+[data-theme='wyscigi'] .card-title {
+  letter-spacing: 0.01em;
+}
+
+[data-theme='wyscigi'] .btn-primary {
+  font-style: italic;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+[data-theme='wyscigi'] .hello-card {
+  background: var(--panel);
+  color: var(--panel-ink);
+  border-left: 8px solid var(--accent);
+}
+
+[data-theme='wyscigi'] .hello-card .muted,
+[data-theme='wyscigi'] .hello-card .stat-tile small {
+  color: var(--panel-muted);
+}
+
+[data-theme='wyscigi'] .hello-card .stat-tile,
+[data-theme='wyscigi'] .hello-card .bar {
+  background: var(--asphalt);
+}
+
+[data-theme='wyscigi'] .hello-level {
+  color: var(--panel-muted);
+}
+
+/* Trasa jako tor: asfalt z przerywaną linią. */
+[data-theme='wyscigi'] .route::before {
+  top: 22px;
+  height: 16px;
+  border: 0;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #ffffff 55%, transparent 0) 0 50% / 26px 2px repeat-x, var(--asphalt);
+}
+
+[data-theme='wyscigi'] .stop .dot {
+  border: 4px solid var(--surface);
+}
+
+[data-theme='wyscigi'] .stop.next .dot {
+  box-shadow: 0 0 0 5px var(--accent-soft);
+}
+
+.tp[data-theme='wyscigi'] .tp-brand {
+  font-style: italic;
+  text-transform: uppercase;
+}
+
+/* Odpowiedzi czytamy literka po literce — zostają w szerokim kroju, nie w wąskim nagłówkowym. */
+[data-theme='wyscigi'] .opt,
+[data-theme='wyscigi'] .token,
+[data-theme='wyscigi'] .match-item,
+[data-theme='wyscigi'] .pair-tile {
+  font-family: var(--font-body);
+  font-weight: 800;
 }
