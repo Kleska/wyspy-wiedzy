@@ -336,8 +336,159 @@ describe('rozdziały i kartkówki od rodzica', () => {
     expect(unitLabel('')).toBe('Pozostałe');
     const english = topics.filter((t) => t.subject === 'ang');
     expect(groupByUnit(english).map((x) => x.unit)).toEqual(['Unit 0']);
-    expect(groupByUnit(topics.filter((t) => t.subject === 'mat')).map((x) => x.unit)).toEqual(['']);
+    // Każdy temat wbudowany ma dział; na planszy działy stoją w kolejności swoich pierwszych tematów.
+    for (const t of topics) expect(t.unit, t.id).toBeTruthy();
+    const board = (subject: string, grade: number) =>
+      groupByUnit(topics.filter((t) => t.subject === subject && t.grades?.includes(grade)).sort((a, b) => a.order - b.order)).map((x) => [x.unit, x.topics.length]);
+    expect(board('mat', 5)).toEqual([
+      ['Działania pisemne', 2],
+      ['Ułamki zwykłe', 2],
+      ['Ułamki dziesiętne', 1],
+      ['Geometria', 1],
+      ['Liczby i działania', 2],
+    ]);
+    expect(board('mat', 3)).toEqual([
+      ['Dodawanie i odejmowanie', 1],
+      ['Mnożenie i dzielenie', 3],
+      ['Zadania z treścią', 1],
+    ]);
+    expect(board('pl', 3)).toEqual([
+      ['Części mowy', 6],
+      ['Ortografia', 1],
+      ['Czytanie', 1],
+    ]);
+    expect(board('pl', 5)).toEqual([
+      ['Gramatyka', 4],
+      ['Ortografia', 3],
+      ['Czytanie', 1],
+    ]);
   });
+});
+
+describe('stan tematu u dziecka: teraz / biblioteka / skończony', () => {
+  const NOW = '2026-10-05T10:00:00.000Z';
+  const now = Date.parse(NOW);
+
+  it('plan ma pierwszeństwo przed „skończonym”, a plan po terminie nie liczy się jako „teraz”', async () => {
+    const { topicState, doneTopicIds, planTopicIds, splitDone, planExpired } = await import('../src/engine');
+    const p = { plan: { topicIds: ['a', 'b'], until: '2026-10-06', setAt: NOW }, done: ['b', 'c'] };
+    expect(planTopicIds(p, now)).toEqual(['a', 'b']);
+    expect([...doneTopicIds(p, now)]).toEqual(['c']);
+    expect(['a', 'b', 'c', 'd'].map((id) => topicState(p, id, now))).toEqual(['now', 'now', 'done', 'library']);
+    expect(splitDone([{ id: 'a' }, { id: 'c' }, { id: 'd' }], p, now)).toEqual({ active: [{ id: 'a' }, { id: 'd' }], done: [{ id: 'c' }] });
+    const late = { ...p, plan: { ...p.plan, until: '2026-10-04' } };
+    expect(planExpired(late.plan, now)).toBe(true);
+    expect(planExpired(p.plan, now)).toBe(false);
+    expect(planExpired(null, now)).toBe(false);
+    expect(planTopicIds(late, now)).toEqual([]);
+    expect(['a', 'b', 'c'].map((id) => topicState(late, id, now))).toEqual(['library', 'done', 'done']);
+    expect(topicState(undefined, 'a', now)).toBe('library');
+  });
+
+  it('zmiana stanu: „teraz” dopisuje do planu, „skończony” wyjmuje z planu, pusty plan znika', async () => {
+    const { setTopicState } = await import('../src/engine');
+    // Bez planu: „teraz” zakłada plan bez terminu.
+    const a = setTopicState({ done: ['x'] }, ['x', 'y'], 'now', NOW);
+    expect(a.plan).toEqual({ topicIds: ['x', 'y'], setAt: NOW });
+    expect(a.planAt).toBe(NOW);
+    expect(a.done).toEqual([]);
+    // Aktualny plan: temat dopisany, nazwa i termin zostają.
+    const plan = { topicIds: ['x'], until: '2026-10-09', title: 'Kartkówka', setAt: '2026-10-01T08:00:00.000Z' };
+    const b = setTopicState({ plan, planAt: plan.setAt }, ['y'], 'now', NOW);
+    expect(b.plan).toEqual({ ...plan, topicIds: ['x', 'y'] });
+    expect(b.planAt).toBe(NOW);
+    // Nic się nie zmienia, gdy temat już jest w planie.
+    expect(setTopicState({ plan, planAt: plan.setAt }, ['x'], 'now', NOW).planAt).toBe(plan.setAt);
+    // Plan po terminie jest zastępowany nowym.
+    const c = setTopicState({ plan: { ...plan, until: '2026-10-02' } }, ['z'], 'now', NOW);
+    expect(c.plan).toEqual({ topicIds: ['z'], setAt: NOW });
+    // „Skończony” wyjmuje z planu; ostatni temat = plan znika.
+    const d = setTopicState({ plan: { ...plan, topicIds: ['x', 'y'] }, planAt: plan.setAt, done: ['q'] }, ['x'], 'done', NOW);
+    expect(d.plan?.topicIds).toEqual(['y']);
+    expect(d.done).toEqual(['q', 'x']);
+    const e = setTopicState({ plan, planAt: plan.setAt }, ['x'], 'done', NOW);
+    expect(e.plan).toBeNull();
+    expect(e.planAt).toBe(NOW);
+    // „Biblioteka” przywraca temat na planszę i nie rusza planu, w którym go nie było.
+    const f = setTopicState({ plan, planAt: plan.setAt, done: ['q', 'r'] }, ['q'], 'library', NOW);
+    expect(f.done).toEqual(['r']);
+    expect(f.plan).toEqual(plan);
+    expect(f.planAt).toBe(plan.setAt);
+    // Znacznik zmiany listy „skończonych” rusza się tylko wtedy, gdy lista naprawdę się zmieniła.
+    expect(f.doneAt).toBe(NOW);
+    expect(setTopicState({ done: ['q'], doneAt: 'dawno' }, ['x'], 'library', NOW).doneAt).toBe('dawno');
+    expect(d.doneAt).toBe(NOW);
+    const { doneWithoutPlan } = await import('../src/engine');
+    expect(doneWithoutPlan({ done: ['a', 'b'], doneAt: 'dawno' }, ['b'], NOW)).toEqual({ done: ['a'], doneAt: NOW });
+    expect(doneWithoutPlan({ done: ['a'], doneAt: 'dawno' }, ['b'], NOW)).toEqual({ done: ['a'], doneAt: 'dawno' });
+    expect(doneWithoutPlan({}, ['b'], NOW)).toEqual({ done: undefined, doneAt: undefined });
+  });
+
+  it('skończony temat nie jest polecany, ale zostaje w powtórce', async () => {
+    const { splitDone, reviewCount } = await import('../src/engine');
+    const mat5 = topics.filter((t) => t.subject === 'mat' && t.grades?.includes(5)).sort((a, b) => a.order - b.order);
+    const profile = { done: [mat5[0].id] };
+    const p0 = progress([], [], '2026-10-01T10:00:00');
+    const { active, done } = splitDone(mat5, profile, now);
+    expect(done.map((t) => t.id)).toEqual([mat5[0].id]);
+    expect(suggestTopic(mat5, p0)!.id).toBe(mat5[0].id);
+    expect(suggestTopic(active, p0)!.id).toBe(mat5[1].id);
+    // Odpowiedzi z skończonego tematu nadal wracają w powtórce (liczymy po wszystkich tematach osoby).
+    const t0 = mat5[0];
+    const p1 = progress([att(t0, 0, true, '2026-10-01T10:00:00'), att(t0, 1, true, '2026-10-01T10:01:00')], [], '2026-10-03T10:00:00');
+    expect(reviewCount(mat5, p1)).toBe(2);
+    expect(reviewCount(active, p1)).toBe(0);
+  });
+
+  it('„ostatnio ćwiczone”: ostatnia sesja z 3 dni — także trening z nowymi liczbami wskazuje swój temat', async () => {
+    const { recentTopicId } = await import('../src/engine');
+    const { trainerTopicIds, TOPIC_TRAINERS, GENERATORS, trainersFor } = await import('../src/content/generators');
+    const s = (id: string, startedAt: string, mode: Session['mode'], topicId: string | null, genId?: string): Session => ({
+      id,
+      profileId: P,
+      topicId,
+      mode,
+      genId,
+      startedAt,
+      endedAt: startedAt,
+      activeSeconds: 120,
+      answered: 5,
+      correct: 4,
+      completed: true,
+    });
+    const base = { profileId: P, now, trainerTopics: trainerTopicIds, allowed: () => true };
+    const sessions = [
+      s('1', '2026-10-03T08:00:00.000Z', 'topic', 'b-m5-ulamki'),
+      s('2', '2026-10-04T18:00:00.000Z', 'gen', 'gen:dzp1r', 'dzp1r'),
+      s('3', '2026-10-04T19:00:00.000Z', 'sprint', null, 'mul'),
+      s('4', '2026-09-20T08:00:00.000Z', 'topic', 'b-m5-dziesietne'),
+    ];
+    expect(recentTopicId({ ...base, sessions })).toBe('b-m5-dzp-reszta');
+    // Temat spoza planszy (np. skończony) pomijamy i bierzemy wcześniejszą sesję.
+    expect(recentTopicId({ ...base, sessions, allowed: (id) => id !== 'b-m5-dzp-reszta' })).toBe('b-m5-ulamki');
+    // Starsze niż 3 dni się nie liczą; cudze sesje też nie.
+    expect(recentTopicId({ ...base, sessions: [sessions[3]] })).toBeNull();
+    expect(recentTopicId({ ...base, profileId: 'ktoś', sessions })).toBeNull();
+    expect(recentTopicId({ ...base, sessions, since: '2026-10-04T20:00:00.000Z' })).toBeNull();
+
+    // Treningi przypięte do tematów: temat i generator istnieją, a klasy się pokrywają.
+    for (const [topicId, gens] of Object.entries(TOPIC_TRAINERS)) {
+      const t = topics.find((x) => x.id === topicId);
+      expect(t, topicId).toBeTruthy();
+      for (const g of gens) {
+        const gen = GENERATORS.find((x) => x.id === g);
+        expect(gen, g).toBeTruthy();
+        expect(t!.grades!.some((gr) => gen!.grades.includes(gr)), `${topicId} → ${g}`).toBe(true);
+      }
+    }
+    expect(trainersFor('b-m5-dzp-bez', 5).map((g) => g.id)).toEqual(['dzp1', 'dzp2', 'mnp']);
+    expect(trainersFor('b-m5-dzp-bez', 5).filter((g) => g.aux).map((g) => g.id)).toEqual(['mnp']);
+    expect(trainersFor('b-m5-dzp-bez', 3)).toEqual([]);
+    expect(trainersFor('b-rzeczownik', 3)).toEqual([]);
+  });
+});
+
+describe('kartkówki od rodzica', () => {
 
   it('wynik kartkówki to pierwsze ukończone podejście z jej identyfikatorem', async () => {
     const { quizStates } = await import('../src/engine');

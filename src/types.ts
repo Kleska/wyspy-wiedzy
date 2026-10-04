@@ -83,7 +83,7 @@ export interface Topic {
    * „# Najważniejsze”, „# Krok po kroku”, „# Tak / nie tak”, „# Zapamiętaj”, „# Sprawdź się” (patrz `parseLesson`).
    */
   lesson?: string;
-  /** Rozdział, do którego należy temat (np. „Unit 0”) — porządkuje planszę przedmiotu i listy w panelu rodzica. */
+  /** Dział, do którego należy temat (np. „Ułamki zwykłe”, „Unit 0”) — plansza przedmiotu pokazuje jeden dział naraz; porządkuje też listy w panelu rodzica. */
   unit?: string;
   /** Słówka (język obcy): linie „english = polski”. Lista do nauki i źródło podpowiedzi do słów w zdaniach. */
   words?: string;
@@ -231,6 +231,13 @@ export interface Profile {
   quizzes?: AssignedQuiz[];
   /** Kiedy rodzic ostatnio ustawił albo usunął plan — przy scalaniu zmian z dwóch urządzeń wygrywa późniejszy plan. */
   planAt?: string;
+  /**
+   * Tematy „skończone” u tej osoby (np. dział, którego w szkole już nie przerabia): schodzą z planszy przedmiotu,
+   * ale zostają w powtórkach, „Moich błędach” i sprawdzianach. Ustawia rodzic w panelu.
+   */
+  done?: string[];
+  /** Kiedy rodzic ostatnio zmienił listę „skończonych” — przy scalaniu bez wersji wspólnej wygrywa późniejsza lista. */
+  doneAt?: string;
   createdAt: string;
   updatedAt: string;
 }

@@ -3,7 +3,7 @@ import { store } from '../../data/store';
 import { useStoreVersion } from '../hooks';
 import { Icon, type IconName } from '../icons';
 import { ParentAdd } from './ParentAdd';
-import { ParentPlan } from './ParentPlan';
+import { ExpiredPlanNotice, ParentPlan } from './ParentPlan';
 import { ParentRewards } from './ParentRewards';
 import { ParentSettings } from './ParentSettings';
 import { ParentStats } from './ParentStats';
@@ -95,6 +95,9 @@ export function ParentPanel({ pin, onExit }: { pin: string; onExit: () => void }
             />
           ) : (
             <>
+              {store.profiles().map((p) => (
+                <ExpiredPlanNotice key={p.id} p={p} />
+              ))}
               {tab === 'stats' && <ParentStats />}
               {tab === 'plan' && <ParentPlan pin={pin} />}
               {tab === 'topics' && <ParentTopics onEdit={openEditor} />}

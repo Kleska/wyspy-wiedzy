@@ -1,9 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { askConfirm } from '../dialogs';
 import { SUBJECTS, subjectLang, subjectOf } from '../../content/seed';
-import { nowIso, store, uid } from '../../data/store';
+import { gradeOf, nowIso, store, uid } from '../../data/store';
 import { DSL_HELP, LESSON_HELP, parseDsl, parseLesson, TYPE_LABEL } from '../../dsl';
-import type { Topic, TopicSource } from '../../types';
+import { groupByUnit, planActive, setTopicState, topicState, unitLabel, type TopicState } from '../../engine';
+import type { ParsedTopic, Topic, TopicSource } from '../../types';
 import { plural } from '../../themes';
 import { exerciseSummary } from '../exercises/logic';
 import { GRADES } from '../Onboarding';
@@ -38,10 +39,23 @@ const SOURCE_LABEL: Record<TopicSource, string> = {
   import: 'import',
 };
 
+const STATE_LABEL: Record<TopicState, string> = { now: 'Teraz', library: 'Biblioteka', done: 'Skończony' };
+
+/**
+ * Lista tematów: przedmiot → dział (zwijany) → temat. „Dla kogo” wybiera dziecko — widać wtedy tematy jego klasy
+ * i stan każdego tematu u tego dziecka (Teraz / Biblioteka / Skończony); „Wszystkie tematy” to cała biblioteka rodziny.
+ */
 export function ParentTopics({ onEdit }: { onEdit: (s: EditorSeed) => void }) {
   useStoreVersion();
-  const topics = store.allTopics();
+  const profiles = store.profiles();
+  const [who, setWho] = useState<string>(profiles[0]?.id ?? 'all');
+  const person = who === 'all' ? undefined : store.get('profile', who);
+  const all = store.allTopics();
+  const topics = person ? all.filter((t) => !t.grades?.length || t.grades.includes(gradeOf(person))) : all;
   const hidden = new Set(store.settings.hiddenBuiltins);
+  const now = Date.now();
+  /** Czy dziecko w ogóle widzi ten temat (nieukryty i z zadaniami) — tylko wtedy stan ma sens. */
+  const visible = (t: ParsedTopic) => !(t.builtin && hidden.has(t.id)) && t.exercises.length > 0;
 
   const toggleHidden = (id: string) => {
     const h = new Set(hidden);
@@ -57,17 +71,26 @@ export function ParentTopics({ onEdit }: { onEdit: (s: EditorSeed) => void }) {
   };
 
   const move = (id: string, subject: string, dir: -1 | 1) => {
-    const same = topics.filter((x) => x.subject === subject && !x.builtin);
+    const same = all.filter((x) => x.subject === subject && !x.builtin);
     const i = same.findIndex((x) => x.id === id);
     const other = same[i + dir];
     const a = store.get('topic', id);
     const b = other ? store.get('topic', other.id) : undefined;
     if (!a || !b) return;
-    const now = nowIso();
+    const at = nowIso();
     const aOrder = a.order === b.order ? b.order + dir : b.order;
-    void store.put('topic', { ...a, order: aOrder, updatedAt: now });
-    void store.put('topic', { ...b, order: a.order, updatedAt: now });
+    void store.put('topic', { ...a, order: aOrder, updatedAt: at });
+    void store.put('topic', { ...b, order: a.order, updatedAt: at });
   };
+
+  const setState = (ids: string[], state: TopicState) => {
+    const p = person && store.get('profile', person.id);
+    if (!p || !ids.length) return;
+    const at = nowIso();
+    void store.put('profile', { ...p, ...setTopicState(p, ids, state, at), updatedAt: at });
+  };
+
+  const plan = person?.plan && planActive(person.plan, now) ? person.plan : null;
 
   return (
     <>
@@ -77,40 +100,98 @@ export function ParentTopics({ onEdit }: { onEdit: (s: EditorSeed) => void }) {
           <Icon name="plus" size={20} /> Nowy temat
         </button>
       </div>
-      <p className="muted">
-        Tematy wbudowane możesz ukryć albo skopiować i zmienić. Własne tematy edytujesz w prostym formacie tekstowym — jedno zadanie w jednej linii.
-      </p>
-      {SUBJECTS.filter((s) => topics.some((t) => t.subject === s.id)).map((s) => (
-        <section key={s.id} className="card">
-          <h2 className="card-title">{s.name}</h2>
-          <div className="table-wrap">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Temat</th>
-                  <th>Zadań</th>
-                  <th>Klasa</th>
-                  <th>Źródło</th>
-                  <th>Akcje</th>
-                </tr>
-              </thead>
-              <tbody>
-                {topics
-                  .filter((t) => t.subject === s.id)
-                  .map((t) => (
-                    <tr key={t.id} style={{ opacity: t.builtin && hidden.has(t.id) ? 0.5 : 1 }}>
-                      <td>
-                        <b>{t.title}</b>
-                        {t.unit && <div className="muted" style={{ fontSize: 12 }}>{t.unit}</div>}
-                        {t.errors.length > 0 && <div className="pill bad">{t.errors.length} {plural(t.errors.length, ['błąd', 'błędy', 'błędów'])} w treści</div>}
-                        {t.builtin && hidden.has(t.id) && <div className="muted" style={{ fontSize: 12 }}>ukryty dla ucznia</div>}
-                      </td>
-                      <td>{t.exercises.length}</td>
-                      <td>{gradesLabel(t.grades)}</td>
-                      <td>
-                        <span className="pill">{SOURCE_LABEL[t.source]}</span>
-                      </td>
-                      <td>
+      <div className="who-pick" role="group" aria-label="Dla kogo">
+        <span className="who-label">Dla kogo</span>
+        {profiles.map((p) => (
+          <button key={p.id} type="button" aria-pressed={who === p.id} onClick={() => setWho(p.id)}>
+            {p.avatar} {p.name} · kl. {gradeOf(p)}
+          </button>
+        ))}
+        <button type="button" aria-pressed={who === 'all'} onClick={() => setWho('all')}>
+          Wszystkie tematy
+        </button>
+      </div>
+      {person ? (
+        <p className="muted">
+          <b>Teraz</b> — temat jest w planie dziecka i stoi na górze jego ekranu startowego
+          {plan ? ` (plan${plan.title ? ` „${plan.title}”` : ''}${plan.until ? `, termin ${new Date(plan.until + 'T12:00:00').toLocaleDateString('pl-PL')}` : ', bez terminu'})` : ''}. <b>Biblioteka</b> —
+          zwykły temat na planszy swojego działu. <b>Skończony</b> — schodzi z planszy, ale zostaje w powtórkach, błędach i sprawdzianach.
+        </p>
+      ) : (
+        <p className="muted">
+          Tematy wbudowane możesz ukryć albo skopiować i zmienić. Własne tematy edytujesz w prostym formacie tekstowym — jedno zadanie w jednej linii. Żeby ustawić, co dziecko ćwiczy
+          teraz, a co ma już za sobą, wybierz je u góry.
+        </p>
+      )}
+      {SUBJECTS.filter((s) => topics.some((t) => t.subject === s.id)).map((s) => {
+        const units = groupByUnit(topics.filter((t) => t.subject === s.id));
+        return (
+          <section key={s.id} className="card col" aria-label={s.name} style={{ gap: 10 }}>
+            <h2 className="card-title" style={{ margin: 0 }}>
+              {s.name}
+            </h2>
+            {units.map((u) => {
+              const ids = u.topics.filter(visible).map((t) => t.id);
+              const states = person ? ids.map((id) => topicState(person, id, now)) : [];
+              const nowN = states.filter((x) => x === 'now').length;
+              const doneN = states.filter((x) => x === 'done').length;
+              const allDone = ids.length > 0 && doneN === ids.length;
+              return (
+                <UnitFold
+                  key={`${who}:${s.id}:${u.unit}`}
+                  // Otwarte są działy z tematami „teraz” oraz tematy bez działu (zwykle świeżo dodane przez rodzica).
+                  open={nowN > 0 || !u.unit}
+                  done={!!person && allDone}
+                  title={unitLabel(u.unit)}
+                  meta={
+                    <>
+                      <span className="muted">
+                        {u.topics.length} {plural(u.topics.length, ['temat', 'tematy', 'tematów'])}
+                      </span>
+                      {nowN > 0 && <span className="pill now">teraz: {nowN}</span>}
+                      {person && allDone ? <span className="pill">skończony</span> : doneN > 0 && <span className="pill">skończone: {doneN}</span>}
+                    </>
+                  }
+                >
+                  {person && ids.length > 0 && (
+                    <div className="row" style={{ flexWrap: 'wrap' }}>
+                      {allDone ? (
+                        <button className="btn btn-sm" onClick={() => setState(ids, 'library')}>
+                          <Icon name="repeat" size={16} /> Przywróć dział na planszę
+                        </button>
+                      ) : (
+                        <button className="btn btn-sm" onClick={() => setState(ids, 'done')}>
+                          <Icon name="check" size={16} /> Cały dział: skończony
+                        </button>
+                      )}
+                    </div>
+                  )}
+                  {u.topics.map((t) => {
+                    const isHidden = t.builtin && hidden.has(t.id);
+                    const state = person && visible(t) ? topicState(person, t.id, now) : null;
+                    return (
+                      <div key={t.id} className="topic-item" style={{ opacity: isHidden ? 0.55 : 1 }}>
+                        <div className="topic-item-head">
+                          <b>{t.title}</b>
+                          <div className="muted topic-item-meta">
+                            {t.exercises.length} {plural(t.exercises.length, ['zadanie', 'zadania', 'zadań'])} · {gradesLabel(t.grades)} · {SOURCE_LABEL[t.source]}
+                            {isHidden ? ' · ukryty dla ucznia' : ''}
+                          </div>
+                          {t.errors.length > 0 && (
+                            <div className="pill bad">
+                              {t.errors.length} {plural(t.errors.length, ['błąd', 'błędy', 'błędów'])} w treści
+                            </div>
+                          )}
+                        </div>
+                        {state && (
+                          <div className="state-switch" role="group" aria-label={`Stan tematu: ${t.title}`}>
+                            {(['now', 'library', 'done'] as const).map((x) => (
+                              <button key={x} type="button" aria-pressed={state === x} onClick={() => state !== x && setState([t.id], x)}>
+                                {STATE_LABEL[x]}
+                              </button>
+                            ))}
+                          </div>
+                        )}
                         <div className="row" style={{ flexWrap: 'wrap', gap: 6 }}>
                           {t.builtin ? (
                             <>
@@ -147,15 +228,31 @@ export function ParentTopics({ onEdit }: { onEdit: (s: EditorSeed) => void }) {
                             </>
                           )}
                         </div>
-                      </td>
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      ))}
+                      </div>
+                    );
+                  })}
+                </UnitFold>
+              );
+            })}
+          </section>
+        );
+      })}
     </>
+  );
+}
+
+/** Zwijany dział. Stan otwarcia pamiętamy lokalnie — zmiana stanu tematu nie zamyka działu, w którym rodzic właśnie pracuje. */
+export function UnitFold({ title, meta, open: initial, done, children }: { title: string; meta?: ReactNode; open: boolean; done?: boolean; children: ReactNode }) {
+  const [open, setOpen] = useState(initial);
+  return (
+    <details className={`unit-fold ${done ? 'is-done' : ''}`} open={open} onToggle={(e) => setOpen(e.currentTarget.open)}>
+      <summary>
+        <Icon name="chevronDown" size={20} className="fold-chev" />
+        <b>{title}</b>
+        {meta}
+      </summary>
+      <div className="col unit-fold-body">{children}</div>
+    </details>
   );
 }
 
@@ -260,8 +357,8 @@ export function TopicEditor({ seed, onClose }: { seed: EditorSeed; onClose: () =
                 </select>
               </label>
               <label className="field">
-                <span>Rozdział (opcjonalnie) — tematy z tym samym rozdziałem są razem na planszy dziecka, np. „Unit 1”</span>
-                <input className="input" value={unit} onChange={(e) => setUnit(e.target.value)} maxLength={30} placeholder="np. Unit 1" list="ww-units" />
+                <span>Dział (opcjonalnie) — tematy z tym samym działem są razem na planszy dziecka, np. „Ułamki zwykłe” albo „Unit 1”</span>
+                <input className="input" value={unit} onChange={(e) => setUnit(e.target.value)} maxLength={30} placeholder="np. Ułamki zwykłe" list="ww-units" />
                 <datalist id="ww-units">
                   {[...new Set(store.allTopics().filter((t) => t.subject === subject && t.unit).map((t) => t.unit!.trim()))].map((u) => (
                     <option key={u} value={u} />

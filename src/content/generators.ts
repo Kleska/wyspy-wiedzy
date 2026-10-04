@@ -15,6 +15,10 @@ export interface Generator {
   make: (rnd: () => number) => string;
   /** Długie zadania (słupki z kratkami) — nie nadają się do Błyskawicy ani Par na czas, a sesja treningu jest krótsza. */
   slow?: boolean;
+  /** Krótka nazwa na przycisk „Nowe liczby” w karcie tematu (gdy tytuł jest za długi). */
+  short?: string;
+  /** Trening pomocniczy tematu (np. mnożenie pisemne jako sprawdzenie dzielenia) — mały przycisk pod głównymi. */
+  aux?: boolean;
 }
 
 const int = (rnd: () => number, a: number, b: number) => a + Math.floor(rnd() * (b - a + 1));
@@ -133,14 +137,43 @@ export const GENERATORS: Generator[] = [
   { id: 'frac', title: 'Skracanie ułamków', description: 'Dziel licznik i mianownik przez tę samą liczbę.', grades: [4, 5, 6, 7, 8], make: fracSimplify },
   { id: 'dec', title: 'Ułamki dziesiętne', description: 'Dodawanie i odejmowanie.', grades: [5, 6, 7, 8], make: decimals },
   { id: 'order', title: 'Kolejność działań', description: 'Nawiasy, potem mnożenie i dzielenie.', grades: [4, 5, 6, 7, 8], make: orderOps },
-  { id: 'dzp1', title: 'Dzielenie pisemne przez liczbę jednocyfrową — bez reszty', description: 'Słupek z kratkami: wpisujesz cyfry jak w zeszycie.', grades: [4, 5, 6], make: (r) => writtenDiv1(r, false), slow: true },
-  { id: 'dzp1r', title: 'Dzielenie pisemne przez liczbę jednocyfrową — z resztą', description: 'Słupek z kratkami: wpisujesz cyfry jak w zeszycie.', grades: [4, 5, 6], make: (r) => writtenDiv1(r, true), slow: true },
-  { id: 'dzp2', title: 'Dzielenie pisemne przez liczbę dwucyfrową — bez reszty', description: 'Słupek z kratkami: wpisujesz cyfry jak w zeszycie.', grades: [5, 6, 7, 8], make: (r) => writtenDiv2(r, false), slow: true },
-  { id: 'dzp2r', title: 'Dzielenie pisemne przez liczbę dwucyfrową — z resztą', description: 'Słupek z kratkami: wpisujesz cyfry jak w zeszycie.', grades: [5, 6, 7, 8], make: (r) => writtenDiv2(r, true), slow: true },
-  { id: 'mnp', title: 'Mnożenie pisemne', description: 'Słupek z kratkami — przyda się do sprawdzania dzielenia.', grades: [4, 5, 6, 7, 8], make: writtenMul, slow: true },
+  { id: 'dzp1', short: 'Dzielnik jednocyfrowy', title: 'Dzielenie pisemne przez liczbę jednocyfrową — bez reszty', description: 'Słupek z kratkami: wpisujesz cyfry jak w zeszycie.', grades: [4, 5, 6], make: (r) => writtenDiv1(r, false), slow: true },
+  { id: 'dzp1r', short: 'Dzielnik jednocyfrowy', title: 'Dzielenie pisemne przez liczbę jednocyfrową — z resztą', description: 'Słupek z kratkami: wpisujesz cyfry jak w zeszycie.', grades: [4, 5, 6], make: (r) => writtenDiv1(r, true), slow: true },
+  { id: 'dzp2', short: 'Dzielnik dwucyfrowy', title: 'Dzielenie pisemne przez liczbę dwucyfrową — bez reszty', description: 'Słupek z kratkami: wpisujesz cyfry jak w zeszycie.', grades: [5, 6, 7, 8], make: (r) => writtenDiv2(r, false), slow: true },
+  { id: 'dzp2r', short: 'Dzielnik dwucyfrowy', title: 'Dzielenie pisemne przez liczbę dwucyfrową — z resztą', description: 'Słupek z kratkami: wpisujesz cyfry jak w zeszycie.', grades: [5, 6, 7, 8], make: (r) => writtenDiv2(r, true), slow: true },
+  { id: 'mnp', short: 'Sprawdzenie: mnożenie pisemne', aux: true, title: 'Mnożenie pisemne', description: 'Słupek z kratkami — przyda się do sprawdzania dzielenia.', grades: [4, 5, 6, 7, 8], make: writtenMul, slow: true },
 ];
 
 export const genTopicId = (id: string) => `gen:${id}`;
+
+/**
+ * Treningi „nowe liczby bez końca” przypięte do tematów. Przycisk pojawia się w karcie tematu i w karcie „Teraz”
+ * (plan od rodzica, polecany temat) — dzięki temu narzędzie tematu nie potrzebuje osobnej karty na ekranie startowym.
+ */
+export const TOPIC_TRAINERS: Record<string, string[]> = {
+  'b-m3-dodawanie': ['add100'],
+  'b-mnozenie-6-7': ['mul'],
+  'b-m3-mnozenie-8-9': ['mul'],
+  'b-m3-dzielenie': ['div'],
+  'b-m5-dzp-bez': ['dzp1', 'dzp2', 'mnp'],
+  'b-m5-dzp-reszta': ['dzp1r', 'dzp2r', 'mnp'],
+  'b-m5-ulamki': ['frac'],
+  'b-m5-dziesietne': ['dec'],
+  'b-m5-kolejnosc': ['order'],
+};
+
+/** Treningi tematu dostępne w danej klasie. */
+export function trainersFor(topicId: string, grade: number): Generator[] {
+  return (TOPIC_TRAINERS[topicId] ?? []).flatMap((id) => {
+    const g = GENERATORS.find((x) => x.id === id);
+    return g && g.grades.includes(grade) ? [g] : [];
+  });
+}
+
+/** Temat, do którego należy trening (pierwszy z listy) — żeby po treningu dało się wrócić do tematu. */
+export function trainerTopicIds(genId: string): string[] {
+  return Object.keys(TOPIC_TRAINERS).filter((t) => TOPIC_TRAINERS[t].includes(genId));
+}
 
 /** Wszystkie działania tabliczki 1–10 jako zadania generatora „mul” (do mapy tabliczki). */
 export function allMulExercises(): { topicId: string; ex: FillExercise }[] {

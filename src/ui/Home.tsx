@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { generatorsFor, SLOW_SESSION } from '../content/generators';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { generatorsFor, trainerTopicIds } from '../content/generators';
 import { SUBJECTS, subjectOf } from '../content/seed';
 import { gradeOf, store } from '../data/store';
 import {
@@ -15,7 +15,10 @@ import {
   planActive,
   planExamCount,
   planStatus,
+  planTopicIds,
+  recentTopicId,
   reviewCount,
+  splitDone,
   quizStates,
   suggestTopic,
   unitLabel,
@@ -28,12 +31,13 @@ import { coinText, plural, type ThemeDef } from '../themes';
 import type { ParsedTopic } from '../types';
 import { LevelChip, LevelSteps, Modal } from './bits';
 import { practice, useApp, useProgress } from './hooks';
-import { Icon, Stars } from './icons';
+import { Icon, Stars, type IconName } from './icons';
 import { MistakeList, mistakeRows } from './Mistakes';
 import { canPlayPairs, fmtTime } from './Pairs';
 import { TimesGrid, useTimesMap } from './TimesTable';
 import { quizPool } from './Sprint';
 import { TopBar } from './TopBar';
+import { TrainerButtons } from './Trainers';
 
 type NodeState = 'next' | 'done' | 'started' | 'fresh';
 
@@ -57,23 +61,32 @@ function subjectStats(topics: ParsedTopic[], p: Progress) {
 
 // ─── Ekran startowy: wybór przedmiotu ─────────────────────────────────────────
 
+/**
+ * Kolejność: powitanie → „Teraz” (plan od rodzica albo polecany temat) → kartkówki → przedmioty → powtórka,
+ * a niżej karty zwijane (zadania na dziś, cele, mini-gry, test na start). Tematy nie mają tu własnych kart:
+ * to, co dziecko widzi na górze, wynika z planu, a nie z kodu.
+ */
 export function Home() {
   const { profile, theme, go } = useApp();
   const progress = useProgress(profile.id)!;
+  const now = Date.now();
   const topics = store.topicsFor(profile.id);
+  // Tematy skończone schodzą z planszy i z polecanych, ale zostają w powtórce, błędach i statystykach przedmiotu.
+  const { active } = splitDone(topics, profile, now);
   const subjects = SUBJECTS.filter((s) => topics.some((t) => t.subject === s.id));
   const reviewN = reviewCount(topics, progress);
-  const mistakes = mistakesToFix({ profileId: profile.id, attempts: store.list('attempt'), topics, now: Date.now(), since: profile.resetAt });
+  const mistakes = mistakesToFix({ profileId: profile.id, attempts: store.list('attempt'), topics, now, since: profile.resetAt });
   const grade = gradeOf(profile);
+  const wide = useWindowWidth() >= 900;
+  const planOn = planTopicIds(profile, now).some((id) => topics.some((t) => t.id === id));
 
   return (
     <>
       <TopBar />
       <div className="start">
         <HelloCard progress={progress} />
-        <PlanCard progress={progress} />
+        {planOn ? <PlanCard progress={progress} /> : <NowCard progress={progress} topics={active} />}
         <QuizCard progress={progress} />
-        <DivisionCard />
 
         <section className="col" style={{ gap: 14 }}>
           <h2 className="section-title">Co dziś ćwiczymy?</h2>
@@ -146,18 +159,85 @@ export function Home() {
               )}
             </div>
           </section>
-          <DailyCard progress={progress} theme={theme} />
-          <MiniGamesCard progress={progress} />
-        </div>
-
-        <div className="start-row">
-          {grade >= 2 && grade <= 4 && <TimesCard />}
-          <WeekCard progress={progress} theme={theme} />
-          <FamilyCard />
-          <DiagnosticCard progress={progress} topics={topics} />
+          <DailyCard progress={progress} theme={theme} wide={wide} />
+          <WeekCard progress={progress} theme={theme} wide={wide} />
+          <FamilyCard wide={wide} />
+          <MiniGamesCard progress={progress} wide={wide} />
+          {grade >= 2 && grade <= 4 && <TimesCard wide={wide} />}
+          <DiagnosticCard progress={progress} topics={active} wide={wide} />
         </div>
       </div>
     </>
+  );
+}
+
+/**
+ * Karta zwijana z dolnej części startu. Na telefonie jest domyślnie zwinięta (start ma być krótki),
+ * na szerokim ekranie — otwarta, bo karty stoją obok siebie.
+ */
+function Fold({ icon, title, meta, wide, className, children }: { icon: IconName; title: string; meta?: string; wide: boolean; className?: string; children: ReactNode }) {
+  const [open, setOpen] = useState(wide);
+  return (
+    <details className={`card fold ${className ?? ''}`} open={open} onToggle={(e) => setOpen(e.currentTarget.open)}>
+      <summary>
+        <Icon name={icon} size={26} className="fold-icon" />
+        <h2 className="card-title">{title}</h2>
+        {meta && <span className="fold-meta">{meta}</span>}
+        <Icon name="chevronDown" size={22} className="fold-chev" />
+      </summary>
+      <div className="col fold-body">{children}</div>
+    </details>
+  );
+}
+
+/**
+ * „Teraz”, gdy nie ma planu od rodzica: temat, który dziecko ostatnio ćwiczyło (także treningiem z nowymi liczbami),
+ * a jeśli nic takiego nie było — temat polecany przez aplikację.
+ */
+function NowCard({ progress, topics }: { progress: Progress; topics: ParsedTopic[] }) {
+  const { profile, theme, go, openTopic } = useApp();
+  const recentId = recentTopicId({
+    profileId: profile.id,
+    sessions: store.list('session'),
+    now: Date.now(),
+    since: profile.resetAt,
+    trainerTopics: trainerTopicIds,
+    allowed: (id) => topics.some((t) => t.id === id),
+  });
+  const topic = topics.find((t) => t.id === recentId) ?? suggestTopic(topics, progress);
+  if (!topic) return null;
+  const subject = subjectOf(topic.subject);
+  const recent = topic.id === recentId;
+  // Dziecko, które właśnie ćwiczyło w tym dziale, dostaje treningi całego działu (np. słupki bez reszty i z resztą).
+  const trained = recent && topic.unit ? topics.filter((t) => t.subject === topic.subject && t.unit === topic.unit) : [topic];
+  return (
+    <section className="card col now-card" aria-label="Teraz" style={{ gap: 12 }}>
+      <div className="plan-head">
+        <span className="plan-icon" aria-hidden="true">
+          <Icon name="star" size={26} fill="currentColor" stroke={1.4} />
+        </span>
+        <div style={{ flex: '1 1 190px', minWidth: 0 }}>
+          <div className="label">{recent ? 'Teraz · ostatnio ćwiczone' : 'Teraz polecamy'}</div>
+          <h2 className="plan-title">{topic.title}</h2>
+        </div>
+      </div>
+      <div className="row" style={{ flexWrap: 'wrap', gap: 8 }}>
+        <LevelChip level={progress.topics.get(topic.id)?.level ?? 0} small />
+        <button className="link-btn" onClick={() => go({ name: 'subject', subjectId: topic.subject, unit: topic.unit?.trim() })}>
+          {subject.name}
+          {topic.unit ? ` · ${topic.unit}` : ''}
+        </button>
+      </div>
+      <div className="row" style={{ flexWrap: 'wrap' }}>
+        <button className="btn btn-primary btn-lg" style={{ flex: '1 1 180px' }} onClick={() => go(practice({ kind: 'topic', topicId: topic.id }))}>
+          {theme.start} <Icon name="arrowRight" />
+        </button>
+        <button className="btn btn-lg" onClick={() => openTopic(topic.id)}>
+          <Icon name="book" /> Ściąga
+        </button>
+      </div>
+      <TrainerButtons topics={trained} home />
+    </section>
   );
 }
 
@@ -192,7 +272,7 @@ function PlanCard({ progress }: { progress: Progress }) {
           <Icon name="pin" size={26} />
         </span>
         <div style={{ flex: '1 1 190px', minWidth: 0 }}>
-          <div className="label">Plan od rodzica{when ? ` · termin ${when}` : ''}</div>
+          <div className="label">Teraz · plan od rodzica{when ? ` · termin ${when}` : ''}</div>
           <h2 className="plan-title">{plan.title || 'Tematy na teraz'}</h2>
         </div>
       </div>
@@ -243,12 +323,13 @@ function PlanCard({ progress }: { progress: Progress }) {
           </button>
         ))}
       </div>
+      <TrainerButtons topics={topics} home />
       {status.confirmed && last ? (
         <p className="plan-done">
           <Icon name="check" stroke={3} /> Materiał opanowany! Sprawdzian próbny: {last.grade} ({GRADE_NAMES[last.grade]}), {last.correct}/{last.total}.
         </p>
       ) : (
-        <p className="plan-check">
+        <p className={`plan-check ${last || done === topics.length ? '' : 'plan-check-how'}`}>
           {last ? (
             <>
               Ostatni sprawdzian próbny: <b>{last.grade} ({GRADE_NAMES[last.grade]})</b>, {last.correct}/{last.total}. Cel: ocena 5 lub 6 — poćwicz tematy i spróbuj jeszcze raz.
@@ -384,83 +465,14 @@ function QuizCard({ progress }: { progress: Progress }) {
   );
 }
 
-// ─── Dzielenie pisemne: słupki z kratkami, wejście jednym dotknięciem ────────
-
-/** Rodzaje słupków: dzielnik jedno- i dwucyfrowy, każdy bez reszty (`id`) i z resztą (`id` + „r”). */
-const DIVISION_KINDS = [
-  { id: 'dzp1', label: 'Dzielnik jednocyfrowy', name: 'przez liczbę jednocyfrową', sample: '936 : 4' },
-  { id: 'dzp2', label: 'Dzielnik dwucyfrowy', name: 'przez liczbę dwucyfrową', sample: '864 : 24' },
-];
-
-/** Przyciski do słupków dla klasy dziecka; `null`, gdy w tej klasie nie ma jeszcze dzielenia pisemnego. `home` — po serii wracamy na ekran startowy. */
-function DivisionPicker({ home }: { home?: boolean }) {
-  const { profile, go } = useApp();
-  const gens = generatorsFor(gradeOf(profile));
-  const has = (id: string) => gens.some((g) => g.id === id);
-  const kinds = DIVISION_KINDS.filter((k) => has(k.id) && has(`${k.id}r`));
-  if (!kinds.length) return null;
-  const start = (genId: string) => go(practice({ kind: 'gen', genId, home }));
-  return (
-    <div className="division-picker">
-      <div className="division-kinds">
-        {kinds.map((k) => (
-          <div key={k.id} className="division-kind">
-            <div className="division-kind-name">
-              <b>{k.label}</b>
-              <small>np. {k.sample}</small>
-            </div>
-            <div className="division-kind-btns">
-              <button className="btn btn-primary" onClick={() => start(k.id)} aria-label={`Dzielenie pisemne ${k.name} bez reszty`}>
-                Bez reszty
-              </button>
-              <button className="btn btn-primary" onClick={() => start(`${k.id}r`)} aria-label={`Dzielenie pisemne ${k.name} z resztą`}>
-                Z resztą
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-      {has('mnp') && (
-        <button className="btn btn-sm division-check" onClick={() => start('mnp')}>
-          <Icon name="check" size={16} /> Sprawdzenie: mnożenie pisemne
-        </button>
-      )}
-    </div>
-  );
-}
-
-const hasDivision = (grade: number) => generatorsFor(grade).some((g) => g.id === 'dzp1' || g.id === 'dzp2');
-
-function DivisionCard() {
-  const { profile } = useApp();
-  if (!hasDivision(gradeOf(profile))) return null;
-  return (
-    <section className="card col division-card" style={{ gap: 12 }}>
-      <div className="row" style={{ gap: 10 }}>
-        <Icon name="divide" size={26} className="ic-division" />
-        <h2 className="card-title" style={{ margin: 0 }}>
-          Dzielenie pisemne
-        </h2>
-      </div>
-      <p className="muted" style={{ fontWeight: 700, fontSize: 15 }}>
-        Słupek w kratkach — wpisujesz cyfry jak w zeszycie. W serii jest {SLOW_SESSION} przykładów, za każdym razem inne.
-      </p>
-      <DivisionPicker home />
-    </section>
-  );
-}
-
 // ─── Karty na dole ekranu startowego ─────────────────────────────────────────
 
-function TimesCard() {
+function TimesCard({ wide }: { wide: boolean }) {
   const { profile, go } = useApp();
   const map = useTimesMap(profile.id);
   const sum = factsSummary(map);
   return (
-    <section className="card col" style={{ gap: 12 }}>
-      <h2 className="card-title" style={{ margin: 0 }}>
-        Tabliczka mnożenia
-      </h2>
+    <Fold icon="target" title="Tabliczka mnożenia" meta={`${sum.known}/${sum.total}`} wide={wide}>
       <button className="times-mini-btn" onClick={() => go({ name: 'times' })} aria-label="Otwórz mapę tabliczki mnożenia">
         <TimesGrid map={map} mini />
       </button>
@@ -470,11 +482,11 @@ function TimesCard() {
       <button className="btn btn-primary btn-block" onClick={() => go({ name: 'times' })}>
         <Icon name="target" /> Zobacz mapę i ćwicz
       </button>
-    </section>
+    </Fold>
   );
 }
 
-function MiniGamesCard({ progress }: { progress: Progress }) {
+function MiniGamesCard({ progress, wide }: { progress: Progress; wide: boolean }) {
   const { profile, go } = useApp();
   const gens = generatorsFor(gradeOf(profile));
   const g = gens.find((x) => x.id === 'mul') ?? gens.find((x) => !x.slow);
@@ -518,13 +530,7 @@ function MiniGamesCard({ progress }: { progress: Progress }) {
   }
   if (!items.length) return null;
   return (
-    <section className="card col challenges" style={{ gap: 10 }}>
-      <div className="row" style={{ gap: 10 }}>
-        <Icon name="zap" size={26} className="ic-games" />
-        <h2 className="card-title" style={{ margin: 0 }}>
-          Mini-gry
-        </h2>
-      </div>
+    <Fold icon="zap" title="Mini-gry" wide={wide} className="challenges">
       <p className="muted" style={{ fontWeight: 700, fontSize: 14 }}>
         Szybkie gry na rekord. Więcej gier jest w każdym przedmiocie, w karcie „Wyzwania”.
       </p>
@@ -537,13 +543,13 @@ function MiniGamesCard({ progress }: { progress: Progress }) {
           </span>
         </button>
       ))}
-    </section>
+    </Fold>
   );
 }
 
 const WEEK_NAMES = ['pn', 'wt', 'śr', 'cz', 'pt', 'sb', 'nd'];
 
-function WeekCard({ progress, theme }: { progress: Progress; theme: ThemeDef }) {
+function WeekCard({ progress, theme, wide }: { progress: Progress; theme: ThemeDef; wide: boolean }) {
   const w = progress.week;
   const mon = weekStart(Date.now());
   const today = dateKey(Date.now());
@@ -552,10 +558,7 @@ function WeekCard({ progress, theme }: { progress: Progress; theme: ThemeDef }) 
     [`Podnieś poziom ${w.levelUpsTarget} ${plural(w.levelUpsTarget, ['tematu', 'tematów', 'tematów'])}`, w.levelUps, w.levelUpsTarget],
   ];
   return (
-    <section className="card col" style={{ gap: 12 }}>
-      <h2 className="card-title" style={{ margin: 0 }}>
-        Cel tygodnia
-      </h2>
+    <Fold icon="calendar" title="Cel tygodnia" meta={w.done ? 'zrobione' : `${Math.min(w.days, w.daysTarget)}/${w.daysTarget} dni`} wide={wide}>
       <div className="week-days">
         {WEEK_NAMES.map((n, i) => {
           const dk = dateKey(addDays(mon, i));
@@ -575,24 +578,18 @@ function WeekCard({ progress, theme }: { progress: Progress; theme: ThemeDef }) 
         </div>
       ))}
       <p style={{ fontWeight: 800, fontSize: 15 }}>{w.done ? `Zrobione! +${coinText(WEEK_BONUS, theme)}` : `Nagroda za cały tydzień: +${coinText(WEEK_BONUS, theme)}`}</p>
-    </section>
+    </Fold>
   );
 }
 
-function FamilyCard() {
+function FamilyCard({ wide }: { wide: boolean }) {
   const goal = store.settings.familyGoal;
   if (!goal) return null;
   const profiles = store.profiles();
   const fp = familyGoalProgress(goal, store.list('attempt'), store.list('session'), profiles.map((p) => p.id));
   const ratio = Math.min(1, fp.total / goal.target);
   return (
-    <section className="card col family-card" style={{ gap: 12 }}>
-      <div className="row" style={{ gap: 10 }}>
-        <Icon name="heart" size={26} className="ic-heart" />
-        <h2 className="card-title" style={{ margin: 0 }}>
-          Wspólny cel
-        </h2>
-      </div>
+    <Fold icon="heart" title="Wspólny cel" meta={pct(ratio)} wide={wide} className="family-card">
       <b style={{ fontSize: 20 }}>{goal.title}</b>
       <div className="bar" aria-label="Postęp wspólnego celu">
         <span style={{ width: pct(ratio) }} />
@@ -610,49 +607,53 @@ function FamilyCard() {
       <p className="muted" style={{ fontWeight: 700, fontSize: 14 }}>
         {fp.done ? 'Udało się! Powiedzcie rodzicowi, że cel jest osiągnięty.' : 'Każda dobra odpowiedź — Twoja czy rodzeństwa — przybliża Was do celu.'}
       </p>
-    </section>
+    </Fold>
   );
 }
 
-function DiagnosticCard({ progress, topics }: { progress: Progress; topics: ParsedTopic[] }) {
+function DiagnosticCard({ progress, topics, wide }: { progress: Progress; topics: ParsedTopic[]; wide: boolean }) {
   const { go } = useApp();
   const options = SUBJECTS.map((s) => ({ s, n: untouchedTopics(topics.filter((t) => t.subject === s.id), progress).length })).filter((x) => x.n >= 3);
   if (!options.length) return null;
   return (
-    <section className="card col" style={{ gap: 12 }}>
-      <div className="row" style={{ gap: 10 }}>
-        <Icon name="compass" size={26} />
-        <h2 className="card-title" style={{ margin: 0 }}>
-          Test na start
-        </h2>
-      </div>
+    <Fold icon="compass" title="Test na start" wide={wide}>
       <p style={{ fontWeight: 700 }}>Sprawdź, co już umiesz. Tematy, które dobrze znasz, od razu dostaną poziom „Biegły” — nie trzeba ich ćwiczyć od zera.</p>
       {options.map(({ s, n }) => (
         <button key={s.id} className="btn btn-block" onClick={() => go(practice({ kind: 'diagnostic', subjectId: s.id }))}>
           {s.name} · {Math.min(n, 8) * 3} {plural(Math.min(n, 8) * 3, ['pytanie', 'pytania', 'pytań'])}
         </button>
       ))}
-    </section>
+    </Fold>
   );
 }
 
 // ─── Ekran przedmiotu: plansza w stylu motywu ─────────────────────────────────
 
-export function SubjectScreen({ subjectId }: { subjectId: string }) {
+export function SubjectScreen({ subjectId, unit: unitFromLink }: { subjectId: string; /** Dział do otwarcia (np. z karty „Teraz”). */ unit?: string }) {
   const { profile, theme, go, openTopic } = useApp();
   const progress = useProgress(profile.id)!;
   const subject = subjectOf(subjectId);
-  const allTopics = store.topicsFor(profile.id).filter((t) => t.subject === subjectId);
-  const planIds = planActive(profile.plan, Date.now()) ? profile.plan!.topicIds : [];
-  // Rozdziały (np. Unit 0, Unit 1): plansza pokazuje jeden naraz. Domyślnie ten, w którym jest polecany temat.
+  const now = Date.now();
+  const every = store.topicsFor(profile.id).filter((t) => t.subject === subjectId);
+  // Na planszy są tematy „teraz” i z biblioteki; skończone leżą w zwiniętej sekcji pod planszą.
+  const { active: allTopics, done: doneTopics } = splitDone(every, profile, now);
+  const planIds = planTopicIds(profile, now);
+  // Działy (np. Ułamki zwykłe, Unit 0): plansza pokazuje jeden naraz. Domyślnie ten, w którym jest polecany temat.
   const units = groupByUnit(allTopics);
   const hasUnits = units.some((u) => u.unit);
   const suggestedAll = suggestTopic(allTopics, progress, planIds);
-  const [unitSel, setUnitSel] = useState<string | null>(null);
+  const [unitSel, setUnitSel] = useState<string | null>(unitFromLink ?? null);
   const unit = hasUnits ? (units.find((u) => u.unit === unitSel) ?? units.find((u) => u.unit === (suggestedAll?.unit?.trim() ?? '')) ?? units[0]).unit : '';
   const topics = hasUnits ? allTopics.filter((t) => (t.unit?.trim() ?? '') === unit) : allTopics;
   const suggested = hasUnits ? suggestTopic(topics, progress, planIds) : suggestedAll;
-  const st = subjectStats(allTopics, progress);
+  const st = subjectStats(every, progress);
+  // Na telefonie działy stoją w jednym, przewijanym rzędzie — wybrany dział ma być widoczny od razu.
+  const chipsRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = chipsRef.current?.querySelector<HTMLElement>('[aria-pressed="true"]');
+    const box = chipsRef.current;
+    if (el && box && box.scrollWidth > box.clientWidth) box.scrollLeft = Math.max(0, el.getBoundingClientRect().left - box.getBoundingClientRect().left + box.scrollLeft - 60);
+  }, [unit]);
   const play = () => suggested && go(practice({ kind: 'topic', topicId: suggested.id }));
 
   const board = (() => {
@@ -750,8 +751,8 @@ export function SubjectScreen({ subjectId }: { subjectId: string }) {
           </div>
         </header>
         {hasUnits && (
-          <div className="unit-chips" role="group" aria-label="Rozdział">
-            <span className="label">Rozdział</span>
+          <div className="unit-chips" role="group" aria-label="Dział" ref={chipsRef}>
+            <span className="label">Dział</span>
             {units.map((u) => {
               const fluent = u.topics.filter((t) => (progress.topics.get(t.id)?.level ?? 0) >= 3).length;
               return (
@@ -766,11 +767,45 @@ export function SubjectScreen({ subjectId }: { subjectId: string }) {
           </div>
         )}
         <div className="subject-layout">
-          <main className="subject-board">{topics.length ? board : <div className="card">Brak tematów w tym przedmiocie.</div>}</main>
+          <main className="subject-board">
+            {topics.length ? (
+              board
+            ) : (
+              <div className="card">{doneTopics.length ? 'Wszystkie tematy z tego przedmiotu są skończone. Znajdziesz je niżej, a zadania z nich wracają w Powtórce.' : 'Brak tematów w tym przedmiocie.'}</div>
+            )}
+            {doneTopics.length > 0 && (
+              <details className="card done-topics">
+                <summary>
+                  <Icon name="check" size={24} stroke={3} className="done-icon" />
+                  <span className="done-head">
+                    <b>
+                      Skończone · {doneTopics.length} {plural(doneTopics.length, ['temat', 'tematy', 'tematów'])}
+                    </b>
+                    <small>Zadania z nich wracają w Powtórce</small>
+                  </span>
+                  <Icon name="chevronDown" size={22} className="fold-chev" />
+                </summary>
+                <div className="col" style={{ gap: 12 }}>
+                  {groupByUnit(doneTopics).map((u) => (
+                    <div key={u.unit} className="col" style={{ gap: 6 }}>
+                      {u.unit && <span className="label">{u.unit}</span>}
+                      {u.topics.map((t) => (
+                        <button key={t.id} className="done-topic" onClick={() => openTopic(t.id)}>
+                          <span className="done-topic-title">{t.title}</span>
+                          <Stars n={progress.topics.get(t.id)?.stars ?? 0} size={16} />
+                          <LevelChip level={progress.topics.get(t.id)?.level ?? 0} small />
+                        </button>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              </details>
+            )}
+          </main>
           <div className="subject-side">
             {suggested && (
               <aside className="card col next-card">
-                <div className="label">{planIds.includes(suggested.id) ? 'Z planu rodzica' : 'Teraz polecamy'}</div>
+                <div className="label">{planIds.includes(suggested.id) ? 'Teraz · z planu rodzica' : 'Teraz polecamy'}</div>
                 <h2 style={{ fontSize: 26 }}>{suggested.title}</h2>
                 <LevelChip level={progress.topics.get(suggested.id)?.level ?? 0} />
                 {suggested.description && <p className="rule">{suggested.description}</p>}
@@ -778,12 +813,13 @@ export function SubjectScreen({ subjectId }: { subjectId: string }) {
                   {theme.start}
                   <Icon name="arrowRight" />
                 </button>
+                <TrainerButtons topics={[suggested]} />
                 <p className="muted" style={{ fontSize: 15, fontWeight: 700 }}>
                   Albo wybierz dowolny temat na planszy.
                 </p>
               </aside>
             )}
-            <Challenges subjectId={subjectId} topics={topics} allTopics={allTopics} scope={hasUnits ? unitLabel(unit) : undefined} progress={progress} planIds={planIds} />
+            <Challenges subjectId={subjectId} topics={topics} allTopics={allTopics} doneTopics={doneTopics} scope={hasUnits ? unitLabel(unit) : undefined} progress={progress} planIds={planIds} />
           </div>
         </div>
       </div>
@@ -797,28 +833,31 @@ function Challenges({
   subjectId,
   topics,
   allTopics,
+  doneTopics,
   scope,
   progress,
   planIds,
 }: {
   subjectId: string;
-  /** Tematy widoczne na planszy (wybrany rozdział) — z nich jest sprawdzian. */
+  /** Tematy widoczne na planszy (wybrany dział) — z nich jest sprawdzian. */
   topics: ParsedTopic[];
-  /** Wszystkie tematy przedmiotu — test na start obejmuje cały przedmiot. */
+  /** Wszystkie tematy przedmiotu z planszy — test na start obejmuje cały przedmiot. */
   allTopics: ParsedTopic[];
+  /** Tematy skończone — można je dobrać do sprawdzianu. */
+  doneTopics: ParsedTopic[];
   /** Nazwa rozdziału, jeśli przedmiot jest podzielony na rozdziały. */
   scope?: string;
   progress: Progress;
   planIds: string[];
 }) {
   const { profile, go } = useApp();
-  const [modal, setModal] = useState<'test' | 'gen' | 'division' | null>(null);
+  const [modal, setModal] = useState<'test' | 'gen' | null>(null);
   const untouched = untouchedTopics(allTopics, progress).length;
   const gens = subjectId === 'mat' ? generatorsFor(gradeOf(profile)) : [];
   const quizOk = subjectId !== 'mat' && quizPool(profile.id, subjectId).length >= 5;
   const pairsOk = subjectId !== 'mat' && canPlayPairs({ kind: 'quiz', subjectId }, profile.id);
   const pairsBest = progress.pairsBest.get(`pairs:quiz:${subjectId}`);
-  if (!topics.length) return null;
+  if (!topics.length && !doneTopics.length) return null;
   return (
     <section className="card col challenges" style={{ gap: 10 }}>
       <h2 className="card-title" style={{ margin: 0 }}>
@@ -865,15 +904,6 @@ function Challenges({
           </span>
         </button>
       )}
-      {subjectId === 'mat' && hasDivision(gradeOf(profile)) && (
-        <button className="challenge" onClick={() => setModal('division')}>
-          <Icon name="divide" size={28} />
-          <span>
-            <b>Dzielenie pisemne</b>
-            <small>Słupki w kratkach · bez reszty i z resztą</small>
-          </span>
-        </button>
-      )}
       {gens.length > 0 && (
         <button className="challenge" onClick={() => setModal('gen')}>
           <Icon name="infinity" size={28} />
@@ -901,15 +931,7 @@ function Challenges({
           </span>
         </button>
       )}
-      {modal === 'test' && <TestSetup subjectId={subjectId} topics={topics} scope={scope} progress={progress} planIds={planIds} onClose={() => setModal(null)} />}
-      {modal === 'division' && (
-        <Modal title="Dzielenie pisemne" onClose={() => setModal(null)}>
-          <p className="muted" style={{ fontWeight: 700 }}>
-            Słupek w kratkach — wpisujesz cyfry jak w zeszycie. W serii jest {SLOW_SESSION} przykładów, za każdym razem inne.
-          </p>
-          <DivisionPicker />
-        </Modal>
-      )}
+      {modal === 'test' && <TestSetup subjectId={subjectId} topics={topics} doneTopics={doneTopics} scope={scope} progress={progress} planIds={planIds} onClose={() => setModal(null)} />}
       {modal === 'gen' && (
         <Modal title="Trening bez końca i mini-gry" onClose={() => setModal(null)}>
           <p className="muted" style={{ fontWeight: 700 }}>
@@ -949,11 +971,30 @@ function Challenges({
   );
 }
 
-function TestSetup({ subjectId, topics, scope, progress, planIds, onClose }: { subjectId: string; topics: ParsedTopic[]; scope?: string; progress: Progress; planIds: string[]; onClose: () => void }) {
+function TestSetup({
+  subjectId,
+  topics: boardTopics,
+  doneTopics,
+  scope,
+  progress,
+  planIds,
+  onClose,
+}: {
+  subjectId: string;
+  topics: ParsedTopic[];
+  /** Tematy skończone: są na liście (z dopiskiem), ale domyślnie niezaznaczone. */
+  doneTopics: ParsedTopic[];
+  scope?: string;
+  progress: Progress;
+  planIds: string[];
+  onClose: () => void;
+}) {
   const { go } = useApp();
+  const topics = [...boardTopics, ...doneTopics];
+  const doneIds = new Set(doneTopics.map((t) => t.id));
   const planned = topics.filter((t) => planIds.includes(t.id)).map((t) => t.id);
-  const started = topics.filter((t) => (progress.topics.get(t.id)?.level ?? 0) > 0).map((t) => t.id);
-  const [sel, setSel] = useState<string[]>(planned.length ? planned : started.length ? started : topics.map((t) => t.id));
+  const started = boardTopics.filter((t) => (progress.topics.get(t.id)?.level ?? 0) > 0).map((t) => t.id);
+  const [sel, setSel] = useState<string[]>(planned.length ? planned : started.length ? started : (boardTopics.length ? boardTopics : topics).map((t) => t.id));
   const [count, setCount] = useState(15);
   const available = topics.filter((t) => sel.includes(t.id)).reduce((a, t) => a + t.exercises.length, 0);
   const title = sel.length === 1 ? `Sprawdzian: ${topics.find((t) => t.id === sel[0])?.title}` : `Sprawdzian: ${subjectOf(subjectId).name}${scope ? `, ${scope}` : ''}`;
@@ -968,7 +1009,10 @@ function TestSetup({ subjectId, topics, scope, progress, planIds, onClose }: { s
           {topics.map((t) => (
             <label key={t.id} className="check-row">
               <input type="checkbox" checked={sel.includes(t.id)} onChange={(e) => setSel((cur) => (e.target.checked ? [...cur, t.id] : cur.filter((x) => x !== t.id)))} />
-              <span style={{ flex: 1 }}>{t.title}</span>
+              <span style={{ flex: 1 }}>
+                {t.title}
+                {doneIds.has(t.id) && <small className="muted"> · skończony</small>}
+              </span>
               <LevelChip level={progress.topics.get(t.id)?.level ?? 0} small />
             </label>
           ))}
@@ -1104,13 +1148,10 @@ function HelloCard({ progress }: { progress: Progress }) {
   );
 }
 
-function DailyCard({ progress, theme }: { progress: Progress; theme: ThemeDef }) {
+function DailyCard({ progress, theme, wide }: { progress: Progress; theme: ThemeDef; wide: boolean }) {
   const done = progress.quests.filter((q) => q.done).length;
   return (
-    <section className="card col" style={{ gap: 12 }}>
-      <h2 className="card-title" style={{ margin: 0 }}>
-        Zadania na dziś
-      </h2>
+    <Fold icon="flag" title="Zadania na dziś" meta={`${done}/${progress.quests.length}`} wide={wide}>
       {progress.quests.map((q) => (
         <div key={q.id} className={`quest ${q.done ? 'done' : ''}`}>
           <span className="quest-badge">{q.done ? <Icon name="check" size={18} stroke={3.2} /> : `${q.progress}/${q.target}`}</span>
@@ -1135,7 +1176,7 @@ function DailyCard({ progress, theme }: { progress: Progress; theme: ThemeDef })
           </div>
         </div>
       </div>
-    </section>
+    </Fold>
   );
 }
 

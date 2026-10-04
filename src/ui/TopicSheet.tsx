@@ -1,10 +1,11 @@
 import { subjectLang, subjectOf } from '../content/seed';
 import { store } from '../data/store';
-import { LEVEL_NAMES } from '../engine';
+import { LEVEL_NAMES, topicState } from '../engine';
 import { plural } from '../themes';
 import { GuideCard, LevelChip, LevelSteps, Modal, WordsDetails } from './bits';
 import { practice, useApp, useProgress } from './hooks';
 import { Icon, Stars } from './icons';
+import { TrainerButtons } from './Trainers';
 
 export { Modal };
 
@@ -17,7 +18,7 @@ export function TopicSheet({ topicId, onClose }: { topicId: string; onClose: () 
   const level = s?.level ?? 0;
   const n = Math.min(store.settings.sessionLength, topic.exercises.length);
   const testN = Math.min(10, topic.exercises.length);
-  const inPlan = !!profile.plan?.topicIds.includes(topic.id);
+  const state = topicState(profile, topic.id, Date.now());
   const hasLesson = !!topic.lesson?.trim();
   const lessonDone = !!progress?.lessonsDone.has(topic.id);
   return (
@@ -26,7 +27,7 @@ export function TopicSheet({ topicId, onClose }: { topicId: string; onClose: () 
         <span className="label">
           {subjectOf(topic.subject).name}
           {topic.unit ? ` · ${topic.unit}` : ''}
-          {inPlan ? ' · w planie od rodzica' : ''}
+          {state === 'now' ? ' · w planie od rodzica' : state === 'done' ? ' · skończony' : ''}
         </span>
         <Stars n={s?.stars ?? 0} size={26} />
       </div>
@@ -73,6 +74,7 @@ export function TopicSheet({ topicId, onClose }: { topicId: string; onClose: () 
       <button className={`btn btn-lg btn-block ${hasLesson && !lessonDone ? '' : 'btn-primary'}`} onClick={() => go(practice({ kind: 'topic', topicId: topic.id }))}>
         {theme.start} ({n} {plural(n, ['zadanie', 'zadania', 'zadań'])})
       </button>
+      <TrainerButtons topics={[topic]} />
       {testN >= 5 && (
         <button
           className="btn btn-block"

@@ -85,6 +85,19 @@ export class Store {
   private syncTimer: ReturnType<typeof setTimeout> | null = null;
   private syncing = false;
   private syncAgain = false;
+  /**
+   * Dokumenty właśnie zapisywane na tym urządzeniu (klucz „rodzaj:id”): już zmienione w pamięci, ale wpis jeszcze
+   * nie trafił do kolejki wysyłki. Pobranie z chmury, które akurat trwa (przy słabej sieci nawet kilka sekund,
+   * bo zapytanie jest ponawiane), nie może nadpisać takiej świeżej zmiany.
+   */
+  private writing = new Map<string, number>();
+  private markWriting(keys: string[], delta: 1 | -1) {
+    for (const k of keys) {
+      const n = (this.writing.get(k) ?? 0) + delta;
+      if (n > 0) this.writing.set(k, n);
+      else this.writing.delete(k);
+    }
+  }
   private parsedCache: { version: number; all: ParsedTopic[] } | null = null;
 
   state: StoreState = {
@@ -208,12 +221,18 @@ export class Store {
     (this.docs[kind] as Map<string, DocMap[K]>).set(id, doc);
     if (kind === 'topic' || kind === 'settings') this.topicVersion++;
     this.emit();
-    await this.kv.putDocs([{ k: `${kind}:${id}`, kind, id, data: doc }]);
-    if (this.state.cloud && this.state.auth.status === 'signedIn') {
-      // Przy osobach, tematach i ustawieniach zapamiętujemy wersję sprzed zmiany — przyda się do scalania.
-      await this.kv.addOutbox({ kind, id, data: doc, base: MUTABLE_KINDS.includes(kind) ? before : undefined });
-      this.patchSync({ pending: this.state.sync.pending + 1 });
-      this.scheduleSync(1500);
+    const keys = [`${kind}:${id}`];
+    this.markWriting(keys, 1);
+    try {
+      await this.kv.putDocs([{ k: keys[0], kind, id, data: doc }]);
+      if (this.state.cloud && this.state.auth.status === 'signedIn') {
+        // Przy osobach, tematach i ustawieniach zapamiętujemy wersję sprzed zmiany — przyda się do scalania.
+        await this.kv.addOutbox({ kind, id, data: doc, base: MUTABLE_KINDS.includes(kind) ? before : undefined });
+        this.patchSync({ pending: this.state.sync.pending + 1 });
+        this.scheduleSync(1500);
+      }
+    } finally {
+      this.markWriting(keys, -1);
     }
   }
 
@@ -224,14 +243,20 @@ export class Store {
     const before = new Map(docs.map((doc) => [(doc as { id: string }).id, m.get((doc as { id: string }).id)]));
     for (const doc of docs) m.set((doc as { id: string }).id, doc);
     if (kind === 'topic' || kind === 'settings') this.topicVersion++;
-    await this.kv.putDocs(docs.map((doc) => ({ k: `${kind}:${(doc as { id: string }).id}`, kind, id: (doc as { id: string }).id, data: doc })));
-    if (this.state.cloud && this.state.auth.status === 'signedIn') {
-      const mutable = MUTABLE_KINDS.includes(kind);
-      await this.kv.addOutboxMany(docs.map((doc) => ({ kind, id: (doc as { id: string }).id, data: doc, base: mutable ? before.get((doc as { id: string }).id) : undefined })));
-      this.patchSync({ pending: this.state.sync.pending + docs.length });
-      this.scheduleSync(1500);
-    } else {
-      this.emit();
+    const keys = docs.map((doc) => `${kind}:${(doc as { id: string }).id}`);
+    this.markWriting(keys, 1);
+    try {
+      await this.kv.putDocs(docs.map((doc) => ({ k: `${kind}:${(doc as { id: string }).id}`, kind, id: (doc as { id: string }).id, data: doc })));
+      if (this.state.cloud && this.state.auth.status === 'signedIn') {
+        const mutable = MUTABLE_KINDS.includes(kind);
+        await this.kv.addOutboxMany(docs.map((doc) => ({ kind, id: (doc as { id: string }).id, data: doc, base: mutable ? before.get((doc as { id: string }).id) : undefined })));
+        this.patchSync({ pending: this.state.sync.pending + docs.length });
+        this.scheduleSync(1500);
+      } else {
+        this.emit();
+      }
+    } finally {
+      this.markWriting(keys, -1);
     }
   }
 
@@ -443,14 +468,16 @@ export class Store {
       if (!mine || !row.data || typeof row.data !== 'object') continue;
       const kind = row.kind as DocKind;
       const map = this.docs[kind] as Map<string, unknown>;
-      // Zmiana zrobiona na tym urządzeniu w trakcie synchronizacji: zostawiamy ją do następnej rundy.
-      if (!sameJson(map.get(row.id), mine.data)) continue;
       const mineAll = entries.filter((e) => `${e.kind}:${e.id}` === key);
       // Wersja wspólna = stan sprzed pierwszej z czekających zmian tego dokumentu.
       const merged = mergeDoc(kind, mine.data, row.data, { joining, base: mineAll[0]?.base });
       drop.push(...mineAll.map((e) => e.seq!));
-      if (!sameJson(merged, row.data)) toSend.push({ kind, id: row.id, data: merged });
-      if (!sameJson(merged, mine.data)) {
+      // Do chmury idzie zawsze wersja scalona — nigdy surowy wpis z kolejki, który nadpisałby cudzą zmianę.
+      // Zapamiętujemy przy niej wersję z chmury: gdyby wysyłka się nie udała, następne scalanie ma poprawną wersję wspólną.
+      if (!sameJson(merged, row.data)) toSend.push({ kind, id: row.id, data: merged, base: row.data });
+      // Lokalną kopię podmieniamy tylko wtedy, gdy nie zmieniła się od tego zapisu. Świeższa zmiana (zrobiona w trakcie
+      // synchronizacji) ma własny wpis w kolejce i scali się w następnej rundzie.
+      if (sameJson(map.get(row.id), mine.data) && !sameJson(merged, mine.data)) {
         map.set(row.id, merged);
         toStore.push({ k: key, kind, id: row.id, data: merged });
       }
@@ -493,7 +520,6 @@ export class Store {
     let since = cursor ? new Date(Date.parse(cursor) - 5000).toISOString() : '1970-01-01T00:00:00Z';
     let maxSeen = cursor;
     let changed = false;
-    const pendingKeys = new Set((await this.kv.getOutbox()).map((e) => `${e.kind}:${e.id}`));
     for (let page = 0; page < 200; page++) {
       const { data, error } = await this.supa!
         .from(SYNC_TABLE)
@@ -503,12 +529,15 @@ export class Store {
         .limit(1000);
       if (error) throw new Error(error.message);
       if (!data || data.length === 0) break;
+      // Kolejkę sprawdzamy dopiero po odpowiedzi z chmury: zapytanie mogło trwać długo, a dziecko w tym czasie
+      // mogło coś zmienić. Dokumentu z niewysłaną zmianą nie nadpisujemy — scali go `reconcile` w następnej rundzie.
+      const pendingKeys = new Set((await this.kv.getOutbox()).map((e) => `${e.kind}:${e.id}`));
       const toStore: StoredDoc[] = [];
       for (const row of data as { kind: string; id: string; data: unknown; deleted: boolean; server_updated_at: string }[]) {
         if (!KINDS.includes(row.kind as DocKind) || !row.data || typeof row.data !== 'object') continue;
         const key = `${row.kind}:${row.id}`;
         if (!maxSeen || row.server_updated_at > maxSeen) maxSeen = row.server_updated_at;
-        if (pendingKeys.has(key)) continue;
+        if (pendingKeys.has(key) || this.writing.has(key)) continue;
         const map = this.docs[row.kind as DocKind] as Map<string, unknown>;
         // Własny zapis wraca z chmury w tej samej postaci — nie ma czego zapisywać ani odświeżać.
         if (sameJson(map.get(row.id), row.data)) continue;

@@ -1,4 +1,4 @@
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 import { divisionInputs, divisionLayout } from '../src/longdiv';
 import { multiplicationLayout } from '../src/longmul';
 import { expect, test } from './fixtures';
@@ -15,6 +15,22 @@ async function onboard(page: Page, name: string, grade: number) {
   await page.getByRole('group', { name: 'Klasa' }).getByRole('button', { name: String(grade), exact: true }).click();
   await page.getByRole('button', { name: 'Zaczynamy!' }).click();
   await expect(page.getByText(`Cześć, ${name}!`)).toBeVisible();
+}
+
+/** Plansza przedmiotu pokazuje jeden dział naraz — przełącza na wskazany. */
+async function openUnit(page: Page, name: string) {
+  await page.getByRole('group', { name: 'Dział' }).getByRole('button', { name: new RegExp(`^${name}`) }).click();
+}
+
+/** Panel rodzica: działy na listach tematów są zwinięte — rozwija wskazany. */
+async function openFold(scope: Page | Locator, name: string) {
+  await scope.locator('.unit-fold > summary', { hasText: name }).first().click();
+}
+
+/** Dolne karty ekranu startowego są na telefonie zwinięte — otwiera kartę, jeśli trzeba. */
+async function openStartCard(page: Page, title: string) {
+  const card = page.locator('details.fold', { has: page.getByRole('heading', { name: title, exact: true }) });
+  if ((await card.getAttribute('open')) === null) await card.locator('summary').click();
 }
 
 async function parentLogin(page: Page) {
@@ -102,6 +118,9 @@ test('dyktando ze ściągą i test na start', async ({ page }) => {
   await snap(page, 'f05-home', true);
 
   await page.locator('.subject-big', { hasText: 'Język polski' }).click();
+  // Plansza pokazuje jeden dział: dyktando jest w „Ortografii”, nie w „Częściach mowy”.
+  await expect(page.getByRole('button', { name: /Dyktando: ó, rz, ż, ch, h/ })).toHaveCount(0);
+  await openUnit(page, 'Ortografia');
   await page.getByRole('button', { name: /Dyktando: ó, rz, ż, ch, h/ }).first().click();
   const sheet = page.getByRole('dialog');
   await expect(sheet.getByText('Słuchaj uważnie całego zdania')).toBeVisible();
@@ -122,6 +141,7 @@ test('dyktando ze ściągą i test na start', async ({ page }) => {
   await page.getByRole('alertdialog').getByRole('button', { name: 'Skończ' }).click();
   await page.getByRole('button', { name: 'Wróć', exact: true }).click();
 
+  await openStartCard(page, 'Test na start');
   await page.getByRole('button', { name: /^Język polski · \d+ pytań$/ }).click();
   await expect(page.getByText(/^Pytanie 1 z \d+$/)).toBeVisible();
   await runExam(page, 40);
@@ -181,6 +201,7 @@ test('rodzic: plan, raport tygodnia, pomysły na nagrody i wspólny cel', async 
   const d = new Date();
   d.setDate(d.getDate() + 3);
   await page.getByLabel('Termin (opcjonalnie)').fill(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
+  await openFold(page, 'Części mowy');
   await page.locator('.check-row', { hasText: 'Czasownik — co robi?' }).locator('input').check();
   await page.locator('.check-row', { hasText: 'Czasownik: przeszły, teraźniejszy, przyszły' }).locator('input').check();
   await page.getByRole('button', { name: 'Zapisz plan (2)' }).click();
@@ -222,6 +243,7 @@ test('rodzic: plan, raport tygodnia, pomysły na nagrody i wspólny cel', async 
 test('mini-gry na ekranie startowym: Pary na czas', async ({ page }) => {
   await onboard(page, 'Kuba', 3);
   await expect(page.getByRole('heading', { name: 'Mini-gry' })).toBeVisible();
+  await openStartCard(page, 'Mini-gry');
   await page.getByRole('button', { name: /Pary na czas: Tabliczka mnożenia/ }).click();
   await snap(page, 'f19-pairs-intro');
   await page.getByRole('button', { name: /Start!/ }).click();
@@ -237,6 +259,7 @@ test('mini-gry na ekranie startowym: Pary na czas', async ({ page }) => {
   await page.getByRole('button', { name: 'Wróć do tematów' }).click();
   await expect(page.getByRole('heading', { name: 'Wyspa Matematyki' })).toBeVisible();
   await page.getByRole('button', { name: 'Wróć', exact: true }).click();
+  await openStartCard(page, 'Mini-gry');
   await page.getByRole('button', { name: /Pary na czas: Język polski/ }).click();
   await page.getByRole('button', { name: /Start!/ }).click();
   await expect(page.locator('.pair-tile')).toHaveCount(12);
@@ -283,6 +306,7 @@ test('moje błędy i mapa tabliczki mnożenia', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Tabliczka mnożenia' })).toBeVisible();
 
   // Mapa tabliczki: dwie dobre odpowiedzi i jedna zła
+  await openStartCard(page, 'Tabliczka mnożenia');
   await page.getByRole('button', { name: 'Zobacz mapę i ćwicz' }).click();
   await expect(page.getByRole('heading', { name: 'Tabliczka mnożenia' })).toBeVisible();
   await page.getByRole('button', { name: /Ćwicz najsłabsze/ }).click();
@@ -334,6 +358,7 @@ test('moje błędy i mapa tabliczki mnożenia', async ({ page }) => {
 test('czytanie ze zrozumieniem: tekst nad pytaniami', async ({ page }) => {
   await onboard(page, 'Kuba', 3);
   await page.locator('.subject-big', { hasText: 'Język polski' }).click();
+  await openUnit(page, 'Czytanie');
   await page.getByRole('button', { name: /Czytanie ze zrozumieniem/ }).first().click();
   await page.getByRole('dialog').getByRole('button', { name: /Graj!/ }).click();
   await expect(page.locator('details.passage[open]')).toBeVisible();
@@ -499,26 +524,39 @@ test('angielski: czytanie ze słówkami z tekstu i plan potwierdzany sprawdziane
 test('rozdziały: plansza angielskiego pokazuje Unit 0, sprawdzian jest z rozdziału', async ({ page }) => {
   await onboard(page, 'Zosia', 5);
   await page.locator('.subject-big', { hasText: 'Angielski' }).click();
-  const chips = page.getByRole('group', { name: 'Rozdział' });
+  const chips = page.getByRole('group', { name: 'Dział' });
   await expect(chips.getByRole('button', { name: /Unit 0/ })).toHaveAttribute('aria-pressed', 'true');
   await expect(chips.getByRole('button', { name: /Unit 0/ })).toContainText('0/9');
   await snap(page, 'f40-english-units', true);
   await page.getByRole('button', { name: /^Sprawdzian: Unit 0/ }).click();
   await expect(page.getByRole('dialog', { name: 'Sprawdzian' }).locator('.check-row')).toHaveCount(9);
   await page.keyboard.press('Escape');
-  // Przedmioty bez rozdziałów wyglądają jak dotąd.
+  // Matematyka i polski też mają działy: plansza pokazuje jeden, sprawdzian jest z wybranego działu.
   await page.getByRole('button', { name: 'Wróć', exact: true }).click();
   await page.locator('.subject-big', { hasText: 'Matematyka' }).click();
-  await expect(page.getByRole('group', { name: 'Rozdział' })).toHaveCount(0);
+  const mat = page.getByRole('group', { name: 'Dział' });
+  await expect(mat.getByRole('button')).toHaveText([/^Działania pisemne/, /^Ułamki zwykłe/, /^Ułamki dziesiętne/, /^Geometria/, /^Liczby i działania/]);
+  await expect(mat.getByRole('button', { name: /^Działania pisemne/ })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('.subject-board').getByRole('button', { name: /Ułamki: skracanie/ })).toHaveCount(0);
+  await openUnit(page, 'Ułamki zwykłe');
+  await expect(page.locator('.subject-board').getByRole('button', { name: /Ułamki: skracanie/ }).first()).toBeVisible();
+  await expect(page.locator('.subject-board').getByRole('button', { name: /Dzielenie pisemne/ })).toHaveCount(0);
+  await page.getByRole('button', { name: /^Sprawdzian: Ułamki zwykłe/ }).click();
+  await expect(page.getByRole('dialog', { name: 'Sprawdzian' }).locator('.check-row')).toHaveCount(2);
+  await page.keyboard.press('Escape');
   await expect(page.getByRole('button', { name: /^Sprawdzian/ })).toBeVisible();
 
   // W panelu rodzica rozdział widać przy temacie i w planie.
   await page.getByRole('button', { name: 'Wróć', exact: true }).click();
   await parentLogin(page);
   await page.getByRole('button', { name: 'Plan i sprawdziany' }).click();
-  await expect(page.locator('.unit-group-head', { hasText: 'Unit 0' })).toBeVisible();
+  const planEnglish = page.getByRole('group', { name: 'Angielski' }).first();
+  await expect(planEnglish.locator('.unit-fold > summary', { hasText: 'Unit 0' })).toContainText('zaznaczone 0 z 9');
   await page.getByRole('button', { name: 'Tematy' }).click();
-  await expect(page.locator('tr', { hasText: 'Have got' }).first()).toContainText('Unit 0');
+  const english = page.getByRole('region', { name: 'Angielski' });
+  await expect(english.locator('.topic-item', { hasText: 'Have got' })).toBeHidden();
+  await openFold(english, 'Unit 0');
+  await expect(english.locator('.topic-item', { hasText: 'Have got' })).toBeVisible();
 });
 
 test('kartkówka od rodzica: zadanie, napisanie i wynik w panelu rodzica', async ({ page }) => {
@@ -530,6 +568,7 @@ test('kartkówka od rodzica: zadanie, napisanie i wynik w panelu rodzica', async
   const form = page.locator('.quiz-form');
   await form.getByPlaceholder('np. Have got i can').fill('Have got na piątek');
   await form.getByRole('group', { name: 'Liczba pytań w kartkówce' }).getByRole('button', { name: '5', exact: true }).click();
+  await openFold(form, 'Unit 0');
   await form.locator('.check-row', { hasText: 'Have got' }).locator('input').check();
   await snap(page, 'f41-quiz-form', true);
   await form.getByRole('button', { name: 'Zadaj kartkówkę (5 pytań)' }).click();
@@ -756,7 +795,7 @@ test('tryb nauki: karty lekcji, pytania kontrolne, powtórka rozdziału i kroki 
 });
 
 
-test('dzielenie pisemne: karta na starcie, słupki z kratkami bez reszty i z resztą, lekcja krok po kroku', async ({ page }) => {
+test('dzielenie pisemne: słupki z kratkami w temacie i w karcie „Teraz”, lekcja krok po kroku', async ({ page }) => {
   const phone = test.info().project.name === 'phone';
   if (phone) await page.setViewportSize({ width: 360, height: 740 });
   await onboard(page, 'Ola', 5);
@@ -771,18 +810,19 @@ test('dzielenie pisemne: karta na starcie, słupki z kratkami bez reszty i z res
     return { a: Number(a), b: Number(b), inputs: divisionInputs(divisionLayout(Number(a), Number(b))) };
   };
 
-  // Ekran startowy: karta „Dzielenie pisemne” nad przedmiotami — cztery rodzaje słupków pod ręką.
-  const card = page.locator('.division-card');
-  await expect(card.getByRole('heading', { name: 'Dzielenie pisemne' })).toBeVisible();
-  await expect(card.getByRole('button', { name: /^Dzielenie pisemne przez liczbę/ })).toHaveCount(4);
-  const cardBox = (await card.boundingBox())!;
-  const subjectsBox = (await page.locator('.subject-grid').boundingBox())!;
-  expect(cardBox.y).toBeLessThan(subjectsBox.y);
-  await card.scrollIntoViewIfNeeded();
-  await snap(page, 'f39-division-card');
+  // Na starcie nie ma już osobnej karty dzielenia: „Teraz” pokazuje polecany temat, a słupki są przy swoich tematach.
+  const now = page.getByRole('region', { name: 'Teraz' });
+  await expect(now).toContainText('Teraz polecamy');
+  await expect(page.getByRole('group', { name: 'Nowe liczby bez końca' })).toHaveCount(0);
+
+  // Matematyka: dział „Działania pisemne”, polecany temat ma przyciski „Nowe liczby bez końca”.
+  await page.locator('.subject-big', { hasText: 'Matematyka' }).click();
+  const trainers = page.locator('.next-card').getByRole('group', { name: 'Nowe liczby bez końca' });
+  await expect(trainers.getByRole('button')).toHaveText(['Dzielnik jednocyfrowy', 'Dzielnik dwucyfrowy', /Sprawdzenie: mnożenie pisemne/]);
+  await snap(page, 'f39-division-trainers');
 
   // Bez reszty, dzielnik jednocyfrowy: od razu słupek z kratkami, seria 5 przykładów.
-  await card.getByRole('button', { name: 'Dzielenie pisemne przez liczbę jednocyfrową bez reszty' }).click();
+  await trainers.getByRole('button', { name: 'Trening: Dzielenie pisemne przez liczbę jednocyfrową — bez reszty' }).click();
   await expect(page.locator('.pr-prompt h1')).toHaveText('Oblicz pisemnie. Wpisz cyfry w kratki.');
   await expect(page.getByText('1 / 5')).toBeVisible();
   const first = await currentDivision();
@@ -807,12 +847,16 @@ test('dzielenie pisemne: karta na starcie, słupki z kratkami bez reszty i z res
   await sol.getByRole('button', { name: 'Pokaż krok po kroku' }).click();
   await expect(sol.getByText(/^Krok 1 z \d+/)).toBeVisible();
   await snap(page, 'f41-division-solution', true);
-  // Trening zaczęty na starcie wraca na start — karta jest znowu pod ręką.
+  // Trening zaczęty w przedmiocie wraca do przedmiotu.
   await quit();
-  await expect(card).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Wyspa Matematyki' })).toBeVisible();
 
-  // Z resztą, dzielnik dwucyfrowy: wpisujemy poprawne cyfry w kolejności pisania; reszta zostaje na dole.
-  await card.getByRole('button', { name: 'Dzielenie pisemne przez liczbę dwucyfrową z resztą' }).click();
+  // Karta tematu „z resztą” ma swoje treningi: dzielnik dwucyfrowy, poprawne cyfry w kolejności pisania.
+  await page.getByRole('button', { name: /Dzielenie pisemne z resztą/ }).first().click();
+  const sheetTrainers = page.getByRole('dialog').getByRole('group', { name: 'Nowe liczby bez końca' });
+  await expect(sheetTrainers.getByRole('button')).toHaveCount(3);
+  await snap(page, 'f39-topic-trainers');
+  await sheetTrainers.getByRole('button', { name: 'Trening: Dzielenie pisemne przez liczbę dwucyfrową — z resztą' }).click();
   await expect(page.locator('.pr-prompt h1')).toContainText('na dole zostanie reszta');
   const second = await currentDivision();
   expect(second.b).toBeGreaterThanOrEqual(10);
@@ -830,8 +874,17 @@ test('dzielenie pisemne: karta na starcie, słupki z kratkami bez reszty i z res
   await expect(page.getByRole('region', { name: 'Rozwiązanie w słupku' })).toHaveCount(0);
   await quit();
 
+  // Start pamięta, co było ćwiczone ostatnio: „Teraz” pokazuje ten temat razem z jego treningami.
+  await page.getByRole('button', { name: 'Wróć', exact: true }).click();
+  await expect(now).toContainText('ostatnio ćwiczone');
+  await expect(now.getByRole('heading', { name: 'Dzielenie pisemne z resztą' })).toBeVisible();
+  // …i treningi całego działu: bez reszty i z resztą, dzielnik jedno- i dwucyfrowy — bez wchodzenia w przedmiot.
+  await expect(now.locator('.trainer-kind-name')).toHaveText(['Dzielenie pisemne bez reszty', 'Dzielenie pisemne z resztą']);
+  await expect(now.getByRole('button', { name: /^Trening: Dzielenie pisemne/ })).toHaveCount(4);
+  await snap(page, 'f39-now-recent');
+
   // Sprawdzenie mnożeniem pisemnym: też kratki, wpisywane od prawej strony.
-  await card.getByRole('button', { name: 'Sprawdzenie: mnożenie pisemne' }).click();
+  await now.getByRole('button', { name: 'Trening: Mnożenie pisemne' }).click();
   await expect(page.locator('.pr-prompt h1')).toContainText('Pomnóż pisemnie');
   const mulGrid = page.getByRole('group', { name: /Mnożenie pisemne do uzupełnienia/ });
   const [, x, y] = (await mulGrid.getAttribute('aria-label'))!.match(/(\d+) · (\d+)/)!;
@@ -846,11 +899,12 @@ test('dzielenie pisemne: karta na starcie, słupki z kratkami bez reszty i z res
   await expect(page.locator('.ldiv-in.bad')).toHaveCount(1);
   await expect(page.getByRole('region', { name: 'Rozwiązanie mnożenia' }).getByRole('img', { name: `Mnożenie pisemne: ${x} razy ${y} równa się ${mul.product}` })).toBeVisible();
   await snap(page, 'f43-multiplication-solution', true);
+  // Trening zaczęty z karty „Teraz” wraca na start.
   await quit();
+  await expect(now).toBeVisible();
 
-  // Matematyka: zostały dwa tematy z dzieleniem pisemnym — bez reszty i z resztą; dawnych pytań i zadań z lukami już nie ma.
+  // Matematyka: w dziale „Działania pisemne” są dwa tematy — bez reszty i z resztą.
   await page.locator('.subject-big', { hasText: 'Matematyka' }).click();
-  await expect(page.getByRole('button', { name: /Dzielenie pisemne przez liczbę/ })).toHaveCount(0);
   await expect(page.getByRole('button', { name: /Dzielenie pisemne z resztą/ }).first()).toBeVisible();
   await page.getByRole('button', { name: /Dzielenie pisemne bez reszty/ }).first().click();
   const sheet = page.getByRole('dialog');
@@ -900,15 +954,131 @@ test('dzielenie pisemne: karta na starcie, słupki z kratkami bez reszty i z res
   // Bez żadnej odpowiedzi wyjście nie pyta o potwierdzenie.
   await page.getByRole('button', { name: 'Zakończ ćwiczenie' }).click();
 
-  // Wyzwania: to samo wejście co na starcie. W „Treningu bez końca” słupki nie mają gier na czas.
-  await page.getByRole('button', { name: /^Dzielenie pisemne Słupki w kratkach/ }).click();
-  const picker = page.getByRole('dialog');
-  await expect(picker.getByRole('button', { name: /^Dzielenie pisemne przez liczbę/ })).toHaveCount(4);
-  await snap(page, 'f39-division-challenge');
-  await picker.getByRole('button', { name: 'Zamknij' }).click();
+  // W „Treningu bez końca” słupki nie mają gier na czas.
   await page.getByRole('button', { name: /Trening bez końca/ }).click();
   const rows = page.getByRole('dialog').locator('.gen-row', { hasText: 'Dzielenie pisemne' });
   await expect(rows).toHaveCount(4);
   await expect(rows.getByRole('button', { name: 'Trening' })).toHaveCount(4);
   await expect(rows.getByRole('button', { name: /Błyskawica|Pary/ })).toHaveCount(0);
+});
+
+test('porządek tematów: rodzic przypina „Teraz”, przenosi dział do „Skończonych” i decyduje po terminie planu', async ({ page }) => {
+  const phone = test.info().project.name === 'phone';
+  if (phone) await page.setViewportSize({ width: 360, height: 740 });
+  await onboard(page, 'Ola', 5);
+
+  // Start bez planu: krótki — na telefonie dolne karty są zwinięte, na szerokim ekranie otwarte.
+  await expect(page.getByRole('region', { name: 'Teraz' })).toContainText('Teraz polecamy');
+  await expect(page.locator('details.fold')).toHaveCount(4);
+  await expect(page.locator('details.fold[open]')).toHaveCount(phone ? 0 : 4);
+  if (phone) {
+    // Przedmioty zaczynają się na pierwszym ekranie, a cała strona ma najwyżej 2,5 ekranu.
+    const subjects = (await page.locator('.subject-grid').boundingBox())!;
+    expect(subjects.y).toBeLessThan(740);
+    expect(await page.evaluate(() => document.documentElement.scrollHeight / window.innerHeight)).toBeLessThan(2.5);
+    // Zwiniętą kartę otwiera dotknięcie nagłówka.
+    await page.locator('details.fold > summary', { hasText: 'Mini-gry' }).click();
+    await expect(page.locator('details.fold[open]')).toHaveCount(1);
+    await expect(page.getByRole('button', { name: /Błyskawica: Tabliczka mnożenia/ })).toBeVisible();
+  }
+  await snap(page, 'f60-start-short', true);
+
+  // Rodzic: Tematy dla Oli — działy zwinięte, stan tematu jednym dotknięciem.
+  await parentLogin(page);
+  await page.getByRole('button', { name: 'Tematy' }).click();
+  const who = page.getByRole('group', { name: 'Dla kogo' });
+  await expect(who.getByRole('button', { name: /Ola · kl\. 5/ })).toHaveAttribute('aria-pressed', 'true');
+  const mat = page.getByRole('region', { name: 'Matematyka' });
+  await expect(mat.locator('.unit-fold')).toHaveCount(5);
+  await expect(mat.locator('.unit-fold[open]')).toHaveCount(0);
+  // Tematy klasy 3 są tylko w widoku „Wszystkie tematy”.
+  await expect(page.getByRole('region', { name: 'Język polski' }).locator('.unit-fold > summary', { hasText: 'Części mowy' })).toHaveCount(0);
+  await who.getByRole('button', { name: 'Wszystkie tematy' }).click();
+  await expect(page.getByRole('region', { name: 'Język polski' }).locator('.unit-fold > summary', { hasText: 'Części mowy' })).toHaveCount(1);
+  await expect(page.getByRole('group', { name: /^Stan tematu/ })).toHaveCount(0);
+  await who.getByRole('button', { name: /Ola · kl\. 5/ }).click();
+
+  await openFold(mat, 'Działania pisemne');
+  await mat.getByRole('group', { name: 'Stan tematu: Dzielenie pisemne bez reszty' }).getByRole('button', { name: 'Teraz' }).click();
+  await mat.getByRole('group', { name: 'Stan tematu: Dzielenie pisemne z resztą' }).getByRole('button', { name: 'Teraz' }).click();
+  await expect(mat.locator('.unit-fold > summary', { hasText: 'Działania pisemne' })).toContainText('teraz: 2');
+  await openFold(mat, 'Liczby i działania');
+  await mat.getByRole('button', { name: 'Cały dział: skończony' }).last().click();
+  await expect(mat.locator('.unit-fold > summary', { hasText: 'Liczby i działania' })).toContainText('skończony');
+  await expect(mat.getByRole('group', { name: 'Stan tematu: Cechy podzielności' }).getByRole('button', { name: 'Skończony' })).toHaveAttribute('aria-pressed', 'true');
+  await snap(page, 'f61-parent-topic-states', true);
+
+  // Plan powstał sam (bez terminu) i ma oba tematy; lista w edytorze planu ma zwijane działy.
+  await page.getByRole('button', { name: 'Plan i sprawdziany' }).click();
+  await expect(page.getByRole('button', { name: 'Zapisz plan (2)' })).toBeVisible();
+  await page.getByRole('button', { name: 'Wyjdź' }).click();
+
+  // Dziecko: „Teraz” to plan od rodzica z tematami i treningami; polecanego tematu już tu nie ma.
+  const plan = page.getByRole('region', { name: 'Plan od rodzica' });
+  await expect(plan).toContainText('Teraz · plan od rodzica');
+  await expect(page.getByRole('region', { name: 'Teraz' })).toHaveCount(0);
+  await expect(plan.locator('.plan-topic')).toHaveText([/Dzielenie pisemne bez reszty/, /Dzielenie pisemne z resztą/]);
+  const trainers = plan.getByRole('group', { name: 'Nowe liczby bez końca' });
+  await expect(trainers.locator('.trainer-kind-name')).toHaveText(['Dzielenie pisemne bez reszty', 'Dzielenie pisemne z resztą']);
+  await expect(trainers.getByRole('button', { name: /^Trening: Dzielenie pisemne/ })).toHaveCount(4);
+  await expect(trainers.getByRole('button', { name: 'Trening: Mnożenie pisemne' })).toHaveCount(1);
+  await snap(page, 'f62-start-plan', true);
+
+  // Matematyka: skończony dział zszedł z planszy do zwiniętej sekcji; temat dalej da się otworzyć.
+  await page.locator('.subject-big', { hasText: 'Matematyka' }).click();
+  await expect(page.locator('.next-card')).toContainText('Teraz · z planu rodzica');
+  await expect(page.getByRole('group', { name: 'Dział' }).getByRole('button')).toHaveText([/^Działania pisemne/, /^Ułamki zwykłe/, /^Ułamki dziesiętne/, /^Geometria/]);
+  if (phone) {
+    // Na telefonie działy stoją w jednym rzędzie (przewijanym w bok), nie jeden pod drugim.
+    const chips = await page.getByRole('group', { name: 'Dział' }).getByRole('button').all();
+    const ys = await Promise.all(chips.map(async (c) => Math.round((await c.boundingBox())!.y)));
+    expect(new Set(ys).size).toBe(1);
+  }
+  const done = page.locator('details.done-topics');
+  await expect(done.locator('summary')).toContainText('Skończone · 2 tematy');
+  await expect(done.getByRole('button', { name: /Cechy podzielności/ })).toBeHidden();
+  await done.locator('summary').click();
+  await expect(done).toContainText('Liczby i działania');
+  await snap(page, 'f63-subject-done', true);
+  await done.getByRole('button', { name: /Cechy podzielności/ }).click();
+  await expect(page.getByRole('dialog')).toContainText('skończony');
+  await page.getByRole('dialog').getByRole('button', { name: 'Zamknij' }).click();
+  // Sprawdzian: skończone tematy są na liście (niezaznaczone); test na start ich nie obejmuje (6 tematów × 3 pytania).
+  await page.getByRole('button', { name: /^Sprawdzian: Działania pisemne/ }).click();
+  const setup = page.getByRole('dialog', { name: 'Sprawdzian' });
+  await expect(setup.locator('.check-row')).toHaveCount(4);
+  await expect(setup.locator('.check-row', { hasText: 'skończony' })).toHaveCount(2);
+  await expect(setup.locator('.check-row', { hasText: 'skończony' }).locator('input:checked')).toHaveCount(0);
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('button', { name: /^Test na start/ })).toContainText('18 pytań');
+
+  // Po terminie planu rodzic dostaje jedno pytanie. „Przenieś do skończonych” zdejmuje tematy z planszy i zamyka plan.
+  await page.clock.install({ time: new Date() });
+  await page.getByRole('button', { name: 'Panel rodzica' }).click();
+  for (const d of '123456') await page.getByRole('button', { name: d, exact: true }).click();
+  await page.getByRole('button', { name: 'Zatwierdź' }).click();
+  await expect(page.getByRole('region', { name: /Termin planu minął/ })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Plan i sprawdziany' }).click();
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  await page.getByLabel('Termin (opcjonalnie)').fill(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
+  await page.getByRole('button', { name: 'Zapisz plan (2)' }).click();
+  await expect(page.getByText('Zapisano plan: Ola.')).toBeVisible();
+  await page.clock.fastForward(72 * 3_600_000);
+  await page.getByRole('button', { name: 'Postępy' }).click();
+  const notice = page.getByRole('region', { name: 'Termin planu minął: Ola' });
+  await expect(notice).toContainText('Dzielenie pisemne bez reszty, Dzielenie pisemne z resztą');
+  await snap(page, 'f64-plan-expired', true);
+  await notice.getByRole('button', { name: 'Przenieś do skończonych' }).click();
+  await expect(notice).toHaveCount(0);
+  await page.getByRole('button', { name: 'Tematy' }).click();
+  await expect(page.getByRole('region', { name: 'Matematyka' }).locator('.unit-fold > summary', { hasText: 'Działania pisemne' })).toContainText('skończony');
+  // Przywrócenie działu wraca go na planszę dziecka.
+  await openFold(page.getByRole('region', { name: 'Matematyka' }), 'Liczby i działania');
+  await page.getByRole('region', { name: 'Matematyka' }).getByRole('button', { name: 'Przywróć dział na planszę' }).click();
+  await page.getByRole('button', { name: 'Wyjdź' }).click();
+  await expect(page.getByRole('region', { name: 'Plan od rodzica' })).toHaveCount(0);
+  await page.locator('.subject-big', { hasText: 'Matematyka' }).click();
+  await expect(page.getByRole('group', { name: 'Dział' }).getByRole('button')).toHaveText([/^Ułamki zwykłe/, /^Ułamki dziesiętne/, /^Geometria/, /^Liczby i działania/]);
+  await expect(page.locator('details.done-topics summary')).toContainText('Skończone · 2 tematy');
 });

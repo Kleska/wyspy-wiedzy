@@ -125,7 +125,7 @@ export function App() {
     <AppContext.Provider value={ctx}>
       <div className="app">
         {screen.name === 'home' && <Home />}
-        {screen.name === 'subject' && <SubjectScreen subjectId={screen.subjectId} />}
+        {screen.name === 'subject' && <SubjectScreen key={`${screen.subjectId}:${screen.unit ?? ''}`} subjectId={screen.subjectId} unit={screen.unit} />}
         {screen.name === 'practice' && <Practice key={screen.nonce} run={screen.run} />}
         {screen.name === 'sprint' && <Sprint key={screen.nonce} game={screen.game} />}
         {screen.name === 'pairs' && <Pairs key={screen.nonce} game={screen.game} />}

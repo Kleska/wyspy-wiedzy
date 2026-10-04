@@ -33,6 +33,8 @@ test('sortowanie (przeciąganie), luki i pary działają i dają poprawny wynik'
   await page.getByRole('button', { name: 'Wyjdź' }).click();
 
   await page.locator('.subject-big', { hasText: 'Język polski' }).click();
+  // Temat od rodzica bez działu stoi na planszy w dziale „Pozostałe”.
+  await page.getByRole('group', { name: 'Dział' }).getByRole('button', { name: /^Pozostałe/ }).click();
   await page.getByRole('button', { name: /Test typów/ }).first().click();
   await page.getByRole('dialog').getByRole('button', { name: /Graj!/ }).click();
 
@@ -124,6 +126,7 @@ test('zadania liczbowe: klawiatura z cyframi i ułamek piętrowy zamiast polskic
   await page.getByRole('button', { name: 'Zapisz' }).click();
   await page.getByRole('button', { name: 'Wyjdź' }).click();
   await page.locator('.subject-big', { hasText: 'Matematyka' }).click();
+  await page.getByRole('group', { name: 'Dział' }).getByRole('button', { name: /^Pozostałe/ }).click();
   await page.getByRole('button', { name: /Test liczb/ }).first().click();
   await page.getByRole('dialog').getByRole('button', { name: /Graj!/ }).click();
 

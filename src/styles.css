@@ -4447,80 +4447,411 @@ p {
   }
 }
 
-/* ───────────────────────── Dzielenie pisemne: karta na starcie ───────────────────────── */
+/* ───────────────────────── „Teraz”, treningi tematu, karty zwijane, „Skończone” ───────────────────────── */
 
-.ic-division {
-  color: var(--accent);
+.now-card .plan-icon {
+  background: var(--accent);
 }
 
-.division-picker {
+.link-btn {
+  min-height: 32px;
+  padding: 0 4px;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-weight: 800;
+  font-size: 15px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-align: left;
+}
+
+/* Treningi „nowe liczby bez końca” przypięte do tematu (karta „Teraz”, karta tematu). */
+.trainers {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 12px;
-}
-
-.division-kinds {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 12px;
-  width: 100%;
-}
-
-.division-kind {
-  display: flex;
-  flex-direction: column;
   gap: 10px;
-  padding: 12px 14px;
+  padding: 12px 14px 14px;
   border-radius: var(--radius-sm);
   border: 2px solid var(--line);
   background: var(--surface-3);
 }
 
-.division-kind-name {
+.trainers-head {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 4px 10px;
-  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 17px;
 }
 
-.division-kind-name b {
-  font-size: 18px;
+.trainers-head svg {
+  color: var(--accent);
+  flex-shrink: 0;
 }
 
-.division-kind-name small {
+.trainer-kinds {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 10px;
+  width: 100%;
+}
+
+.trainer-kind {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.trainer-kind-name {
   font-size: 15px;
-  font-weight: 700;
+  color: var(--muted);
+}
+
+.trainer-kind-btns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 10px;
+}
+
+.trainer-kind-btns .btn {
+  padding: 6px 8px;
+  font-size: 16px;
+  line-height: 1.15;
+}
+
+.trainer-aux {
+  padding: 6px 12px;
+  line-height: 1.15;
+  text-align: left;
+}
+
+.modal .trainers,
+.next-card .trainers {
+  align-items: stretch;
+}
+
+[data-theme='pixel'] .trainers {
+  border-radius: 0;
+  border: 3px solid #0a0d1a;
+}
+
+/* Karta zwijana (dół ekranu startowego) i sekcja „Skończone” pod planszą. */
+.fold > summary,
+.done-topics > summary,
+.unit-fold > summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.fold > summary::-webkit-details-marker,
+.done-topics > summary::-webkit-details-marker,
+.unit-fold > summary::-webkit-details-marker {
+  display: none;
+}
+
+.fold > summary {
+  min-height: 44px;
+}
+
+.fold > summary .card-title {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+}
+
+.fold-icon {
+  flex-shrink: 0;
+  color: var(--accent);
+}
+
+.fold-meta {
+  font-weight: 800;
+  font-size: 15px;
   color: var(--muted);
   white-space: nowrap;
 }
 
-.division-kind-btns {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+.fold-chev {
+  flex-shrink: 0;
+  color: var(--muted);
+}
+
+details[open] > summary .fold-chev {
+  transform: rotate(180deg);
+}
+
+.fold-body {
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.fold.challenges .fold-body {
   gap: 10px;
 }
 
+.done-topics {
+  margin-top: 16px;
+}
+
+.done-topics > summary {
+  min-height: 48px;
+}
+
+.done-icon {
+  flex-shrink: 0;
+  color: var(--good);
+}
+
+.done-head {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+
+.done-head b {
+  font-family: var(--font-display);
+  font-weight: var(--display-weight);
+  font-size: 20px;
+}
+
+.done-head small {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.done-topics[open] > summary {
+  margin-bottom: 12px;
+}
+
+.done-topic {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  width: 100%;
+  min-height: 48px;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  border: 2px solid var(--line);
+  background: var(--surface-3);
+  color: var(--text);
+  text-align: left;
+}
+
+.done-topic-title {
+  flex: 1 1 160px;
+  font-weight: 800;
+  font-size: 16px;
+}
+
+[data-theme='pixel'] .done-topic {
+  border-radius: 0;
+  border: 3px solid #0a0d1a;
+}
+
+/* Telefon: krótszy start — liczniki są już w górnym pasku, a kafle przedmiotów są niższe. */
 @media (max-width: 640px) {
-  .division-kind {
-    gap: 8px;
-    padding: 10px 12px;
+  .hello-wide .stat-tiles {
+    display: none;
   }
-  .division-kind-name b {
-    font-size: 17px;
+  .subject-big .subject-badge {
+    width: 56px;
+    height: 56px;
+    font-size: 21px;
+    border-radius: 18px;
   }
-  .division-kind-name small {
+  .subject-big .subject-name {
+    font-size: 22px;
+  }
+  .subject-big .subject-body {
+    gap: 4px;
+  }
+  .subject-big .subject-meta {
     font-size: 14px;
   }
-  .division-kind-btns .btn {
-    padding: 0 10px;
+  .subject-big .subject-stars {
+    display: none;
+  }
+  .subject-grid {
+    gap: 10px;
+  }
+  .trainers {
+    padding: 10px 12px 12px;
+  }
+  /* Kroki planu mówią to samo co instrukcja — na telefonie zostają same kroki. */
+  .plan-check-how {
+    display: none;
+  }
+  /* Działy w jednym rzędzie, przewijanym w bok — plansza nie zjeżdża w dół, gdy działów przybywa. */
+  .subject-page .unit-chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    margin: 0 -12px;
+    padding: 2px 12px 8px;
+    scrollbar-width: none;
+  }
+  .subject-page .unit-chips::-webkit-scrollbar {
+    display: none;
+  }
+  .subject-page .unit-chips > * {
+    flex-shrink: 0;
+    white-space: nowrap;
   }
 }
 
-[data-theme='pixel'] .division-kind {
-  border-radius: 0;
-  border: 3px solid #0a0d1a;
+/* Panel rodzica: „dla kogo”, zwijane działy, stan tematu. */
+.who-pick {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.who-label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-right: 2px;
+}
+
+.who-pick button {
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.who-pick button[aria-pressed='true'] {
+  background: var(--secondary);
+  border-color: var(--secondary);
+  color: var(--secondary-ink);
+}
+
+.unit-fold {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.unit-fold > summary {
+  flex-wrap: wrap;
+  min-height: 48px;
+  padding: 6px 12px;
+  font-size: 16px;
+}
+
+.unit-fold > summary b {
+  flex: 1 1 140px;
+  min-width: 0;
+}
+
+.unit-fold > summary .muted {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.unit-fold.is-done {
+  background: var(--surface-2);
+}
+
+.unit-fold-body {
+  gap: 0;
+  padding: 0 12px 12px;
+}
+
+@media (max-width: 640px) {
+  .unit-fold-body {
+    padding: 0 10px 10px;
+  }
+  .parent .card:has(> .unit-fold) {
+    padding: 14px 12px;
+  }
+}
+
+.unit-fold-body > .row {
+  padding-bottom: 10px;
+}
+
+.topic-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+}
+
+.topic-item-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.topic-item-meta {
+  font-size: 13px;
+}
+
+.parent .topic-item .btn-sm {
+  min-height: 40px;
+  padding: 0 10px;
+  font-size: 14px;
+}
+
+.state-switch {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  max-width: 420px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.state-switch button {
+  min-height: 44px;
+  padding: 0 2px;
+  border: 0;
+  border-left: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.state-switch button:first-child {
+  border-left: 0;
+}
+
+.state-switch button[aria-pressed='true'] {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.pill.now {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.notice-card {
+  border: 2px solid var(--accent);
+}
+
+.field .unit-fold .check-row {
+  padding-left: 0;
 }
 
 /* ───────────────────────── Mini-gry: Pary na czas ───────────────────────── */

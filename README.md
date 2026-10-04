@@ -7,7 +7,9 @@ można ją zainstalować na ekranie głównym i używać bez internetu. Postępy
 
 - Kilka osób na jednym koncie: każde dziecko ma swój profil, klasę, postępy, punkty i wygląd.
   Przy uruchomieniu aplikacja pyta „Kto się dziś uczy?”.
-- Start od wyboru przedmiotu (Język polski, Matematyka, Angielski), potem plansza z tematami dla klasy dziecka.
+- Ekran startowy: powitanie, karta „Teraz” (plan od rodzica, a gdy go nie ma — temat ostatnio ćwiczony albo polecany),
+  kartkówki, przedmioty, powtórka; niżej zwijane karty (zadania na dziś, cele, mini-gry, test na start).
+  Po wejściu w przedmiot — plansza z tematami jednego działu dla klasy dziecka.
 
 - 6 wyglądów do przełączania przez dziecko: *Wyspy Wiedzy* (domyślny), *Akademia Pilotów*, *Pixel Quest*, *Zeszyt*, *Kosmos*, *Wyścigi* —
   przy wyborze widać miniaturę każdego. W tym samym oknie („Wygląd”) dziecko zmienia też swojego bohatera.
@@ -23,8 +25,8 @@ można ją zainstalować na ekranie głównym i używać bez internetu. Postępy
   - klasa 5 — polski: przypadki, stopniowanie przymiotnika, ó/u, „nie” z częściami mowy, części mowy odmienne
     i nieodmienne, podmiot i orzeczenie; matematyka: dzielenie pisemne bez reszty i z resztą (same słupki z kratkami, w które
     dziecko wpisuje cyfry na ekranie jak na karcie pracy; dzielnik jedno- i dwucyfrowy; lekcja, w której słupek
-    odsłania się krok po kroku; sprawdzenie mnożeniem pisemnym też w kratkach). Najkrótsza droga: karta
-    „Dzielenie pisemne” na ekranie startowym (od klasy 4) — serie po 5 przykładów z nowymi liczbami,
+    odsłania się krok po kroku; sprawdzenie mnożeniem pisemnym też w kratkach; serie po 5 przykładów z nowymi
+    liczbami w karcie tematu — „Nowe liczby bez końca”),
     ułamki (skracanie, dodawanie, odejmowanie), ułamki dziesiętne,
     pole i obwód, kolejność działań, cechy podzielności;
   - dyktanda dla klasy 3 i 5 (ó, rz, ż, ch, h);
@@ -48,8 +50,14 @@ można ją zainstalować na ekranie głównym i używać bez internetu. Postępy
   albo planu na jednej stronie. Karta planu prowadzi po kolei: Nauka → Ćwiczenia → Sprawdzian próbny, a „Popraw swoje
   błędy” układa sesję z zadań z planu, w których dziecko się pomyliło. Lekcje do własnych tematów wpisuje się
   w edytorze tematu (pole „Lekcja”).
-- Rozdziały: temat może należeć do rozdziału (np. „Unit 0”, „Unit 1”) — plansza przedmiotu pokazuje jeden rozdział
-  naraz, a listy tematów w panelu rodzica są nimi pogrupowane (z przyciskiem „Zaznacz rozdział”).
+- Działy: każdy temat należy do działu (np. „Ułamki zwykłe”, „Części mowy”, „Unit 0”) — plansza przedmiotu pokazuje
+  jeden dział naraz, a listy tematów w panelu rodzica są zwijanymi działami (z przyciskiem „Zaznacz dział”).
+  Własnemu tematowi dział wpisuje się w edytorze; bez działu trafia do „Pozostałych”.
+- Porządek tematów dla każdego dziecka osobno (Panel rodzica → Tematy → „Dla kogo”): **Teraz** — temat jest w planie
+  i stoi na górze ekranu startowego; **Biblioteka** — zwykły temat na planszy; **Skończony** — schodzi z planszy do
+  zwiniętej sekcji „Skończone”, ale zostaje w powtórkach, „Moich błędach” i sprawdzianach. Cały dział przenosi się
+  jednym przyciskiem. Po terminie planu panel rodzica pyta raz: przenieść tematy do skończonych, zostawić na
+  planszy czy przedłużyć plan o tydzień.
 - Kartkówka od rodzica: w panelu rodzica wybierasz dziecko, tematy, liczbę pytań i termin; dziecko widzi ją na
   ekranie startowym, pisze raz, bez podpowiedzi, a ocena wraca do panelu rodzica (przy koncie rodziny — na żywo).
 - Błędy z kartkówek i sprawdzianów: dziecko po napisaniu widzi pytania, w których się pomyliło (swoją odpowiedź,

@@ -42,6 +42,22 @@ describe('scalanie zmian z dwóch urządzeń', () => {
     expect(sameJson(mergeDoc('profile', parent, tablet), merged)).toBe(true);
   });
 
+  it('osoba: lista „skończonych” tematów od rodzica przeżywa zmianę wyglądu na tablecie dziecka', () => {
+    const parent = profile({ done: ['b-m5-kolejnosc'], doneAt: '2026-10-03T08:00:00.000Z', updatedAt: '2026-10-03T08:00:00.000Z' });
+    const tablet = profile({ theme: 'kosmos', updatedAt: '2026-10-03T09:00:00.000Z' }); // nowsza, ale bez listy
+    const merged = mergeDoc('profile', tablet, parent) as Profile;
+    expect(merged.theme).toBe('kosmos');
+    expect(merged.done).toEqual(['b-m5-kolejnosc']);
+    expect(sameJson(mergeDoc('profile', parent, tablet), merged)).toBe(true);
+    // Ze wspólną wersją: każda strona zachowuje swoją zmianę, a przywrócenie tematu (pusta lista) też się liczy.
+    const base = profile({ done: ['b-m5-kolejnosc'], doneAt: '2026-10-03T08:00:00.000Z', updatedAt: '2026-10-03T08:00:00.000Z' });
+    const parent2 = { ...base, done: [], doneAt: '2026-10-04T08:00:00.000Z', updatedAt: '2026-10-04T08:00:00.000Z' };
+    const tablet2 = { ...base, theme: 'pixel' as const, updatedAt: '2026-10-04T09:00:00.000Z' };
+    const m2 = mergeDoc('profile', tablet2, parent2, { base }) as Profile;
+    expect(m2.done).toEqual([]);
+    expect(m2.theme).toBe('pixel');
+  });
+
   it('osoba: usunięcie planu przez rodzica też wygrywa ze starszym planem na tablecie', () => {
     const tablet = profile({ theme: 'zeszyt', plan: plan('Stary plan', '2026-10-01T08:00:00.000Z'), updatedAt: '2026-10-03T09:00:00.000Z' });
     const parent = profile({ plan: null, planAt: '2026-10-03T08:00:00.000Z', updatedAt: '2026-10-03T08:00:00.000Z' });

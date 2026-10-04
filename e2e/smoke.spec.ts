@@ -163,14 +163,16 @@ test('pełna ścieżka: profil → przedmiot → ćwiczenie → podsumowanie →
   await snap(page, '14-parent-settings');
   await page.getByRole('button', { name: 'Wyjdź' }).click();
 
-  // Nowy temat widoczny dla ucznia
+  // Nowy temat widoczny dla ucznia (bez działu stoi w „Pozostałych”)
   await page.locator('.subject-big', { hasText: 'Język polski' }).click();
+  await page.getByRole('group', { name: 'Dział' }).getByRole('button', { name: /^Pozostałe/ }).click();
   await expect(page.getByText('Test: czasowniki').first()).toBeVisible();
 
   // Dane przetrwały przeładowanie (IndexedDB)
   await page.reload();
   await expect(page.getByText('Cześć, Kuba!')).toBeVisible();
   await page.locator('.subject-big', { hasText: 'Język polski' }).click();
+  await page.getByRole('group', { name: 'Dział' }).getByRole('button', { name: /^Pozostałe/ }).click();
   await expect(page.getByText('Test: czasowniki').first()).toBeVisible();
 
   expect(errors.filter((e) => !/favicon|manifest/i.test(e))).toEqual([]);
@@ -187,6 +189,7 @@ test('dwie osoby: każda ma swoją klasę, tematy i postępy', async ({ page }) 
 
   // Kuba robi jedno ćwiczenie z matematyki
   await page.locator('.subject-big', { hasText: 'Matematyka' }).click();
+  await page.getByRole('group', { name: 'Dział' }).getByRole('button', { name: /^Mnożenie i dzielenie/ }).click();
   await expect(page.getByText('Mnożenie przez 6 i 7').first()).toBeVisible();
   await expect(page.getByText('Ułamki: skracanie i rozszerzanie')).toHaveCount(0);
   await page.getByRole('button', { name: 'Wróć', exact: true }).click();
@@ -201,6 +204,7 @@ test('dwie osoby: każda ma swoją klasę, tematy i postępy', async ({ page }) 
   await expect(page.getByText('Cześć, Ola!')).toBeVisible();
   await snap(page, '15-start-ola');
   await page.locator('.subject-big', { hasText: 'Matematyka' }).click();
+  await page.getByRole('group', { name: 'Dział' }).getByRole('button', { name: /^Ułamki zwykłe/ }).click();
   await expect(page.getByText('Ułamki: skracanie i rozszerzanie').first()).toBeVisible();
   await expect(page.getByText('Mnożenie przez 6 i 7')).toHaveCount(0);
   await snap(page, '16-subject-ola-mat');

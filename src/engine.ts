@@ -1,5 +1,5 @@
 import { plural } from './themes';
-import type { AssignedQuiz, Attempt, Exercise, ExerciseType, FamilyGoal, ParsedTopic, Redemption, Session, SessionMode, Settings } from './types';
+import type { AssignedQuiz, Attempt, Exercise, ExerciseType, FamilyGoal, ParsedTopic, Plan, Profile, Redemption, Session, SessionMode, Settings } from './types';
 
 /*
  * Cały postęp (XP, monety, poziom, seria dni, poziomy tematów, odznaki, cele tygodnia) jest
@@ -876,6 +876,119 @@ export function suggestTopic(topics: ParsedTopic[], progress: Progress, preferId
 /** Czy plan rodzica jest aktualny (termin jeszcze nie minął). */
 export function planActive(plan: { until?: string } | null | undefined, now: number): boolean {
   return !!plan && (!plan.until || plan.until >= dateKey(now));
+}
+
+/** Plan, którego termin minął — rodzic powinien zdecydować, co dalej z jego tematami. */
+export function planExpired(plan: { until?: string } | null | undefined, now: number): boolean {
+  return !!plan && !planActive(plan, now);
+}
+
+/** Ile dni wstecz szukamy tematu „ostatnio ćwiczonego” do karty „Teraz”. */
+export const RECENT_DAYS = 3;
+
+/**
+ * Temat, do którego dziecko pewnie chce wrócić: ostatnia sesja ćwiczeń tematu, lekcji albo treningu z generatora
+ * (trening wskazuje temat, do którego jest przypięty) z ostatnich dni. `null`, gdy nic takiego nie było.
+ */
+export function recentTopicId(input: {
+  profileId: string;
+  sessions: Session[];
+  now: number;
+  since?: string;
+  /** Tematy, do których przypięty jest trening z generatora. */
+  trainerTopics: (genId: string) => string[];
+  /** Czy temat można teraz polecić (jest na planszy tej osoby). */
+  allowed: (topicId: string) => boolean;
+}): string | null {
+  const from = new Date(input.now - RECENT_DAYS * 86_400_000).toISOString();
+  const mine = input.sessions
+    .filter((s) => s.profileId === input.profileId && s.startedAt >= from && (!input.since || s.startedAt >= input.since) && (s.mode === 'topic' || s.mode === 'learn' || s.mode === 'gen'))
+    .sort((a, b) => (a.startedAt < b.startedAt ? 1 : -1));
+  for (const s of mine) {
+    const ids = s.mode === 'gen' ? input.trainerTopics(s.genId ?? (s.topicId ?? '').replace(/^gen:/, '')) : s.topicId ? [s.topicId] : [];
+    const id = ids.find(input.allowed);
+    if (id) return id;
+  }
+  return null;
+}
+
+// ─── Stan tematu u dziecka: teraz / w bibliotece / skończony ─────────────────
+
+/**
+ * „Teraz” — temat jest w aktualnym planie (dziecko widzi go na górze startu i przedmiotu).
+ * „Biblioteka” — zwykły temat na planszy swojego działu.
+ * „Skończony” — zszedł z planszy, ale zostaje w powtórkach, błędach i sprawdzianach.
+ */
+export type TopicState = 'now' | 'library' | 'done';
+
+type StateOwner = Pick<Profile, 'plan' | 'done'>;
+
+/** Tematy z aktualnego planu (pusto, gdy planu nie ma albo termin minął). */
+export function planTopicIds(profile: StateOwner | null | undefined, now: number): string[] {
+  return profile?.plan && planActive(profile.plan, now) ? profile.plan.topicIds : [];
+}
+
+/** Tematy skończone u tej osoby. Aktualny plan ma pierwszeństwo: temat z planu nigdy nie jest „skończony”. */
+export function doneTopicIds(profile: StateOwner | null | undefined, now: number): Set<string> {
+  const planned = planTopicIds(profile, now);
+  return new Set((profile?.done ?? []).filter((id) => !planned.includes(id)));
+}
+
+export function topicState(profile: StateOwner | null | undefined, topicId: string, now: number): TopicState {
+  if (planTopicIds(profile, now).includes(topicId)) return 'now';
+  return doneTopicIds(profile, now).has(topicId) ? 'done' : 'library';
+}
+
+/** Dzieli tematy na te z planszy i skończone (w tej samej kolejności). */
+export function splitDone<T extends { id: string }>(topics: T[], profile: StateOwner | null | undefined, now: number): { active: T[]; done: T[] } {
+  const ids = doneTopicIds(profile, now);
+  return { active: topics.filter((t) => !ids.has(t.id)), done: topics.filter((t) => ids.has(t.id)) };
+}
+
+/**
+ * Zmiana stanu tematów u jednej osoby. Zwraca pola do zapisania w profilu (`plan`, `planAt`, `done`).
+ * „Teraz” dopisuje tematy do aktualnego planu (albo zakłada nowy, bez terminu — plan po terminie jest zastępowany);
+ * pozostałe stany wyjmują temat z planu, a pusty plan znika.
+ */
+export function setTopicState(
+  profile: Pick<Profile, 'plan' | 'planAt' | 'done' | 'doneAt'>,
+  ids: string[],
+  state: TopicState,
+  at: string,
+): Pick<Profile, 'plan' | 'planAt' | 'done' | 'doneAt'> {
+  const now = Date.parse(at);
+  const before = profile.done ?? [];
+  const done = new Set(before);
+  let plan: Plan | null = profile.plan ?? null;
+  let planAt = profile.planAt;
+  if (state === 'now') {
+    const base = plan && planActive(plan, now) ? plan : null;
+    const add = ids.filter((id) => !base?.topicIds.includes(id));
+    if (add.length || !base) {
+      plan = base ? { ...base, topicIds: [...base.topicIds, ...add] } : { topicIds: ids, setAt: at };
+      planAt = at;
+    }
+    for (const id of ids) done.delete(id);
+  } else {
+    if (plan && plan.topicIds.some((id) => ids.includes(id))) {
+      const left = plan.topicIds.filter((id) => !ids.includes(id));
+      plan = left.length ? { ...plan, topicIds: left } : null;
+      planAt = at;
+    }
+    for (const id of ids) {
+      if (state === 'done') done.add(id);
+      else done.delete(id);
+    }
+  }
+  const changed = done.size !== before.length || before.some((id) => !done.has(id));
+  return { plan, planAt, done: [...done], doneAt: changed ? at : profile.doneAt };
+}
+
+/** Plan od rodzica zapisany w edytorze: tematy z planu wracają na planszę, nawet jeśli były „skończone”. */
+export function doneWithoutPlan(profile: Pick<Profile, 'done' | 'doneAt'>, planIds: string[], at: string): Pick<Profile, 'done' | 'doneAt'> {
+  const before = profile.done ?? [];
+  const done = before.filter((id) => !planIds.includes(id));
+  return done.length === before.length ? { done: profile.done, doneAt: profile.doneAt } : { done, doneAt: at };
 }
 
 /** Ile dni do terminu (0 = dziś). */

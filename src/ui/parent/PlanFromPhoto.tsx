@@ -3,7 +3,7 @@ import { aiMode, chatPlanPrompt, generatePlanWithAi, imageToBase64, parsePastedP
 import { SUBJECTS, subjectOf } from '../../content/seed';
 import { gradeOf, nowIso, store, uid } from '../../data/store';
 import { parseDsl } from '../../dsl';
-import { dateKey } from '../../engine';
+import { dateKey, doneWithoutPlan } from '../../engine';
 import { plural } from '../../themes';
 import type { Profile, Topic } from '../../types';
 import { Icon } from '../icons';
@@ -255,7 +255,7 @@ function PlanReview({
       ids.push(topic.id);
     }
     if (!ids.length) return setErr('Zaznacz co najmniej jeden temat.');
-    await store.put('profile', { ...p, plan: { topicIds: ids, until: until || undefined, title: title.trim() || undefined, setAt: nowIso() }, planAt: nowIso(), updatedAt: nowIso() });
+    await store.put('profile', { ...p, plan: { topicIds: ids, until: until || undefined, title: title.trim() || undefined, setAt: nowIso() }, planAt: nowIso(), ...doneWithoutPlan(p, ids, nowIso()), updatedAt: nowIso() });
     onSaved(`Plan „${title.trim() || 'Sprawdzian'}” gotowy: ${ids.length} ${plural(ids.length, ['temat', 'tematy', 'tematów'])}. ${p.name} zobaczy go na ekranie startowym.`);
   };
 

@@ -84,6 +84,7 @@ const PATHS: Record<string, JSX.Element> = {
     </>
   ),
   chevronLeft: <path d="m15 18-6-6 6-6" />,
+  chevronDown: <path d="m6 9 6 6 6-6" />,
   volume: (
     <>
       <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />

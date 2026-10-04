@@ -43,7 +43,7 @@ export type Run =
   | { kind: 'review' }
   | { kind: 'test'; topicIds: string[]; title: string; subjectId: string; count: number; quizId?: string; /** Kartkówka z konkretnych zadań (np. z błędów). */ items?: { topicId: string; exerciseId: string }[] }
   | { kind: 'diagnostic'; subjectId: string }
-  | { kind: 'gen'; genId: string; facts?: [number, number][]; /** Trening zaczęty z ekranu startowego (karta „Dzielenie pisemne”) — po nim wracamy na start, nie do przedmiotu. */ home?: boolean }
+  | { kind: 'gen'; genId: string; facts?: [number, number][]; /** Trening zaczęty z ekranu startowego (karta „Teraz”) — po nim wracamy na start, nie do przedmiotu. */ home?: boolean }
   | { kind: 'fix'; items: { topicId: string; exerciseId: string }[]; subjectId: string | null };
 
 /** Błyskawica: 60 sekund z generatora (matematyka) albo szybkie pytania z tematów przedmiotu. */
@@ -51,7 +51,7 @@ export type SprintGame = { kind: 'gen'; genId: string } | { kind: 'quiz'; subjec
 
 export type Screen =
   | { name: 'home' }
-  | { name: 'subject'; subjectId: string }
+  | { name: 'subject'; subjectId: string; /** Dział, który ma być otwarty na planszy (domyślnie dział polecanego tematu). */ unit?: string }
   | { name: 'practice'; run: Run; nonce: number }
   | { name: 'sprint'; game: SprintGame; nonce: number }
   | { name: 'pairs'; game: SprintGame; nonce: number }

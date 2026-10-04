@@ -18,6 +18,8 @@ function planStamp(d: AnyDoc): string {
   return typeof plan?.setAt === 'string' ? plan.setAt : '';
 }
 
+const doneStamp = (d: AnyDoc) => (typeof d.doneAt === 'string' ? d.doneAt : '');
+
 /** Porównanie treści JSON bez względu na kolejność kluczy (baza zwraca klucze w innej kolejności). */
 export function sameJson(a: unknown, b: unknown): boolean {
   if (a === b) return true;
@@ -46,7 +48,8 @@ export function sameJson(a: unknown, b: unknown): boolean {
  * - temat: wygrywa nowsza wersja (`updatedAt`);
  * - ustawienia: jak wyżej, ale urządzenie, które dopiero dołącza do konta (`joining`), przyjmuje ustawienia
  *   rodziny z chmury — PIN, nagrody i wspólny cel ustawione przez rodzica nie znikają;
- * - osoba: wygrywa nowsza wersja, ale plan od rodzica bierzemy z tej strony, gdzie zmieniono go później.
+ * - osoba: wygrywa nowsza wersja, ale plan od rodzica i listę „skończonych” tematów bierzemy z tej strony,
+ *   gdzie zmieniono je później.
  *
  * Zawsze: usunięcie osoby i „Zacznij od nowa” nie cofają się.
  */
@@ -74,6 +77,8 @@ export function mergeDoc(kind: DocKind, local: unknown, remote: unknown, opts: {
     out = localNewer ? l : r;
     const other = localNewer ? r : l;
     if (kind === 'profile' && planStamp(other) > planStamp(out)) out = { ...out, plan: other.plan ?? null, planAt: other.planAt };
+    // Lista „skończonych” tematów też należy do rodzica: bierzemy ją z tej strony, gdzie zmieniono ją później.
+    if (kind === 'profile' && doneStamp(other) > doneStamp(out)) out = { ...out, done: other.done, doneAt: other.doneAt };
   }
 
   if (kind === 'profile') {

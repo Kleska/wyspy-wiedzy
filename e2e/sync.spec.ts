@@ -263,7 +263,7 @@ test('dwa urządzenia: postępy córki widać u rodzica, plan od rodzica trafia 
   await phone.page.getByRole('group', { name: 'Angielski' }).getByRole('button', { name: 'Zaznacz wszystkie (9)' }).click();
   await phone.page.getByRole('button', { name: 'Zapisz plan (9)' }).click();
   await expect(phone.page.getByText('Zapisano plan: Zosia.')).toBeVisible();
-  const zosia = () => cloud.doc('profile', (d) => d.name === 'Zosia') as { theme?: string; plan?: { title?: string } | null } | undefined;
+  const zosia = () => cloud.doc('profile', (d) => d.name === 'Zosia') as { theme?: string; plan?: { title?: string } | null; done?: string[] } | undefined;
   await expect.poll(() => zosia()?.plan?.title).toBe('Sprawdzian: Unit 0');
 
   // ── Plan pojawia się na tablecie córki sam, na żywo ──
@@ -292,6 +292,7 @@ test('dwa urządzenia: postępy córki widać u rodzica, plan od rodzica trafia 
   // ── Rodzic zadaje córce kartkówkę: pojawia się na jej tablecie na żywo ──
   await phone.page.getByRole('button', { name: 'Zadaj kartkówkę' }).click();
   await phone.page.locator('.quiz-form').getByPlaceholder('np. Have got i can').fill('Miesiące na jutro');
+  await phone.page.locator('.quiz-form .unit-fold > summary', { hasText: 'Unit 0' }).click();
   await phone.page.locator('.quiz-form .check-row', { hasText: 'Miesiące' }).locator('input').check();
   await phone.page.locator('.quiz-form').getByRole('button', { name: /^Zadaj kartkówkę \(/ }).click();
   await expect(tablet.page.getByRole('region', { name: 'Kartkówki od rodzica' })).toContainText('Miesiące na jutro');
@@ -310,6 +311,31 @@ test('dwa urządzenia: postępy córki widać u rodzica, plan od rodzica trafia 
   await expect.poll(() => zosia()?.theme).toBe('zeszyt');
   expect(zosia()?.plan?.title).toBe('Sprawdzian w piątek');
   await expect(tablet.page.getByRole('heading', { name: 'Sprawdzian w piątek' })).toBeVisible();
+
+  // ── To samo z listą „skończonych”: rodzic przenosi dział matematyki, córka bez internetu zmienia wygląd. ──
+  // Tablet wychodzi z sieci, gdy jego poprzednia synchronizacja jeszcze pobiera dane (zapytanie jest ponawiane
+  // aż do powrotu sieci) — pobrana wtedy wersja z chmury nie może nadpisać świeżej, niewysłanej zmiany wyglądu.
+  cloud.offline.add(tablet.ctx);
+  await tablet.page.getByRole('button', { name: 'Wygląd' }).click();
+  await tablet.page.getByRole('dialog').getByRole('button', { name: /Kosmos/ }).click();
+  if (await tablet.page.getByRole('dialog').count()) await tablet.page.keyboard.press('Escape');
+  await phone.page.getByRole('button', { name: 'Tematy' }).click();
+  await phone.page.getByRole('group', { name: 'Dla kogo' }).getByRole('button', { name: /Zosia/ }).click();
+  const mat = phone.page.getByRole('region', { name: 'Matematyka' });
+  await mat.locator('.unit-fold > summary', { hasText: 'Liczby i działania' }).click();
+  await mat.getByRole('button', { name: 'Cały dział: skończony' }).click();
+  await expect.poll(() => zosia()?.done).toEqual(['b-m5-kolejnosc', 'b-m5-podzielnosc']);
+  await tablet.page.waitForTimeout(2500);
+  cloud.offline.delete(tablet.ctx);
+  await wake(tablet.page);
+  await expect.poll(() => zosia()?.theme).toBe('kosmos');
+  expect(zosia()?.done).toEqual(['b-m5-kolejnosc', 'b-m5-podzielnosc']);
+  expect(zosia()?.plan?.title).toBe('Sprawdzian w piątek');
+  // Na tablecie córki dział zszedł z planszy do „Skończonych”.
+  await tablet.page.locator('.subject-big', { hasText: 'Matematyka' }).click();
+  await expect(tablet.page.getByRole('group', { name: 'Dział' }).getByRole('button', { name: /^Liczby i działania/ })).toHaveCount(0);
+  await expect(tablet.page.locator('details.done-topics summary')).toContainText('Skończone · 2 tematy');
+  await tablet.page.getByRole('button', { name: 'Wróć', exact: true }).click();
 
   // ── Na tablecie działa już PIN rodziny (z telefonu), a zapomniany PIN ustawia się od nowa hasłem konta ──
   await tablet.page.getByRole('button', { name: 'Panel rodzica' }).click();

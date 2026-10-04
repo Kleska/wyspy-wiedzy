@@ -6,6 +6,7 @@ import { LESSONS } from './lessons';
 import { MATH_GRADE3, MATH_GRADE5 } from './math';
 import { READING_GRADE3, READING_GRADE5 } from './reading';
 import { POLISH_GRADE5 } from './polish5';
+import { UNITS } from './units';
 import { builtin } from './util';
 
 export const SUBJECTS: Subject[] = [
@@ -199,4 +200,5 @@ export const BUILTIN_TOPICS: Topic[] = [...GRADE3_BASE, DICTATION_GRADE3, READIN
   ...t,
   guide: GUIDES[t.id],
   ...(LESSONS[t.id] ? { lesson: LESSONS[t.id] } : {}),
+  ...(t.unit || !UNITS[t.id] ? {} : { unit: UNITS[t.id] }),
 }));

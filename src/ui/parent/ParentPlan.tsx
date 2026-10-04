@@ -1,6 +1,7 @@
 import { Fragment, useState } from 'react';
 import { nowIso, store } from '../../data/store';
-import { dateKey, GRADE_NAMES, planActive, planExamCount, planStatus } from '../../engine';
+import { addDays, dateKey, doneWithoutPlan, GRADE_NAMES, planActive, planExamCount, planExpired, planStatus, setTopicState } from '../../engine';
+import { plural } from '../../themes';
 import type { Profile } from '../../types';
 import { useProgress, useStoreVersion } from '../hooks';
 import { Icon } from '../icons';
@@ -8,6 +9,48 @@ import { examMistakeRows, ExamMistakes } from './ExamMistakes';
 import { ParentQuiz } from './ParentQuiz';
 import { PlanFromPhoto } from './PlanFromPhoto';
 import { TopicChecklist } from './TopicChecklist';
+
+/**
+ * Po terminie planu rodzic decyduje raz, co z jego tematami: do „skończonych” (schodzą z planszy, zostają w powtórkach),
+ * zostają na planszy albo plan trwa jeszcze tydzień. Każda z decyzji zamyka pytanie.
+ */
+export function ExpiredPlanNotice({ p }: { p: Profile }) {
+  const plan = p.plan;
+  if (!plan || !planExpired(plan, Date.now())) return null;
+  const topics = store.topicsFor(p.id).filter((t) => plan.topicIds.includes(t.id));
+  const put = (patch: Partial<Profile>) => {
+    const cur = store.get('profile', p.id);
+    if (cur) void store.put('profile', { ...cur, ...patch, updatedAt: nowIso() });
+  };
+  const at = nowIso();
+  return (
+    <section className="card col notice-card" aria-label={`Termin planu minął: ${p.name}`} style={{ gap: 10 }}>
+      <b className="row" style={{ gap: 8 }}>
+        <Icon name="calendar" size={20} /> Termin planu minął: {p.name}
+      </b>
+      <p>
+        {plan.title ? `„${plan.title}”` : 'Plan'}
+        {plan.until ? ` — termin ${new Date(plan.until + 'T12:00:00').toLocaleDateString('pl-PL')}` : ''}. W planie {plural(topics.length, ['był', 'były', 'było'])} {topics.length}{' '}
+        {plural(topics.length, ['temat', 'tematy', 'tematów'])}
+        {topics.length ? `: ${topics.map((t) => t.title).join(', ')}` : ''}. Co z nimi zrobić?
+      </p>
+      <div className="row" style={{ flexWrap: 'wrap' }}>
+        <button className="btn btn-primary" onClick={() => put(setTopicState(p, plan.topicIds, 'done', at))}>
+          <Icon name="check" size={18} /> Przenieś do skończonych
+        </button>
+        <button className="btn" onClick={() => put({ plan: null, planAt: at })}>
+          Zostaw na planszy
+        </button>
+        <button className="btn" onClick={() => put({ plan: { ...plan, until: dateKey(addDays(Date.now(), 7)) }, planAt: at })}>
+          Przedłuż o tydzień
+        </button>
+      </div>
+      <p className="muted" style={{ fontSize: 14 }}>
+        Skończone tematy schodzą z planszy dziecka, ale zostają w powtórkach, błędach i sprawdzianach. Możesz je przywrócić w zakładce Tematy.
+      </p>
+    </section>
+  );
+}
 
 export function ParentPlan({ pin }: { pin: string }) {
   useStoreVersion();
@@ -70,7 +113,8 @@ function PlanEditor({ p }: { p: Profile }) {
           setAt: nowIso(),
         }
       : null;
-    await store.put('profile', { ...p, plan, planAt: nowIso(), updatedAt: nowIso() });
+    // Temat z planu wraca na planszę, nawet jeśli wcześniej był „skończony”.
+    await store.put('profile', { ...p, plan, planAt: nowIso(), ...doneWithoutPlan(p, plan?.topicIds ?? [], nowIso()), updatedAt: nowIso() });
     setMsg(plan ? `Zapisano plan: ${p.name}.` : 'Plan usunięty.');
     setTimeout(() => setMsg(''), 2500);
   };
