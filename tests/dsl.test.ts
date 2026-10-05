@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { BUILTIN_TOPICS } from '../src/content/seed';
 import { evalSchool } from '../src/content/math';
-import { exerciseToDsl, isFillAnswerCorrect, LESSON_HELP, maskSpelling, parseDsl, parseLesson, parseLine, parseTapSentence, parseWords, wordHints } from '../src/dsl';
+import { exerciseToDsl, isFillAnswerCorrect, LESSON_HELP, lessonListParts, LIST_BUDGET, maskSpelling, parseDsl, parseLesson, parseLine, parseTapSentence, parseWords, wordHints } from '../src/dsl';
 import { LESSONS } from '../src/content/lessons';
 import { parsePastedAnswer } from '../src/ai';
 import { correctText, initialAnswer, isCorrect, isReady } from '../src/ui/exercises/logic';
@@ -354,6 +354,86 @@ describe('tryb nauki: lekcje', () => {
     const bad = parseLesson('bez nagłówka\n# Coś innego\n# Tak / nie tak\ntak: tylko dobra wersja\n# Sprawdź się\nzle: zadanie')!;
     expect(bad.errors.map((e) => e.line)).toEqual([1, 2, 4, 1]);
     expect(bad.pairs).toEqual([]);
+  });
+
+  it('karty z listami: „## Tytuł”, linie „Hasło: opis”, streszczenie numerowane i dzielone na karty', () => {
+    const l = parseLesson(
+      ['# Najważniejsze', 'Jedno zdanie.', '## Bohaterowie', 'Boka: przywódca. Rozważny: tak mówią koledzy.', 'Linia bez hasła', '## Streszczenie', 'Początek: coś się dzieje.', 'Koniec: wszystko się wyjaśnia.', '# Zapamiętaj', 'Skojarzenie.'].join('\n'),
+    )!;
+    expect(l.errors).toEqual([]);
+    expect(l.key).toEqual(['Jedno zdanie.']);
+    expect(l.trick).toEqual(['Skojarzenie.']);
+    expect(l.lists.map((x) => [x.title, x.numbered, x.items.length])).toEqual([
+      ['Bohaterowie', false, 2],
+      ['Streszczenie', true, 2],
+    ]);
+    // Hasło kończy się na pierwszym dwukropku; linia bez dwukropka to sam opis.
+    expect(l.lists[0].items).toEqual([
+      { head: 'Boka', text: 'przywódca. Rozważny: tak mówią koledzy.' },
+      { head: '', text: 'Linia bez hasła' },
+    ]);
+    // „Plac” w tytule to nie „plan wydarzeń” — lista bohaterów „Chłopcy z Placu Broni” nie jest numerowana.
+    expect(parseLesson('## Chłopcy z Placu Broni\nBoka: przywódca.')!.lists[0].numbered).toBe(false);
+    expect(parseLesson('## Plan wydarzeń\nPoczątek: start.')!.lists[0].numbered).toBe(true);
+    expect(parseLesson('##\nBoka: przywódca.')!.errors.map((e) => e.line)).toEqual([1, 2]);
+
+    // Długa lista dzieli się na karty; żaden punkt nie ginie i nie jest dzielony.
+    const long = { title: 'Streszczenie', numbered: true, items: Array.from({ length: 7 }, (_, i) => ({ head: `Punkt ${i + 1}`, text: 'x'.repeat(150) })) };
+    const parts = lessonListParts(long);
+    expect(parts.length).toBeGreaterThan(1);
+    expect(parts[0][0]).toBe(0);
+    expect(parts[parts.length - 1][1]).toBe(7);
+    for (let i = 1; i < parts.length; i++) expect(parts[i][0]).toBe(parts[i - 1][1]);
+    for (const [from, to] of parts) {
+      const size = long.items.slice(from, to).reduce((a, it) => a + it.head.length + it.text.length, 0);
+      expect(to - from === 1 || size <= LIST_BUDGET).toBe(true);
+    }
+    expect(lessonListParts({ title: 'Pusta', numbered: false, items: [] })).toEqual([]);
+  });
+
+  it('lektury: dział, lekcja z listami bez błędów, streszczenie w „wydarzeniach”, pytania kontrolne inne niż zadania', () => {
+    const books = BUILTIN_TOPICS.filter((t) => t.unit === 'Lektury');
+    expect(books.length).toBeGreaterThanOrEqual(3);
+    for (const t of books) {
+      expect(t.subject, t.title).toBe('pl');
+      expect(t.id, t.id).toMatch(/^b-p\d-lek-/);
+      const { exercises, errors } = parseDsl(t.dsl);
+      expect(errors, t.title).toEqual([]);
+      expect(exercises.length, t.title).toBeGreaterThanOrEqual(18);
+      for (const ex of exercises) expect(ex.explain, `${t.title}: zadanie bez wyjaśnienia — ${ex.prompt}`).toBeTruthy();
+      // Na kartkówce się pisze — w każdym temacie jest choć jedno zadanie z wpisywaniem.
+      expect(exercises.some((e) => e.type === 'fill'), t.title).toBe(true);
+      const l = parseLesson(t.lesson);
+      expect(l, t.title).not.toBeNull();
+      expect(l!.errors, t.title).toEqual([]);
+      expect(l!.key.length, t.title).toBeGreaterThanOrEqual(2);
+      expect(l!.key.length, t.title).toBeLessThanOrEqual(3);
+      expect(l!.lists.length, t.title).toBeGreaterThanOrEqual(1);
+      for (const list of l!.lists) for (const it of list.items) expect(it.head, `${t.title}: punkt bez hasła — ${it.text}`).toBeTruthy();
+      expect(l!.pairs.length, t.title).toBeGreaterThanOrEqual(3);
+      expect(l!.pairs.length, t.title).toBeLessThanOrEqual(4);
+      for (const p of l!.pairs) expect(p.why, `${t.title}: para bez „bo”`).toBeTruthy();
+      expect(l!.trick.length, t.title).toBeGreaterThanOrEqual(1);
+      expect(l!.checks.length, t.title).toBeGreaterThanOrEqual(2);
+      const body = (e: Exercise) => exerciseToDsl({ ...e, explain: undefined, hint: undefined });
+      const own = new Set(exercises.map(body));
+      for (const ex of l!.checks) {
+        expect(ex.explain, `${t.title}: pytanie kontrolne bez wyjaśnienia`).toBeTruthy();
+        expect(own.has(body(ex)), `${t.title}: pytanie kontrolne powtarza zadanie tematu`).toBe(false);
+      }
+    }
+    // Streszczenie (lista numerowana) jest w temacie o wydarzeniach — jego hasła to plan wydarzeń.
+    const events = books.filter((t) => t.id.endsWith('-wydarzenia'));
+    expect(events.length).toBeGreaterThanOrEqual(1);
+    for (const t of events) {
+      const story = parseLesson(t.lesson)!.lists.find((x) => x.numbered);
+      expect(story, t.title).toBeTruthy();
+      expect(story!.items.length, t.title).toBeGreaterThanOrEqual(8);
+      for (const it of story!.items) expect(it.head.length, `${t.title}: za długi tytuł punktu — ${it.head}`).toBeLessThanOrEqual(40);
+    }
+    // Zadania nie powtarzają się między tematami tej samej książki.
+    const all = books.flatMap((t) => parseDsl(t.dsl).exercises.map((e) => e.id));
+    expect(new Set(all).size).toBe(all.length);
   });
 
   it('każdy temat z angielskiego ma kompletną lekcję bez błędów', () => {

@@ -112,10 +112,22 @@ export interface LessonPair {
   why?: string;
 }
 
+/**
+ * Dodatkowa karta lekcji z listą („## Tytuł” i linie „Hasło: opis”) — np. bohaterowie lektury, pojęcia, wartości.
+ * Lista numerowana (`numbered`) to wydarzenia po kolei: streszczenie albo plan wydarzeń.
+ */
+export interface LessonList {
+  title: string;
+  numbered: boolean;
+  items: { head: string; text: string }[];
+}
+
 /** Lekcja po sparsowaniu (tryb nauki). */
 export interface Lesson {
   /** Najważniejsze — 2–4 proste zdania. */
   key: string[];
+  /** Karty z listami, w kolejności zapisu (pokazywane zaraz po „Najważniejsze”). */
+  lists: LessonList[];
   /** Krok po kroku; linie „Przykład: …” pokazujemy jako przykład. */
   steps: string[];
   pairs: LessonPair[];

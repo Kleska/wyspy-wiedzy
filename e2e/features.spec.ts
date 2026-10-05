@@ -1250,3 +1250,86 @@ test('panel rodzica na telefonie: „Menu” pokazuje wszystkie sekcje naraz, pa
   await menu.getByRole('button', { name: 'Wyjdź z panelu' }).click();
   await expect(page.getByText('Cześć, Kuba!')).toBeVisible();
 });
+
+test('lektury: dział w języku polskim, lekcja ze streszczeniem mieści się na telefonie, plan wydarzeń na stronie powtórki', async ({ page }) => {
+  const phone = test.info().project.name === 'phone';
+  if (phone) await page.setViewportSize({ width: 360, height: 740 });
+  await onboard(page, 'Zosia', 5);
+  await page.locator('.subject-big', { hasText: 'Język polski' }).click();
+  await openUnit(page, 'Lektury');
+  const parts = ['bohaterowie', 'wydarzenia', 'omówienie'];
+  const topicButton = (part: string) => page.getByRole('button', { name: new RegExp(`Chłopcy z Placu Broni: ${part}`) }).first();
+  for (const part of parts) await expect(topicButton(part)).toBeVisible();
+  await snap(page, 'f80-lektury-board', true);
+
+  // Lekcje wszystkich trzech tematów: każda karta (także kolejne części streszczenia) mieści się na ekranie bez przewijania.
+  const title = page.locator('.pr-prompt h1');
+  const partLabel = page.getByText(/^Część \d+ z \d+$/);
+  const overflow = () => page.evaluate(() => document.documentElement.scrollHeight - window.innerHeight);
+  const seen: Record<string, string[]> = {};
+  for (const part of parts) {
+    await topicButton(part).click();
+    await page.getByRole('dialog').getByRole('button', { name: /Nauka: poznaj temat krok po kroku/ }).click();
+    seen[part] = [];
+    for (let i = 0; i < 30; i++) {
+      if (await page.getByText(/^Sprawdź się: pytanie/).count()) break;
+      const name = (await title.innerText()).trim();
+      const label = (await partLabel.count()) ? (await partLabel.innerText()).trim() : '';
+      seen[part].push(label ? `${name} · ${label}` : name);
+      expect(await overflow(), `${part}: karta „${name}” ${label} nie mieści się na ekranie`).toBeLessThanOrEqual(1);
+      if (part === 'bohaterowie' && name === 'Chłopcy z Placu Broni' && !label.startsWith('Część 2')) await snap(page, 'f81-lektura-people');
+      if (name === 'Streszczenie' && label.startsWith('Część 1')) {
+        // Punkty streszczenia są numerowane, a tytuł punktu wyróżniony.
+        await expect(page.locator('.lesson-deflist.numbered li').first().locator('b')).toHaveText('Einstand');
+        await snap(page, 'f82-lektura-story');
+      }
+      if (name === 'Streszczenie' && label.startsWith('Część 2')) await snap(page, 'f82b-lektura-story-2');
+      if (part === 'omówienie' && name === 'Czego uczy ta książka' && !label.startsWith('Część 2')) await snap(page, 'f83-lektura-values');
+      if (name === 'Tak — nie tak' && label.startsWith('Część 1') && part === 'wydarzenia') await snap(page, 'f83b-lektura-pairs');
+      await page.getByRole('button', { name: 'Dalej' }).click();
+    }
+    for (let i = 0; i < 5; i++) {
+      await answerAny(page);
+      await page.getByRole('button', { name: 'Sprawdź' }).click();
+      const last = await page.getByRole('button', { name: 'Kończę lekcję' }).count();
+      await page.getByRole('button', { name: /^(Dalej|Kończę lekcję)$/ }).click();
+      if (last) break;
+    }
+    await expect(page.getByRole('heading', { name: 'Lekcja przeczytana!' })).toBeVisible();
+    await page.getByRole('button', { name: 'Wróć', exact: true }).click();
+    await openUnit(page, 'Lektury');
+  }
+  for (const part of parts) expect(seen[part][0]).toBe('Najważniejsze');
+  expect(seen.bohaterowie.some((c) => c.startsWith('Chłopcy z Placu Broni'))).toBe(true);
+  expect(seen.bohaterowie.some((c) => c.startsWith('Czerwone Koszule i dorośli'))).toBe(true);
+  expect(seen.wydarzenia.filter((c) => c.startsWith('Streszczenie')).length).toBeGreaterThanOrEqual(4);
+  expect(seen.omówienie.some((c) => c.startsWith('Miejsca i pojęcia'))).toBe(true);
+  expect(seen.omówienie.some((c) => c.startsWith('Czego uczy ta książka'))).toBe(true);
+  for (const part of parts) expect(seen[part].some((c) => c.startsWith('Tak — nie tak'))).toBe(true);
+
+  // Strona powtórki działu: plan wydarzeń (same tytuły punktów streszczenia) i bohaterowie.
+  await page.getByRole('button', { name: /^Powtórka: Lektury/ }).click();
+  await expect(page.getByRole('heading', { name: 'Plan wydarzeń' })).toBeVisible();
+  const plan = page.locator('.sheet-list', { has: page.getByRole('heading', { name: 'Plan wydarzeń' }) }).locator('li');
+  await expect(plan).toHaveCount(12);
+  await expect(plan.first()).toHaveText('Einstand');
+  await expect(plan.last()).toHaveText('Koniec placu');
+  await expect(page.getByRole('heading', { name: 'Czerwone Koszule i dorośli' })).toBeVisible();
+  await snap(page, 'f84-lektura-review', true);
+  await page.getByRole('button', { name: 'Wróć', exact: true }).click();
+
+  // Ćwiczenie: pytania jak na kartkówce, z wyjaśnieniem po odpowiedzi.
+  await openUnit(page, 'Lektury');
+  await topicButton('wydarzenia').click();
+  await page.getByRole('dialog').getByRole('button', { name: /^Graj!/ }).click();
+  await expect(page.locator('.pr-topic')).toContainText('Chłopcy z Placu Broni: wydarzenia');
+  await answerAny(page);
+  await snap(page, 'f85-lektura-question');
+  await page.getByRole('button', { name: 'Sprawdź' }).click();
+  await expect(page.locator('.pr-foot.good, .pr-foot.bad')).toBeVisible();
+  await expect(page.locator('.pr-foot .fb-text').first()).not.toBeEmpty();
+  // Lektury nie wchodzą do testu na start: dla klasy 5 z polskiego to nadal 8 tematów po 3 pytania.
+  await page.getByRole('button', { name: 'Zakończ ćwiczenie' }).click();
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Skończ' }).click();
+  await expect(page.getByRole('button', { name: /Test na start/ })).toContainText('24 pytania');
+});

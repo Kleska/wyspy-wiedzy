@@ -3,7 +3,7 @@ import { BUILTIN_TOPICS } from '../src/content/seed';
 import { DEFAULT_SETTINGS } from '../src/data/store';
 import { parseDsl } from '../src/dsl';
 import { buildReviewQueue, buildTopicQueue, computeProgress, itemKey, levelFromXp, suggestTopic } from '../src/engine';
-import { addReport, decideReports, isGeneratedTopic, isReported, openReports, withoutDisabled } from '../src/engine';
+import { addReport, BOOKS_UNIT, buildDiagnosticQueue, buildExamQueue, decideReports, isGeneratedTopic, isReported, openReports, untouchedTopics, withoutDisabled } from '../src/engine';
 import type { Attempt, ExerciseReport, ParsedTopic, Session } from '../src/types';
 
 const topics: ParsedTopic[] = BUILTIN_TOPICS.map((t) => ({ ...t, ...parseDsl(t.dsl), builtin: true }));
@@ -362,6 +362,7 @@ describe('rozdziały i kartkówki od rodzica', () => {
       ['Gramatyka', 4],
       ['Ortografia', 3],
       ['Czytanie', 1],
+      ['Lektury', 3],
     ]);
   });
 });
@@ -486,6 +487,22 @@ describe('stan tematu u dziecka: teraz / biblioteka / skończony', () => {
     expect(trainersFor('b-m5-dzp-bez', 5).filter((g) => g.aux).map((g) => g.id)).toEqual(['mnp']);
     expect(trainersFor('b-m5-dzp-bez', 3)).toEqual([]);
     expect(trainersFor('b-rzeczownik', 3)).toEqual([]);
+  });
+});
+
+describe('lektury', () => {
+  it('nie trafiają do testu na start, ale są na planszy, w powtórce i w sprawdzianach', () => {
+    const pl5 = topics.filter((t) => t.subject === 'pl' && t.grades?.includes(5));
+    const books = pl5.filter((t) => t.unit === BOOKS_UNIT);
+    expect(books.length).toBeGreaterThanOrEqual(3);
+    const fresh = progress([], [], '2026-10-05T12:00:00');
+    // Nawet gdy wszystkie inne tematy są już ruszone, test na start nie sięga po lektury.
+    expect(untouchedTopics(pl5, fresh).some((t) => t.unit === BOOKS_UNIT)).toBe(false);
+    expect(buildDiagnosticQueue(books, fresh)).toEqual([]);
+    expect(buildDiagnosticQueue(pl5, fresh, 3, 99).some((q) => books.some((b) => b.id === q.topicId))).toBe(false);
+    // Zwykłe ćwiczenie tematu i sprawdzian z lektury działają jak w każdym innym temacie.
+    expect(buildTopicQueue(books[0], fresh, 10, Date.parse('2026-10-05T12:00:00')).length).toBe(10);
+    expect(buildExamQueue(books, 15).length).toBe(15);
   });
 });
 

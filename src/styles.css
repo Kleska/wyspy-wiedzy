@@ -1885,6 +1885,21 @@ p {
   box-shadow: 0 var(--btn-depth) 0 var(--line);
 }
 
+/* „Ułóż w kolejności” (po lewej same numery): wąska kolumna numerów, a opisy wydarzeń dostają resztę szerokości. */
+.match.order {
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: 12px 14px;
+}
+
+.match.order .match-col:last-child .match-item {
+  font-family: var(--font-body);
+  font-weight: 800;
+  font-size: 17px;
+  line-height: 1.3;
+  text-align: left;
+  padding: 8px 14px;
+}
+
 .match-item.active {
   border-color: var(--focus);
   background: var(--accent-soft);
@@ -5645,6 +5660,82 @@ details[open] > summary .fold-chev {
   justify-content: center;
   font-family: var(--font-display);
   font-size: 18px;
+}
+
+/* Karta-lista („## Tytuł”): bohaterowie, pojęcia, wartości; numerowana = streszczenie. */
+.lesson-deflist {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.lesson-deflist li {
+  background: var(--surface);
+  border: 2px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  font-size: clamp(16px, 2.1vw, 19px);
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.lesson-deflist li b {
+  display: block;
+  font-family: var(--font-display);
+  font-weight: var(--display-weight);
+  font-size: 1.08em;
+  line-height: 1.25;
+  color: var(--secondary);
+}
+
+.lesson-deflist.numbered li {
+  counter-increment: point;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.lesson-deflist.numbered li::before {
+  content: counter(point);
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  background: var(--secondary);
+  color: var(--secondary-ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 16px;
+}
+
+/* Strona powtórki: plan wydarzeń (same tytuły punktów) jest zwarty. */
+.lesson-deflist.heads {
+  gap: 6px;
+}
+
+.lesson-deflist.heads li {
+  padding: 6px 12px;
+  align-items: center;
+}
+
+.lesson-deflist.heads li b {
+  font-family: var(--font-body);
+  font-weight: 800;
+  font-size: 1em;
+  color: inherit;
+}
+
+.sheet-list h3 {
+  font-size: 17px;
+}
+
+[data-theme='pixel'] .lesson-deflist li {
+  border-radius: 0;
 }
 
 .lesson-example {

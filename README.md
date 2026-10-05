@@ -64,6 +64,10 @@ można ją zainstalować na ekranie głównym i używać bez internetu. Postępy
   poprawną i wyjaśnienie), i może do nich wrócić z karty kartkówki („Zobacz błędy”). Rodzic widzi te same pytania
   w „Plan i sprawdziany” i jednym przyciskiem zadaje kartkówkę dokładnie z nich — albo ze wszystkich niepoprawionych
   błędów z ostatnich 30 dni („Kartkówka z błędów”).
+- Lektury (dział „Lektury” w języku polskim): każda książka to trzy tematy — bohaterowie, wydarzenia i omówienie.
+  W trybie nauki są karty „kto jest kim”, streszczenie w punktach i „czego uczy ta książka”, a na stronie powtórki
+  plan wydarzeń. Pytania są takie jak na kartkówce ze znajomości lektury (kto, gdzie, kiedy, co zrobił, co było
+  wcześniej — łącznie z układaniem wydarzeń w kolejności). Na razie: „Chłopcy z Placu Broni” (klasa 5).
 - „Zgłoś błąd w zadaniu”: po złej odpowiedzi (i przy każdym błędzie na liście po sprawdzianie) dziecko jednym
   dotknięciem zgłasza, że jego odpowiedź też jest dobra, że odpowiedź z aplikacji jest zła albo że pytanie jest
   niejasne. Zgłoszenia stoją na górze panelu rodzica: „Wyłącz zadanie” (znika u wszystkich dzieci; włączysz je z

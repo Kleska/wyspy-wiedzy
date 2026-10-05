@@ -1,5 +1,5 @@
 import { lessonDivision } from './longdiv';
-import type { DslError, Exercise, ExerciseType, Lang, Lesson, LessonPair, Passage } from './types';
+import type { DslError, Exercise, ExerciseType, Lang, Lesson, LessonList, LessonPair, Passage } from './types';
 
 /*
  * Prosty format tekstowy zadań — jedno zadanie w jednej linii.
@@ -329,20 +329,43 @@ function lessonSection(header: string): LessonSection | null {
  *   # Zapamiętaj           — skojarzenie, rymowanka, prosty test
  *   # Sprawdź się          — 2–3 zadania w zwykłym formacie (z wyjaśnieniem po „!!”)
  *
+ * Dodatkowe karty z listami (np. w lekturach) zaczynają się od „##” i własnego tytułu:
+ *
+ *   ## Bohaterowie         — linie „Hasło: opis” (hasło jest wyróżnione)
+ *   ## Streszczenie        — to samo, ale punkty są numerowane (tytuł ze słowami „streszczenie”, „plan wydarzeń” albo „po kolei”)
+ *
  * Zwraca `null`, gdy lekcji nie ma.
  */
 export function parseLesson(text: string | undefined): Lesson | null {
   if (!text?.trim()) return null;
-  const out: Lesson = { key: [], steps: [], pairs: [], trick: [], checks: [], errors: [] };
+  const out: Lesson = { key: [], lists: [], steps: [], pairs: [], trick: [], checks: [], errors: [] };
   const checkLines: string[] = [];
   let section: LessonSection | null = null;
+  // Otwarta karta-lista („## Tytuł”) — kolejne linie trafiają do niej aż do następnego nagłówka.
+  let list: LessonList | null = null;
   text.split(/\r?\n/).forEach((raw, i) => {
     const line = raw.trim();
     if (!line) return;
     const fail = (message: string) => out.errors.push({ line: i + 1, text: line, message });
+    if (line.startsWith('##')) {
+      const title = line.replace(/^#+\s*/, '').trim();
+      section = null;
+      list = null;
+      if (!title) return void fail('Po „##” podaj tytuł karty, np. „## Bohaterowie”.');
+      list = { title, numbered: /streszczeni|plan wydarze|po kolei/i.test(title), items: [] };
+      out.lists.push(list);
+      return;
+    }
     if (line.startsWith('#')) {
+      list = null;
       section = lessonSection(line.slice(1));
-      if (!section) fail('Nieznana część lekcji. Użyj: # Najważniejsze, # Krok po kroku, # Tak / nie tak, # Zapamiętaj, # Sprawdź się.');
+      if (!section) fail('Nieznana część lekcji. Użyj: # Najważniejsze, # Krok po kroku, # Tak / nie tak, # Zapamiętaj, # Sprawdź się (własna karta z listą: ## Tytuł).');
+      return;
+    }
+    if (list) {
+      // „Hasło: opis” — dzielimy na pierwszym dwukropku ze spacją; linia bez hasła to sam opis.
+      const at = line.indexOf(': ');
+      list.items.push(at > 0 ? { head: line.slice(0, at).trim(), text: line.slice(at + 2).trim() } : { head: '', text: line });
       return;
     }
     if (!section) return void fail('Lekcja musi zaczynać się od nagłówka, np. „# Najważniejsze”.');
@@ -366,6 +389,31 @@ export function parseLesson(text: string | undefined): Lesson | null {
     out.checks = exercises;
     out.errors.push(...errors);
   }
+  return out;
+}
+
+/**
+ * Ile tekstu z listy („## Tytuł”) mieści się na jednej karcie telefonu 360×740. Każdy punkt kosztuje swoje znaki
+ * plus stałą opłatę za ramkę i odstęp — krótkie hasła idą po kilka na kartę, długie punkty streszczenia po dwa.
+ */
+export const LIST_BUDGET = 540;
+const LIST_ITEM_COST = 70;
+
+/** Dzieli listę lekcji na karty: [od, do) kolejnych punktów. Pojedynczy punkt nigdy nie jest dzielony. */
+export function lessonListParts(list: LessonList): [number, number][] {
+  const out: [number, number][] = [];
+  let from = 0;
+  let used = 0;
+  list.items.forEach((it, i) => {
+    const cost = it.head.length + it.text.length + LIST_ITEM_COST;
+    if (i > from && used + cost > LIST_BUDGET) {
+      out.push([from, i]);
+      from = i;
+      used = 0;
+    }
+    used += cost;
+  });
+  if (list.items.length > from) out.push([from, list.items.length]);
   return out;
 }
 

@@ -465,8 +465,9 @@ export function Practice({ run }: { run: Run }) {
         )}
         <div>
           <div className="pr-topic">
-            {exam ? `${title} · ` : ''}
-            {itemTitle}
+            {/* Sprawdzian z jednego tematu ma już ten temat w tytule — nie powtarzamy go (długie tytuły zabierały trzy linie). */}
+            {exam && !title.includes(itemTitle) ? `${title} · ` : ''}
+            {exam && title.includes(itemTitle) ? title : itemTitle}
             {item.retry ? ' · druga szansa' : ''}
           </div>
           <div className="pr-prompt">

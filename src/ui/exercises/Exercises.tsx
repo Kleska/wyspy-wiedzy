@@ -614,9 +614,11 @@ function Match({ ex, answer, setAnswer, reveal, seed }: Props<MatchExercise, num
     else setActiveR(activeR === r ? null : r);
   };
 
+  // „Ułóż w kolejności”: po lewej same numery (1, 2, 3…), po prawej dłuższe opisy — numery dostają wąską kolumnę.
+  const ordering = ex.pairs.every(([l]) => /^\d{1,2}$/.test(l));
   return (
     <>
-      <div className="match">
+      <div className={`match ${ordering ? 'order' : ''}`}>
         <div className="match-col">
           {ex.pairs.map(([l], i) => {
             const paired = answer[i] >= 0;

@@ -1,12 +1,12 @@
 import { useMemo, useRef, useState } from 'react';
 import { subjectLang } from '../content/seed';
 import { nowIso, store, uid } from '../data/store';
-import { parseLesson } from '../dsl';
+import { lessonListParts, parseLesson } from '../dsl';
 import { LESSON_COINS } from '../engine';
 import { divisionLayout, lessonDivision } from '../longdiv';
 import { playSound } from '../speech';
 import { coinText } from '../themes';
-import type { Exercise, Lesson, LessonPair, Session } from '../types';
+import type { Exercise, Lesson, LessonList, LessonPair, Session } from '../types';
 import { PassageCard } from './bits';
 import { ExerciseView } from './exercises/Exercises';
 import { correctText, initialAnswer, isCorrect, isReady, type Answer } from './exercises/logic';
@@ -18,6 +18,7 @@ import { TopBar } from './TopBar';
 /** Każda karta ma zmieścić się na jednym ekranie telefonu: przykład jest osobno, a pary idą po dwie. */
 type Card =
   | { kind: 'key' }
+  | { kind: 'list'; list: LessonList; from: number; to: number; part: number; parts: number }
   | { kind: 'steps' }
   | { kind: 'example' }
   | { kind: 'division'; a: number; b: number; n: number; of: number }
@@ -27,7 +28,7 @@ type Card =
 
 const PAIRS_PER_CARD = 2;
 
-const CARD_TITLE: Record<Exclude<Card['kind'], 'check'>, string> = {
+const CARD_TITLE: Record<Exclude<Card['kind'], 'check' | 'list'>, string> = {
   key: 'Najważniejsze',
   steps: 'Krok po kroku',
   example: 'Przykład',
@@ -59,6 +60,23 @@ export function PairList({ pairs, compact }: { pairs: LessonPair[]; compact?: bo
         </div>
       ))}
     </div>
+  );
+}
+
+/** Karta-lista: hasło i opis; w streszczeniu punkty są numerowane (numeracja ciągnie się przez kolejne karty). */
+export function LessonListView({ list, from = 0, to = list.items.length, headsOnly }: { list: LessonList; from?: number; to?: number; headsOnly?: boolean }) {
+  const Tag = list.numbered ? 'ol' : 'ul';
+  return (
+    <Tag className={`lesson-deflist ${list.numbered ? 'numbered' : ''} ${headsOnly ? 'heads' : ''}`} style={list.numbered ? { counterReset: `point ${from}` } : undefined}>
+      {list.items.slice(from, to).map((it, i) => (
+        <li key={i}>
+          <div>
+            {it.head && <b>{it.head}</b>}
+            {(!headsOnly || !it.head) && <span>{it.text}</span>}
+          </div>
+        </li>
+      ))}
+    </Tag>
   );
 }
 
@@ -129,6 +147,10 @@ export function LessonTrick({ lines }: { lines: string[] }) {
 function cardsOf(lesson: Lesson): Card[] {
   const out: Card[] = [];
   if (lesson.key.length) out.push({ kind: 'key' });
+  for (const list of lesson.lists) {
+    const parts = lessonListParts(list);
+    parts.forEach(([from, to], n) => out.push({ kind: 'list', list, from, to, part: n + 1, parts: parts.length }));
+  }
   if (lesson.steps.some(isPlainStep)) out.push({ kind: 'steps' });
   if (lesson.steps.some((l) => EXAMPLE.test(l))) out.push({ kind: 'example' });
   const divs = lesson.steps.map(lessonDivision).filter((d): d is [number, number] => Array.isArray(d));
@@ -265,7 +287,7 @@ export function Learn({ topicId, from }: { topicId: string; from?: 'home' | 'sub
         <div>
           <div className="pr-topic">Nauka · {topic.title}</div>
           <div className="pr-prompt">
-            <h1>{isCheck ? card.ex.prompt : CARD_TITLE[card.kind]}</h1>
+            <h1>{isCheck ? card.ex.prompt : card.kind === 'list' ? card.list.title : CARD_TITLE[card.kind]}</h1>
           </div>
           {isCheck && (
             <p className="muted" style={{ fontWeight: 700, marginTop: 4 }}>
@@ -278,7 +300,7 @@ export function Learn({ topicId, from }: { topicId: string; from?: 'home' | 'sub
               {card.of > 1 ? ` · przykład ${card.n} z ${card.of}` : ''}
             </p>
           )}
-          {card.kind === 'pairs' && card.parts > 1 && (
+          {(card.kind === 'pairs' || card.kind === 'list') && card.parts > 1 && (
             <p className="muted" style={{ fontWeight: 700, marginTop: 4 }}>
               Część {card.part} z {card.parts}
             </p>
@@ -286,6 +308,7 @@ export function Learn({ topicId, from }: { topicId: string; from?: 'home' | 'sub
         </div>
 
         {card.kind === 'key' && <LessonKey lines={lesson.key} />}
+        {card.kind === 'list' && <LessonListView list={card.list} from={card.from} to={card.to} />}
         {card.kind === 'steps' && <Steps lines={lesson.steps} />}
         {card.kind === 'example' && <Example lines={lesson.steps} />}
         {card.kind === 'division' && <DivisionSteps a={card.a} b={card.b} frame={frame} />}
@@ -387,6 +410,13 @@ export function ReviewSheet({ topicIds, title, from, subjectId }: { topicIds: st
               </button>
             </div>
             <LessonKey lines={lesson.key} />
+            {/* Streszczenie na stronie powtórki to sam plan wydarzeń (tytuły punktów); pozostałe listy — w całości. */}
+            {lesson.lists.map((list, i) => (
+              <div key={i} className="col sheet-list" style={{ gap: 8 }}>
+                <h3>{list.numbered ? 'Plan wydarzeń' : list.title}</h3>
+                <LessonListView list={list} headsOnly={list.numbered} />
+              </div>
+            ))}
             {lesson.pairs.length > 0 && <PairList pairs={lesson.pairs} compact />}
             {lesson.trick.length > 0 && <LessonTrick lines={lesson.trick} />}
           </section>

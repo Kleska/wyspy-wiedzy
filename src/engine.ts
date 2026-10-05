@@ -824,6 +824,12 @@ export function buildExamQueue(topics: ParsedTopic[], n: number, rnd: () => numb
   return shuffle(out, rnd);
 }
 
+/**
+ * Dział z lekturami. Książki zadaje nauczyciel w konkretnym terminie, więc nie pytamy o nie w teście na start —
+ * dziecko, które lektury jeszcze nie czytało, dostałoby same pytania bez szans na odpowiedź.
+ */
+export const BOOKS_UNIT = 'Lektury';
+
 /** Do testu na start najlepiej nadają się zadania z jedną odpowiedzią. */
 const QUICK_TYPES: ExerciseType[] = ['choice', 'fill', 'tap', 'dictation'];
 
@@ -832,7 +838,7 @@ const QUICK_TYPES: ExerciseType[] = ['choice', 'fill', 'tap', 'dictation'];
  * diagnostyczny w IXL). Dobrze rozwiązane tematy dostają poziom „Biegły” bez ćwiczenia.
  */
 export function buildDiagnosticQueue(topics: ParsedTopic[], progress: Progress, perTopic = 3, maxTopics = 8, rnd: () => number = Math.random): QueueItem[] {
-  const usable = topics.filter((t) => t.exercises.length >= perTopic);
+  const usable = topics.filter((t) => t.exercises.length >= perTopic && t.unit !== BOOKS_UNIT);
   const untouched = usable.filter((t) => (progress.topics.get(t.id)?.level ?? 0) === 0);
   const chosen = (untouched.length >= 2 ? untouched : usable).slice(0, maxTopics);
   const out: QueueItem[] = [];
@@ -845,8 +851,9 @@ export function buildDiagnosticQueue(topics: ParsedTopic[], progress: Progress, 
   return out;
 }
 
+/** Tematy jeszcze nieruszone, które mogą trafić do testu na start (bez lektur). */
 export function untouchedTopics(topics: ParsedTopic[], progress: Progress): ParsedTopic[] {
-  return topics.filter((t) => (progress.topics.get(t.id)?.level ?? 0) === 0);
+  return topics.filter((t) => t.unit !== BOOKS_UNIT && (progress.topics.get(t.id)?.level ?? 0) === 0);
 }
 
 export function reviewCount(topics: ParsedTopic[], progress: Progress): number {

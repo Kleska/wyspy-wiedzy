@@ -2,6 +2,7 @@ import type { Lang, Subject, Topic } from '../types';
 import { DICTATION_GRADE3, DICTATION_GRADE5 } from './dictation';
 import { ENGLISH_GRADE5 } from './english5';
 import { GUIDES } from './guides';
+import { LEKTURY_GRADE5 } from './lektury';
 import { LESSONS } from './lessons';
 import { MATH_GRADE3, MATH_GRADE5 } from './math';
 import { READING_GRADE3, READING_GRADE5 } from './reading';
@@ -196,9 +197,21 @@ wpisz: W pudełku jest 6 rzędów po 7 cukierków. Ile cukierków jest w pudełk
   ),
 ];
 
-export const BUILTIN_TOPICS: Topic[] = [...GRADE3_BASE, DICTATION_GRADE3, READING_GRADE3, ...MATH_GRADE3, ...POLISH_GRADE5, DICTATION_GRADE5, READING_GRADE5, ...MATH_GRADE5, ...ENGLISH_GRADE5].map((t) => ({
+// Lektury mają ściągę i lekcję przy temacie (w `lektury.ts`); pozostałe tematy — w `guides.ts` i `lessons.ts`.
+export const BUILTIN_TOPICS: Topic[] = [
+  ...GRADE3_BASE,
+  DICTATION_GRADE3,
+  READING_GRADE3,
+  ...MATH_GRADE3,
+  ...POLISH_GRADE5,
+  DICTATION_GRADE5,
+  READING_GRADE5,
+  ...LEKTURY_GRADE5,
+  ...MATH_GRADE5,
+  ...ENGLISH_GRADE5,
+].map((t) => ({
   ...t,
-  guide: GUIDES[t.id],
+  guide: GUIDES[t.id] ?? t.guide,
   ...(LESSONS[t.id] ? { lesson: LESSONS[t.id] } : {}),
   ...(t.unit || !UNITS[t.id] ? {} : { unit: UNITS[t.id] }),
 }));
