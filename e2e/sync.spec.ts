@@ -337,6 +337,58 @@ test('dwa urządzenia: postępy córki widać u rodzica, plan od rodzica trafia 
   await expect(tablet.page.locator('details.done-topics summary')).toContainText('Skończone · 2 tematy');
   await tablet.page.getByRole('button', { name: 'Wróć', exact: true }).click();
 
+  // ── Zgłoszenie błędu w zadaniu: córka zgłasza na tablecie, rodzic od razu widzi je na górze panelu. ──
+  type Rep = { id: string; exerciseId: string; decision?: string };
+  const reports = () => ((zosia() as { reports?: Rep[] } | undefined)?.reports ?? []) as Rep[];
+  /** Odpowiada „jakkolwiek” aż do złej odpowiedzi i zgłasza to zadanie. */
+  const reportNextMistake = async () => {
+    for (let i = 0; i < 14; i++) {
+      await expect(tablet.page.getByRole('button', { name: 'Sprawdź' })).toBeVisible();
+      await answerAny(tablet.page);
+      await tablet.page.getByRole('button', { name: 'Sprawdź' }).click();
+      await expect(tablet.page.locator('.pr-foot.good, .pr-foot.bad')).toBeVisible();
+      if ((await tablet.page.locator('.pr-foot.bad').count()) && (await tablet.page.getByRole('button', { name: 'Zgłoś błąd w zadaniu' }).count())) break;
+      await tablet.page.waitForTimeout(750);
+      await tablet.page.getByRole('button', { name: /^(Dalej|Zakończ)$/ }).click();
+    }
+    await tablet.page.getByRole('button', { name: 'Zgłoś błąd w zadaniu' }).click();
+    await tablet.page.getByRole('dialog', { name: 'Co jest nie tak z tym zadaniem?' }).getByRole('button', { name: 'Poprawna odpowiedź jest zła' }).click();
+    await expect(tablet.page.locator('.pr-foot .report-sent')).toBeVisible();
+  };
+  await tablet.page.getByRole('button', { name: /Ćwicz: / }).click();
+  await reportNextMistake();
+  await expect.poll(() => reports().length).toBe(1);
+  const notice = phone.page.getByRole('region', { name: 'Zgłoszone zadania' });
+  await expect(notice).toContainText('Zgłoszone zadania (1)');
+  await expect(notice).toContainText('Zosia');
+  await snap(phone.page, 's02b-report-live');
+
+  // Tablet bez internetu: córka zgłasza drugie zadanie, a rodzic w tym czasie wyłącza pierwsze. Obie zmiany dotyczą
+  // tej samej listy w profilu córki — po powrocie sieci zostaje i decyzja rodzica, i nowe zgłoszenie.
+  cloud.offline.add(tablet.ctx);
+  await tablet.page.waitForTimeout(750);
+  await tablet.page.getByRole('button', { name: /^(Dalej|Zakończ)$/ }).click();
+  await reportNextMistake();
+  await notice.getByRole('button', { name: 'Wyłącz zadanie' }).click();
+  await expect(notice).toHaveCount(0);
+  await expect.poll(() => reports().map((r) => r.decision)).toEqual(['off']);
+  const firstReported = reports()[0].exerciseId;
+  await expect.poll(() => cloud.doc('settings', () => true)?.disabledExercises).toEqual([firstReported]);
+  await tablet.page.waitForTimeout(2500); // nieudana próba wysłania drugiego zgłoszenia
+  cloud.offline.delete(tablet.ctx);
+  await wake(tablet.page);
+  await expect.poll(() => reports().map((r) => r.decision ?? 'czeka')).toEqual(['off', 'czeka']);
+  expect(reports()[1].exerciseId).not.toBe(firstReported);
+  await expect(notice).toContainText('Zgłoszone zadania (1)');
+  // Reszta profilu córki jest nietknięta.
+  expect(zosia()?.theme).toBe('kosmos');
+  expect(zosia()?.plan?.title).toBe('Sprawdzian w piątek');
+  await tablet.page.waitForTimeout(750);
+  await tablet.page.getByRole('button', { name: 'Zakończ ćwiczenie' }).click();
+  await tablet.page.getByRole('alertdialog').getByRole('button', { name: 'Skończ' }).click();
+  await tablet.page.getByRole('button', { name: 'Wróć', exact: true }).click();
+  await expect(tablet.page.getByText('Cześć, Zosia!')).toBeVisible();
+
   // ── Na tablecie działa już PIN rodziny (z telefonu), a zapomniany PIN ustawia się od nowa hasłem konta ──
   await tablet.page.getByRole('button', { name: 'Panel rodzica' }).click();
   await typePin(tablet.page, '111111');

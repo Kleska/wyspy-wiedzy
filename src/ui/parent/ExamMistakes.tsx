@@ -32,7 +32,7 @@ export function ExamMistakes({ p, rows, title, onAssigned }: { p: Profile; rows:
   const n = Math.min(rows.length, MISTAKE_QUIZ_MAX);
   return (
     <div className="col exam-mistakes" style={{ gap: 10 }}>
-      <MistakeList rows={rows} />
+      <MistakeList rows={rows} reportFor={p.id} />
       <div className="row" style={{ flexWrap: 'wrap' }}>
         <button
           className="btn btn-primary btn-sm"

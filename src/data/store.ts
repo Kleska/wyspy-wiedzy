@@ -1,7 +1,8 @@
 import type { RealtimeChannel, SupabaseClient } from '@supabase/supabase-js';
 import { BUILTIN_TOPICS, SUBJECTS } from '../content/seed';
 import { parseDsl } from '../dsl';
-import type { DocKind, DocMap, ParsedTopic, Profile, Settings, Topic } from '../types';
+import { withoutDisabled } from '../engine';
+import type { DocKind, DocMap, Exercise, ParsedTopic, Profile, Settings, Topic } from '../types';
 import { openKV, type KV, type OutboxEntry, type StoredDoc } from './idb';
 import { mergeDoc, MUTABLE_KINDS, sameJson } from './merge';
 
@@ -98,7 +99,7 @@ export class Store {
       else this.writing.delete(k);
     }
   }
-  private parsedCache: { version: number; all: ParsedTopic[] } | null = null;
+  private parsedCache: { version: number; all: ParsedTopic[]; raw: ParsedTopic[] } | null = null;
 
   state: StoreState = {
     ready: false,
@@ -166,23 +167,37 @@ export class Store {
     return s ? { ...DEFAULT_SETTINGS, ...s } : DEFAULT_SETTINGS;
   }
 
-  /** Wszystkie tematy (wbudowane + rodzinne), również ukryte. */
+  /**
+   * Wszystkie tematy (wbudowane + rodzinne), również ukryte — bez zadań wyłączonych przez rodzica
+   * (`Settings.disabledExercises`): takie zadanie nie trafia do ćwiczeń i nie liczy się do poziomu tematu.
+   */
   allTopics(): ParsedTopic[] {
-    if (this.parsedCache && this.parsedCache.version === this.topicVersion) return this.parsedCache.all;
+    return this.parsed().all;
+  }
+
+  /** Zadania wyłączone przez rodzica, razem z tematem — do listy „Wyłączone zadania” w panelu. */
+  disabledExercises(): { topic: ParsedTopic; ex: Exercise }[] {
+    const off = new Set(this.settings.disabledExercises ?? []);
+    if (!off.size) return [];
+    return this.parsed().raw.flatMap((topic) => topic.exercises.filter((ex) => off.has(ex.id)).map((ex) => ({ topic, ex })));
+  }
+
+  private parsed(): { all: ParsedTopic[]; raw: ParsedTopic[] } {
+    if (this.parsedCache && this.parsedCache.version === this.topicVersion) return this.parsedCache;
     const family = this.list('topic').filter((t) => !t.deleted);
     const topics: Topic[] = [...BUILTIN_TOPICS, ...family];
     const subjOrder = (id: string) => {
       const i = SUBJECTS.findIndex((s) => s.id === id);
       return i < 0 ? 99 : i;
     };
-    const all = topics
+    const raw = topics
       .map((t) => {
         const { exercises, errors } = parseDsl(t.dsl);
         return { ...t, exercises, errors, builtin: t.source === 'builtin' };
       })
       .sort((a, b) => subjOrder(a.subject) - subjOrder(b.subject) || a.order - b.order || a.title.localeCompare(b.title, 'pl'));
-    this.parsedCache = { version: this.topicVersion, all };
-    return all;
+    this.parsedCache = { version: this.topicVersion, all: withoutDisabled(raw, this.settings.disabledExercises), raw };
+    return this.parsedCache;
   }
 
   /** Tematy widoczne dla ucznia. */
@@ -276,6 +291,9 @@ export class Store {
       await this.putMany(kind, moved as never[]);
     }
     const from = this.get('profile', fromId);
+    const to = this.get('profile', toId);
+    // Zgłoszenia błędów w zadaniach też przechodzą do osoby, która zostaje.
+    if (from?.reports?.length && to) await this.put('profile', { ...to, reports: [...(to.reports ?? []), ...from.reports], updatedAt: nowIso() });
     if (from) await this.put('profile', { ...from, deleted: true, updatedAt: nowIso() });
     return n;
   }

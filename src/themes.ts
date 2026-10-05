@@ -162,12 +162,13 @@ export async function loadThemeFonts(id: ThemeId) {
   switch (id) {
     case 'wyspy':
       await Promise.all([
-        import('@fontsource/fredoka/latin-500.css'),
-        import('@fontsource/fredoka/latin-ext-500.css'),
-        import('@fontsource/fredoka/latin-600.css'),
-        import('@fontsource/fredoka/latin-ext-600.css'),
-        import('@fontsource/fredoka/latin-700.css'),
-        import('@fontsource/fredoka/latin-ext-700.css'),
+        // Baloo 2 zamiast Fredoki: Fredoka nie ma ą ć ę ń ś ź ż, więc te litery brały się z innego, cieńszego kroju.
+        import('@fontsource/baloo-2/latin-600.css'),
+        import('@fontsource/baloo-2/latin-ext-600.css'),
+        import('@fontsource/baloo-2/latin-700.css'),
+        import('@fontsource/baloo-2/latin-ext-700.css'),
+        import('@fontsource/baloo-2/latin-800.css'),
+        import('@fontsource/baloo-2/latin-ext-800.css'),
         import('@fontsource/nunito/latin-600.css'),
         import('@fontsource/nunito/latin-ext-600.css'),
         import('@fontsource/nunito/latin-800.css'),

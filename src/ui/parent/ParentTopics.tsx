@@ -10,6 +10,7 @@ import { exerciseSummary } from '../exercises/logic';
 import { GRADES } from '../Onboarding';
 import { useStoreVersion } from '../hooks';
 import { Icon } from '../icons';
+import { DisabledExercises } from './ParentReports';
 
 export interface EditorSeed {
   topicId?: string;
@@ -237,6 +238,7 @@ export function ParentTopics({ onEdit }: { onEdit: (s: EditorSeed) => void }) {
           </section>
         );
       })}
+      <DisabledExercises />
     </>
   );
 }

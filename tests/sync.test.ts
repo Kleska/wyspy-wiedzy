@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { mergeDoc, sameJson } from '../src/data/merge';
 import { Store } from '../src/data/store';
-import type { Attempt, Profile, Session } from '../src/types';
+import type { Attempt, ExerciseReport, Profile, Session } from '../src/types';
 
 const profile = (over: Partial<Profile>): Profile => ({ id: 'z', name: 'Zosia', avatar: '🦊', theme: 'wyspy', grade: 5, createdAt: '2026-10-01T10:00:00.000Z', updatedAt: '2026-10-01T10:00:00.000Z', ...over });
 const plan = (title: string, setAt: string) => ({ topicIds: ['b-a5-u0-be'], title, setAt });
@@ -85,6 +85,31 @@ describe('scalanie zmian z dwóch urządzeń', () => {
     expect(cleared.theme).toBe('pixel');
   });
 
+  it('osoba: zgłoszenia błędów w zadaniach z obu urządzeń się sumują, a decyzja rodzica nie ginie', () => {
+    const rep = (id: string, at: string, extra: Partial<ExerciseReport> = {}): ExerciseReport => ({ id, topicId: 't', exerciseId: `e-${id}`, reason: 'mine', topic: 'Temat', question: 'Pytanie', correct: 'Odpowiedź', at, ...extra });
+    const base = profile({ reports: [rep('r1', '2026-10-03T08:00:00.000Z')] });
+    // Rodzic wyłącza zadanie z pierwszego zgłoszenia; tablet bez internetu: dziecko zgłasza drugie zadanie i zmienia wygląd.
+    const parent = { ...base, reports: [rep('r1', '2026-10-03T08:00:00.000Z', { decision: 'off', decidedAt: '2026-10-03T09:00:00.000Z' })], updatedAt: '2026-10-03T09:00:00.000Z' };
+    const tablet = { ...base, theme: 'pixel' as const, reports: [...base.reports!, rep('r2', '2026-10-03T08:30:00.000Z')], updatedAt: '2026-10-03T08:30:00.000Z' };
+    const merged = mergeDoc('profile', tablet, parent, { base }) as Profile;
+    expect(merged.reports?.map((r) => [r.id, r.decision])).toEqual([
+      ['r1', 'off'],
+      ['r2', undefined],
+    ]);
+    expect(merged.theme).toBe('pixel');
+    // Wynik nie zależy od tego, które urządzenie scala, ani od tego, czy znamy wersję wspólną.
+    expect(sameJson((mergeDoc('profile', parent, tablet, { base }) as Profile).reports, merged.reports)).toBe(true);
+    expect(sameJson((mergeDoc('profile', tablet, parent) as Profile).reports, merged.reports)).toBe(true);
+    // Ponowne włączenie zadania (późniejsza decyzja) wygrywa z wcześniejszą.
+    const reopened = { ...parent, reports: [rep('r1', '2026-10-03T08:00:00.000Z', { decision: 'ok', decidedAt: '2026-10-03T10:00:00.000Z' })], updatedAt: '2026-10-03T10:00:00.000Z' };
+    expect((mergeDoc('profile', merged, reopened) as Profile).reports?.map((r) => [r.id, r.decision])).toEqual([
+      ['r1', 'ok'],
+      ['r2', undefined],
+    ]);
+    // Osoba bez zgłoszeń nie dostaje pustej listy (dokument nie zmienia się bez powodu).
+    expect('reports' in (mergeDoc('profile', profile({}), profile({ updatedAt: '2026-10-05T10:00:00.000Z' })) as Profile)).toBe(false);
+  });
+
   it('osoba: usunięcie i „Zacznij od nowa” nie cofają się', () => {
     const removed = profile({ deleted: true, resetAt: '2026-10-02T08:00:00.000Z', updatedAt: '2026-10-02T08:00:00.000Z' });
     const stale = profile({ avatar: '🐼', updatedAt: '2026-10-03T08:00:00.000Z' });
@@ -113,5 +138,35 @@ describe('łączenie dwóch profili tego samego dziecka', () => {
     // Nic nie ginie: usunięty profil zostaje w bazie jako „usunięty”.
     expect(s.get('profile', 'tablet')?.deleted).toBe(true);
     expect(await s.mergeProfiles('telefon', 'nie-ma')).toBe(0);
+  });
+});
+
+describe('zadania wyłączone przez rodzica', () => {
+  it('wyłączone zadanie znika z tematu (i z jego liczby zadań), a po włączeniu wraca', async () => {
+    const s = new Store();
+    await s.init();
+    const before = s.allTopics().find((t) => t.id === 'b-rzeczownik')!;
+    const ex = before.exercises[0];
+    await s.saveSettings({ disabledExercises: [ex.id] });
+    const after = s.allTopics().find((t) => t.id === 'b-rzeczownik')!;
+    expect(after.exercises.length).toBe(before.exercises.length - 1);
+    expect(after.exercises.some((e) => e.id === ex.id)).toBe(false);
+    expect(s.topicsFor(null).find((t) => t.id === 'b-rzeczownik')!.exercises.some((e) => e.id === ex.id)).toBe(false);
+    // Lista dla rodzica pokazuje wyłączone zadanie razem z tematem.
+    expect(s.disabledExercises().map((d) => [d.topic.id, d.ex.id])).toContainEqual(['b-rzeczownik', ex.id]);
+    // Pozostałe tematy to te same obiekty co przed zmianą — nic nie liczymy od nowa bez potrzeby.
+    await s.saveSettings({ disabledExercises: [] });
+    expect(s.allTopics().find((t) => t.id === 'b-rzeczownik')!.exercises.length).toBe(before.exercises.length);
+    expect(s.disabledExercises()).toEqual([]);
+  });
+
+  it('przy łączeniu dwóch profili zgłoszenia błędów przechodzą do profilu, który zostaje', async () => {
+    const s = new Store();
+    await s.init();
+    const rep: ExerciseReport = { id: 'r1', topicId: 'b-rzeczownik', exerciseId: 'e1', reason: 'unclear', topic: 'Rzeczownik', question: 'Pytanie', correct: 'Odpowiedź', at: '2026-10-03T08:00:00.000Z' };
+    await s.put('profile', profile({ id: 'tablet', reports: [rep] }));
+    await s.put('profile', profile({ id: 'telefon', createdAt: '2026-10-02T10:00:00.000Z' }));
+    await s.mergeProfiles('tablet', 'telefon');
+    expect(s.get('profile', 'telefon')?.reports?.map((r) => r.id)).toEqual(['r1']);
   });
 });

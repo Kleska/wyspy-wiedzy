@@ -26,6 +26,7 @@ import { ExerciseView } from './exercises/Exercises';
 import { answerText, correctText, initialAnswer, isCorrect, isReady, questionText, type Answer } from './exercises/logic';
 import { backScreen, isExamRun, useApp, type Run, type SessionResult } from './hooks';
 import { Icon } from './icons';
+import { ReportButton } from './Report';
 
 type Item = QueueItem & { retry?: boolean };
 
@@ -142,6 +143,7 @@ export function Practice({ run }: { run: Run }) {
   const [combo, setCombo] = useState(0);
   const [praise, setPraise] = useState('');
   const [guideOpen, setGuideOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
 
   const session = useRef<Session>({
     id: uid(),
@@ -372,7 +374,7 @@ export function Practice({ run }: { run: Run }) {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (guideOpen || e.key !== 'Enter' || e.repeat || e.isComposing || e.defaultPrevented) return;
+      if (guideOpen || reportOpen || e.key !== 'Enter' || e.repeat || e.isComposing || e.defaultPrevented) return;
       const tag = (e.target as HTMLElement)?.tagName;
       if (phase === 'feedback') {
         if (tag === 'BUTTON') return; // przycisk „Dalej” obsłuży to sam
@@ -384,7 +386,7 @@ export function Practice({ run }: { run: Run }) {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [phase, next, check, guideOpen]);
+  }, [phase, next, check, guideOpen, reportOpen]);
 
   const back = () => go(backScreen(run, subjectId));
 
@@ -536,6 +538,21 @@ export function Practice({ run }: { run: Run }) {
               {lang !== 'pl' && ex.hint && <div className="fb-text fb-translation">{ex.hint}</div>}
               {!ok && !item.retry && (
                 <div className="fb-text muted">{retryQueued ? 'To zadanie wróci jeszcze raz na końcu.' : 'To zadanie wróci w powtórce w kolejnych dniach.'}</div>
+              )}
+              {!ok && (
+                <ReportButton
+                  key={`${idx}`}
+                  profileId={profile.id}
+                  onOpenChange={setReportOpen}
+                  target={{
+                    topicId: item.topicId,
+                    exerciseId: ex.id,
+                    topic: itemTitle,
+                    question: `${ex.prompt} ${questionText(ex)}`.trim(),
+                    correct: correctText(ex),
+                    given: answerText(ex, answer),
+                  }}
+                />
               )}
             </div>
           </div>

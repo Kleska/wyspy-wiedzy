@@ -238,8 +238,37 @@ export interface Profile {
   done?: string[];
   /** Kiedy rodzic ostatnio zmienił listę „skończonych” — przy scalaniu bez wersji wspólnej wygrywa późniejsza lista. */
   doneAt?: string;
+  /**
+   * Zgłoszenia „to zadanie ma błąd” (dziecko po złej odpowiedzi albo rodzic przy przeglądzie błędów). Rodzic decyduje
+   * w panelu: wyłącza zadanie albo uznaje je za dobre. Zgłoszeń nie usuwamy — przy scalaniu zmian z dwóch urządzeń
+   * listy się sumują (patrz `mergeDoc`).
+   */
+  reports?: ExerciseReport[];
   createdAt: string;
   updatedAt: string;
+}
+
+/** Co według zgłaszającego jest nie tak z zadaniem. */
+export type ReportReason = 'mine' | 'key' | 'unclear';
+
+/** Zgłoszenie błędu w zadaniu. Treść zadania zapisujemy w zgłoszeniu — zadania losowane nie mają stałego źródła. */
+export interface ExerciseReport {
+  id: string;
+  topicId: string;
+  exerciseId: string;
+  reason: ReportReason;
+  /** Tytuł tematu, pytanie i odpowiedź uznawana przez aplikację za poprawną — z chwili zgłoszenia. */
+  topic: string;
+  question: string;
+  correct: string;
+  /** Odpowiedź dziecka, jeśli była. */
+  given?: string;
+  /** Zgłoszenie od rodzica (z przeglądu błędów w panelu). */
+  byParent?: boolean;
+  at: string;
+  /** Decyzja rodzica: `off` — zadanie wyłączone, `ok` — zadanie jest dobre. Brak = czeka na decyzję. */
+  decision?: 'off' | 'ok';
+  decidedAt?: string;
 }
 
 /** Kartkówka od rodzica: krótki sprawdzian z wybranych tematów, bez podpowiedzi, do zrobienia raz. */
@@ -285,6 +314,8 @@ export interface Settings {
   autoRead: boolean;
   sounds: boolean;
   hiddenBuiltins: string[];
+  /** Zadania wyłączone przez rodzica (id zadań), np. po zgłoszeniu błędu — nie trafiają do ćwiczeń ani sprawdzianów. */
+  disabledExercises?: string[];
   rewards: Reward[];
   familyGoal?: FamilyGoal | null;
   updatedAt: string;

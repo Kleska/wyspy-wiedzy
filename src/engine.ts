@@ -1,5 +1,5 @@
 import { plural } from './themes';
-import type { AssignedQuiz, Attempt, Exercise, ExerciseType, FamilyGoal, ParsedTopic, Plan, Profile, Redemption, Session, SessionMode, Settings } from './types';
+import type { AssignedQuiz, Attempt, Exercise, ExerciseReport, ExerciseType, FamilyGoal, ParsedTopic, Plan, Profile, Redemption, ReportReason, Session, SessionMode, Settings } from './types';
 
 /*
  * Cały postęp (XP, monety, poziom, seria dni, poziomy tematów, odznaki, cele tygodnia) jest
@@ -1112,6 +1112,63 @@ export function mistakesToFix(input: { profileId: string; attempts: Attempt[]; t
     .filter((s) => !s.fixed)
     .sort((a, b) => b.at - a.at)
     .map(({ topicId, exerciseId, at }) => ({ topicId, exerciseId, at }));
+}
+
+// ─── Zgłoszenia błędów w zadaniach ───────────────────────────────────────────
+
+/** Co jest nie tak z zadaniem — słowami dziecka (przycisk) i słowami dla rodzica (lista w panelu). */
+export const REPORT_REASONS: Record<ReportReason, { child: string; parent: string }> = {
+  mine: { child: 'Moja odpowiedź też jest dobra', parent: 'Odpowiedź dziecka też powinna być uznana' },
+  key: { child: 'Poprawna odpowiedź jest zła', parent: 'Odpowiedź z aplikacji jest błędna' },
+  unclear: { child: 'Nie rozumiem pytania', parent: 'Pytanie jest niejasne' },
+};
+
+/** Zadania losowane (trening bez końca) nie mają stałej treści, więc nie da się ich wyłączyć. */
+export const isGeneratedTopic = (topicId: string) => topicId.startsWith('gen:');
+
+/** Zgłoszenia, o których rodzic jeszcze nie zdecydował — najnowsze najpierw. */
+export function openReports(profile: Pick<Profile, 'reports'>): ExerciseReport[] {
+  return (profile.reports ?? []).filter((r) => !r.decision).sort((a, b) => b.at.localeCompare(a.at));
+}
+
+/** Czy to zadanie czeka już u tej osoby na decyzję rodzica (przycisk „Zgłoś” zmienia się w „Zgłoszone”). */
+export function isReported(profile: Pick<Profile, 'reports'>, topicId: string, exerciseId: string): boolean {
+  return (profile.reports ?? []).some((r) => !r.decision && r.topicId === topicId && r.exerciseId === exerciseId);
+}
+
+/** Dopisuje zgłoszenie. Zadanie, które już czeka na decyzję, nie jest zgłaszane drugi raz. */
+export function addReport(profile: Pick<Profile, 'reports'>, report: Omit<ExerciseReport, 'decision' | 'decidedAt'>): Pick<Profile, 'reports'> {
+  const reports = profile.reports ?? [];
+  if (isReported(profile, report.topicId, report.exerciseId)) return { reports };
+  return { reports: [...reports, report] };
+}
+
+/**
+ * Decyzja rodzica. `ids` — konkretne zgłoszenia; `exerciseId` — wszystkie zgłoszenia tego zadania
+ * (wyłączenie zadania zamyka je u każdego dziecka; ponowne włączenie zmienia decyzję „wyłączone” na „dobre”).
+ */
+export function decideReports(
+  profile: Pick<Profile, 'reports'>,
+  which: { ids?: string[]; exerciseId?: string; from?: 'off' },
+  decision: 'off' | 'ok',
+  at: string,
+): Pick<Profile, 'reports'> | null {
+  let changed = false;
+  const reports = (profile.reports ?? []).map((r) => {
+    const hit = (which.ids?.includes(r.id) ?? false) || (which.exerciseId !== undefined && r.exerciseId === which.exerciseId);
+    const state = which.from ? r.decision === which.from : !r.decision;
+    if (!hit || !state) return r;
+    changed = true;
+    return { ...r, decision, decidedAt: at };
+  });
+  return changed ? { reports } : null;
+}
+
+/** Tematy bez zadań wyłączonych przez rodzica (wyłączone zadanie nie liczy się też do poziomu tematu). */
+export function withoutDisabled<T extends { exercises: { id: string }[] }>(topics: T[], disabled: string[] | undefined): T[] {
+  if (!disabled?.length) return topics;
+  const off = new Set(disabled);
+  return topics.map((t) => (t.exercises.some((e) => off.has(e.id)) ? { ...t, exercises: t.exercises.filter((e) => !off.has(e.id)) } : t));
 }
 
 // ─── Tabliczka mnożenia ──────────────────────────────────────────────────────

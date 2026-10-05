@@ -278,6 +278,29 @@ test('wybór wyglądu pokazuje podgląd każdego motywu', async ({ page }) => {
   await expect(dlg.locator('.tp')).toHaveCount(6);
   await page.waitForTimeout(400);
   await snap(page, 'f24-theme-picker', true);
+  // Krój nagłówków każdego motywu musi mieć wszystkie polskie litery — inaczej pojedyncze litery (ą, ć, ę, ń, ś, ź, ż)
+  // biorą się z kroju zapasowego i wyglądają cieniej niż reszta wyrazu.
+  const missing = await page.evaluate(async () => {
+    const letters = 'ąćęłńóśźżĄĆĘŁŃÓŚŹŻ';
+    const ctx = document.createElement('canvas').getContext('2d')!;
+    const out: string[] = [];
+    for (const tp of Array.from(document.querySelectorAll<HTMLElement>('.modal .tp'))) {
+      const cs = getComputedStyle(tp);
+      const family = cs.getPropertyValue('--font-display').split(',')[0].trim();
+      const weight = cs.getPropertyValue('--display-weight').trim() || '700';
+      if (!/^['"]/.test(family)) continue;
+      await document.fonts.load(`${weight} 40px ${family}`, letters);
+      const width = (font: string, ch: string) => ((ctx.font = font), ctx.measureText(ch.repeat(8)).width);
+      // Litera, której krój nie ma, rysuje się krojem zapasowym — raz o stałej szerokości, raz szeryfowym.
+      // Jeśli szerokość zmienia się razem z krojem zapasowym, to znaczy, że litery w kroju nagłówków nie ma.
+      const lacking = [...letters].filter((ch) => width(`${weight} 40px ${family}, monospace`, ch) !== width(`${weight} 40px ${family}, serif`, ch));
+      if (lacking.length) out.push(`${tp.dataset.theme}: ${family} bez ${lacking.join('')}`);
+      // Kontrola samej metody: greckiej litery te kroje nie mają, więc test musi to zauważyć.
+      if (width(`${weight} 40px ${family}, monospace`, 'Ω') === width(`${weight} 40px ${family}, serif`, 'Ω')) out.push(`${tp.dataset.theme}: test nie wykrywa brakujących liter`);
+    }
+    return out;
+  });
+  expect(missing).toEqual([]);
   // Bohatera dziecko zmienia samo — w tym samym oknie co wygląd, bez zamykania okna.
   await expect(dlg.getByRole('button', { name: 'Bohater: lis', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await dlg.getByRole('button', { name: 'Bohater: pilot', exact: true }).click();
@@ -593,6 +616,21 @@ test('kartkówka od rodzica: zadanie, napisanie i wynik w panelu rodzica', async
   const good = Number((await card.innerText()).match(/Napisana: (\d)\/5/)![1]);
   const wrong = 5 - good;
   expect(wrong).toBeGreaterThan(0);
+  // Ocena i „Zobacz błędy” stoją w jednej linii i mieszczą się w karcie także na wąskim telefonie —
+  // nazwa oceny (np. „dostateczny”) jest w opisie, więc długa nazwa nie spycha przycisku niżej.
+  const phone = test.info().project.name === 'phone';
+  if (phone) await page.setViewportSize({ width: 360, height: 740 });
+  const doneRow = card.locator('.quiz-row.done');
+  await expect(doneRow.locator('.quiz-meta')).toContainText(/Napisana: \d\/5 · (celujący|bardzo dobry|dobry|dostateczny|dopuszczający|niedostateczny)/);
+  await expect(doneRow.locator('.pill')).toHaveText(/^ocena [1-6]$/);
+  const rowBox = (await doneRow.boundingBox())!;
+  const pillBox = (await doneRow.locator('.quiz-result .pill').boundingBox())!;
+  const seeBox = (await doneRow.getByRole('button', { name: `Zobacz błędy (${wrong})` }).boundingBox())!;
+  expect(Math.abs(pillBox.y + pillBox.height / 2 - (seeBox.y + seeBox.height / 2))).toBeLessThan(4);
+  expect(seeBox.x).toBeGreaterThan(pillBox.x + pillBox.width);
+  expect(seeBox.x + seeBox.width).toBeLessThanOrEqual(rowBox.x + rowBox.width);
+  await snap(page, 'f42a-quiz-result-row');
+  if (phone) await page.setViewportSize({ width: 390, height: 844 });
   await card.getByRole('button', { name: `Zobacz błędy (${wrong})` }).click();
   const review = page.getByRole('dialog', { name: 'Błędy: Have got na piątek' });
   await expect(review.locator('.mistake')).toHaveCount(wrong);
@@ -600,6 +638,8 @@ test('kartkówka od rodzica: zadanie, napisanie i wynik w panelu rodzica', async
   await expect(review.locator('.mistake').first()).toContainText('Poprawnie');
   await expect(review.locator('.mistake-why').first()).toBeVisible();
   await expect(review.getByRole('button', { name: `Popraw błędy (${wrong})` })).toBeVisible();
+  // Przy każdym błędzie dziecko może zgłosić, że to zadanie jest złe.
+  await expect(review.getByRole('button', { name: 'Zgłoś błąd w zadaniu' })).toHaveCount(wrong);
   await snap(page, 'f42b-quiz-review');
   await review.getByRole('button', { name: 'Zamknij' }).click();
 
@@ -621,6 +661,16 @@ test('kartkówka od rodzica: zadanie, napisanie i wynik w panelu rodzica', async
   await expect(detail.locator('.mistake')).toHaveCount(wrong);
   await expect(detail.locator('.mistake').first()).toContainText('Odpowiedź');
   await snap(page, 'f44-quiz-mistakes-parent', true);
+  // Rodzic też może zgłosić zadanie z listy błędów — zgłoszenie trafia na górę panelu, gdzie zapada decyzja.
+  await detail.getByRole('button', { name: 'Zgłoś błąd w zadaniu' }).first().click();
+  await page.getByRole('dialog', { name: 'Co jest nie tak z tym zadaniem?' }).getByRole('button', { name: 'Odpowiedź z aplikacji jest błędna' }).click();
+  await expect(detail.locator('.report-sent')).toHaveCount(1);
+  const fromParent = page.getByRole('region', { name: 'Zgłoszone zadania' });
+  await expect(fromParent).toContainText('Zgłoszone zadania (1)');
+  await expect(fromParent).toContainText('Rodzic (błędy: Zosia)');
+  await fromParent.getByRole('button', { name: 'Zadanie jest dobre' }).click();
+  await expect(fromParent).toHaveCount(0);
+  await expect(detail.getByRole('button', { name: 'Zgłoś błąd w zadaniu' })).toHaveCount(wrong);
   await detail.getByRole('button', { name: `Zadaj kartkówkę z tych błędów (${wrong})` }).click();
   await expect(quizzes.getByRole('status')).toContainText('Zadano kartkówkę');
   const retake = quizzes.locator('tr', { hasText: 'Poprawa: Have got na piątek' });
@@ -1081,4 +1131,122 @@ test('porządek tematów: rodzic przypina „Teraz”, przenosi dział do „Sko
   await page.locator('.subject-big', { hasText: 'Matematyka' }).click();
   await expect(page.getByRole('group', { name: 'Dział' }).getByRole('button')).toHaveText([/^Ułamki zwykłe/, /^Ułamki dziesiętne/, /^Geometria/, /^Liczby i działania/]);
   await expect(page.locator('details.done-topics summary')).toContainText('Skończone · 2 tematy');
+});
+
+test('zgłoszenie błędu w zadaniu: dziecko zgłasza, rodzic wyłącza zadanie i włącza je z powrotem', async ({ page }) => {
+  await onboard(page, 'Kuba', 3);
+  await page.locator('.subject-big', { hasText: 'Język polski' }).click();
+  await page.getByRole('button', { name: /^Graj!/ }).first().click();
+  // Odpowiadamy „jakkolwiek”, aż trafi się zła odpowiedź — dopiero wtedy jest co zgłaszać.
+  const foot = page.locator('.pr-foot.bad');
+  for (let i = 0; i < 14; i++) {
+    await expect(page.getByRole('button', { name: 'Sprawdź' })).toBeVisible();
+    await answerAny(page);
+    await page.getByRole('button', { name: 'Sprawdź' }).click();
+    await expect(page.locator('.pr-foot.good, .pr-foot.bad')).toBeVisible();
+    if (await foot.count()) break;
+    // Po dobrej odpowiedzi nie ma czego zgłaszać.
+    await expect(page.getByRole('button', { name: 'Zgłoś błąd w zadaniu' })).toHaveCount(0);
+    await page.waitForTimeout(750);
+    await page.getByRole('button', { name: /^(Dalej|Zakończ)$/ }).click();
+  }
+  await expect(foot).toBeVisible();
+  const topicTitle = (await page.locator('.pr-topic').innerText()).replace(' · druga szansa', '').trim();
+  const phone = test.info().project.name === 'phone';
+  if (phone) await page.setViewportSize({ width: 360, height: 740 });
+  await expect(foot.getByRole('button', { name: /^(Dalej|Zakończ)$/ })).toBeInViewport({ ratio: 1 });
+  await snap(page, 'f70-report-link');
+  await foot.getByRole('button', { name: 'Zgłoś błąd w zadaniu' }).click();
+  const ask = page.getByRole('dialog', { name: 'Co jest nie tak z tym zadaniem?' });
+  const question = (await ask.locator('.report-q').innerText()).trim();
+  expect(question.length).toBeGreaterThan(5);
+  for (const reason of ['Moja odpowiedź też jest dobra', 'Poprawna odpowiedź jest zła', 'Nie rozumiem pytania']) await expect(ask.getByRole('button', { name: reason })).toBeInViewport({ ratio: 1 });
+  await snap(page, 'f71-report-dialog');
+  // Enter przy otwartym oknie nie przeskakuje do następnego zadania.
+  await page.keyboard.press('Escape');
+  await expect(ask).toHaveCount(0);
+  await foot.getByRole('button', { name: 'Zgłoś błąd w zadaniu' }).click();
+  await ask.getByRole('button', { name: 'Moja odpowiedź też jest dobra' }).click();
+  await expect(ask).toHaveCount(0);
+  // Zgłoszone zadanie nie daje się zgłosić drugi raz.
+  await expect(foot.locator('.report-sent')).toContainText('Zgłoszone — rodzic to sprawdzi');
+  await expect(foot.getByRole('button', { name: 'Zgłoś błąd w zadaniu' })).toHaveCount(0);
+  await expect(foot.getByRole('button', { name: /^(Dalej|Zakończ)$/ })).toBeInViewport({ ratio: 1 });
+  await snap(page, 'f72-report-sent');
+  if (phone) await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole('button', { name: 'Zakończ ćwiczenie' }).click();
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Skończ' }).click();
+  await page.getByRole('button', { name: 'Wróć', exact: true }).click();
+
+  // Rodzic: zgłoszenie stoi na górze panelu, nad każdą zakładką.
+  await parentLogin(page);
+  const notice = page.getByRole('region', { name: 'Zgłoszone zadania' });
+  await expect(notice).toContainText('Zgłoszone zadania (1)');
+  await expect(notice).toContainText(question);
+  await expect(notice).toContainText('Odpowiedź dziecka też powinna być uznana');
+  await expect(notice).toContainText('Kuba');
+  await expect(notice).toContainText('Poprawnie w aplikacji');
+  await expect(notice).toContainText('Odpowiedź dziecka');
+  await snap(page, 'f73-report-parent', true);
+  await page.getByRole('button', { name: 'Tematy' }).click();
+  await expect(notice).toBeVisible();
+  // Liczba zadań w temacie przed wyłączeniem (działy są zwinięte — czytamy tekst bez rozwijania).
+  const meta = page.locator('.topic-item', { has: page.getByText(topicTitle, { exact: true }) }).locator('.topic-item-meta');
+  const count = async () => Number(((await meta.first().textContent()) ?? '').match(/(\d+) zada/)![1]);
+  const before = await count();
+  await expect(page.locator('details.disabled-ex')).toHaveCount(0);
+
+  await notice.getByRole('button', { name: 'Wyłącz zadanie' }).click();
+  await expect(notice).toHaveCount(0);
+  await expect.poll(count).toBe(before - 1);
+  const off = page.locator('details.disabled-ex');
+  await expect(off.locator('summary')).toContainText('1 zadanie');
+  await off.locator('summary').click();
+  await expect(off).toContainText(question);
+  await snap(page, 'f74-report-disabled', true);
+  await off.getByRole('button', { name: 'Włącz z powrotem' }).click();
+  await expect(off).toHaveCount(0);
+  await expect.poll(count).toBe(before);
+  // Zgłoszenie jest już rozpatrzone — nie wraca na górę panelu.
+  await expect(notice).toHaveCount(0);
+});
+
+test('panel rodzica na telefonie: „Menu” pokazuje wszystkie sekcje naraz, pasek zostaje', async ({ page }) => {
+  await onboard(page, 'Kuba', 3);
+  await parentLogin(page);
+  const menuBtn = page.getByRole('button', { name: 'Menu', exact: true });
+  // Na szerokim ekranie sekcje i tak stoją jedna pod drugą w kolumnie po lewej — przycisk „Menu” jest zbędny.
+  if (test.info().project.name !== 'phone') {
+    await expect(menuBtn).toBeHidden();
+    return;
+  }
+  await page.setViewportSize({ width: 360, height: 740 });
+  const bar = page.getByRole('navigation', { name: 'Panel rodzica' });
+  await expect(menuBtn).toBeInViewport({ ratio: 1 });
+  await snap(page, 'f75-parent-bar');
+  await menuBtn.click();
+  const menu = page.getByRole('dialog', { name: 'Wszystkie sekcje' });
+  for (const name of ['Postępy', 'Plan i sprawdziany', 'Tematy', 'Dodaj z AI / zdjęcia', 'Nagrody', 'Ustawienia', 'Wyjdź z panelu']) {
+    await expect(menu.getByRole('button', { name })).toBeInViewport({ ratio: 1 });
+  }
+  await expect(menu.getByRole('button', { name: 'Postępy' })).toHaveAttribute('aria-current', 'page');
+  await snap(page, 'f76-parent-menu');
+  await menu.getByRole('button', { name: 'Ustawienia' }).click();
+  await expect(menu).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'Ustawienia', exact: true })).toBeVisible();
+  // „Menu” stoi w miejscu także po przewinięciu paska, a pasek działa jak dotąd.
+  await bar.getByRole('button', { name: 'Ustawienia' }).scrollIntoViewIfNeeded();
+  await expect(menuBtn).toBeInViewport({ ratio: 1 });
+  await bar.getByRole('button', { name: 'Tematy' }).click();
+  await expect(page.getByRole('heading', { name: 'Tematy', exact: true })).toBeVisible();
+  // Menu zamyka się też klawiszem Escape i dotknięciem tła.
+  await menuBtn.click();
+  await page.keyboard.press('Escape');
+  await expect(menu).toHaveCount(0);
+  await menuBtn.click();
+  await page.mouse.click(180, 700);
+  await expect(menu).toHaveCount(0);
+  await menuBtn.click();
+  await menu.getByRole('button', { name: 'Wyjdź z panelu' }).click();
+  await expect(page.getByText('Cześć, Kuba!')).toBeVisible();
 });

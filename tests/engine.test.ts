@@ -3,7 +3,8 @@ import { BUILTIN_TOPICS } from '../src/content/seed';
 import { DEFAULT_SETTINGS } from '../src/data/store';
 import { parseDsl } from '../src/dsl';
 import { buildReviewQueue, buildTopicQueue, computeProgress, itemKey, levelFromXp, suggestTopic } from '../src/engine';
-import type { Attempt, ParsedTopic, Session } from '../src/types';
+import { addReport, decideReports, isGeneratedTopic, isReported, openReports, withoutDisabled } from '../src/engine';
+import type { Attempt, ExerciseReport, ParsedTopic, Session } from '../src/types';
 
 const topics: ParsedTopic[] = BUILTIN_TOPICS.map((t) => ({ ...t, ...parseDsl(t.dsl), builtin: true }));
 const noun = topics.find((t) => t.id === 'b-rzeczownik')!;
@@ -485,6 +486,58 @@ describe('stan tematu u dziecka: teraz / biblioteka / skończony', () => {
     expect(trainersFor('b-m5-dzp-bez', 5).filter((g) => g.aux).map((g) => g.id)).toEqual(['mnp']);
     expect(trainersFor('b-m5-dzp-bez', 3)).toEqual([]);
     expect(trainersFor('b-rzeczownik', 3)).toEqual([]);
+  });
+});
+
+describe('zgłoszenia błędów w zadaniach', () => {
+  const rep = (id: string, exerciseId: string, at: string): ExerciseReport => ({ id, topicId: 'b-rzeczownik', exerciseId, reason: 'mine', topic: 'Rzeczownik', question: 'Pytanie', correct: 'Odpowiedź', at });
+
+  it('to samo zadanie czekające na decyzję nie jest zgłaszane drugi raz; po decyzji można zgłosić ponownie', () => {
+    let p: { reports?: ExerciseReport[] } = {};
+    p = addReport(p, rep('r1', 'e1', '2026-10-03T08:00:00.000Z'));
+    p = addReport(p, rep('r2', 'e1', '2026-10-03T08:05:00.000Z'));
+    p = addReport(p, rep('r3', 'e2', '2026-10-03T08:10:00.000Z'));
+    expect(p.reports?.map((r) => r.id)).toEqual(['r1', 'r3']);
+    expect(isReported(p, 'b-rzeczownik', 'e1')).toBe(true);
+    expect(isReported(p, 'b-rzeczownik', 'e9')).toBe(false);
+    // Najnowsze zgłoszenie jest na górze listy rodzica.
+    expect(openReports(p).map((r) => r.id)).toEqual(['r3', 'r1']);
+
+    p = decideReports(p, { ids: ['r1'] }, 'ok', '2026-10-03T09:00:00.000Z')!;
+    expect(openReports(p).map((r) => r.id)).toEqual(['r3']);
+    expect(isReported(p, 'b-rzeczownik', 'e1')).toBe(false);
+    p = addReport(p, rep('r4', 'e1', '2026-10-04T08:00:00.000Z'));
+    expect(openReports(p).map((r) => r.id)).toEqual(['r4', 'r3']);
+  });
+
+  it('wyłączenie zadania zamyka wszystkie jego zgłoszenia, a włączenie zmienia decyzję na „dobre”', () => {
+    const p = { reports: [rep('r1', 'e1', '2026-10-03T08:00:00.000Z'), rep('r2', 'e2', '2026-10-03T08:10:00.000Z')] };
+    const off = decideReports(p, { exerciseId: 'e1' }, 'off', '2026-10-03T09:00:00.000Z')!;
+    expect(off.reports?.map((r) => r.decision)).toEqual(['off', undefined]);
+    // Nic do zmiany = brak zapisu (nie robimy pustych zmian w profilu).
+    expect(decideReports(off, { exerciseId: 'e1' }, 'off', '2026-10-03T09:30:00.000Z')).toBeNull();
+    expect(decideReports(off, { exerciseId: 'e2', from: 'off' }, 'ok', '2026-10-03T09:30:00.000Z')).toBeNull();
+    const on = decideReports(off, { exerciseId: 'e1', from: 'off' }, 'ok', '2026-10-03T10:00:00.000Z')!;
+    expect(on.reports?.map((r) => [r.decision, r.decidedAt])).toEqual([
+      ['ok', '2026-10-03T10:00:00.000Z'],
+      [undefined, undefined],
+    ]);
+  });
+
+  it('wyłączone zadania znikają z tematów, a temat bez wyłączonych zadań zostaje tym samym obiektem', () => {
+    const [a, b] = topics;
+    const id = a.exercises[0].id;
+    const out = withoutDisabled(topics, [id]);
+    expect(out.find((t) => t.id === a.id)!.exercises.map((e) => e.id)).not.toContain(id);
+    expect(out.find((t) => t.id === a.id)!.exercises.length).toBe(a.exercises.filter((e) => e.id !== id).length);
+    if (!b.exercises.some((e) => e.id === id)) expect(out.find((t) => t.id === b.id)).toBe(b);
+    expect(withoutDisabled(topics, [])).toBe(topics);
+    expect(withoutDisabled(topics, undefined)).toBe(topics);
+  });
+
+  it('zadań losowanych (trening bez końca) nie da się wyłączyć', () => {
+    expect(isGeneratedTopic('gen:dzp1')).toBe(true);
+    expect(isGeneratedTopic('b-m5-dzp-bez')).toBe(false);
   });
 });
 

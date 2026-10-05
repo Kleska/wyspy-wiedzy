@@ -2,6 +2,7 @@ import type { ParsedTopic } from '../types';
 import { withFractions } from './exercises/Exercises';
 import { correctText, questionText } from './exercises/logic';
 import { Icon } from './icons';
+import { ReportButton } from './Report';
 
 /** Jeden błąd do pokazania: treść zadania, co odpowiedziało dziecko, jak jest dobrze i dlaczego. */
 export interface MistakeRow {
@@ -37,8 +38,11 @@ export function mistakeRows(items: { topicId: string; exerciseId: string; answer
   });
 }
 
-/** Lista błędów: pytanie, odpowiedź dziecka, poprawna odpowiedź i wyjaśnienie. `mine` — tekst dla dziecka („Twoja odpowiedź”). */
-export function MistakeList({ rows, mine }: { rows: MistakeRow[]; mine?: boolean }) {
+/**
+ * Lista błędów: pytanie, odpowiedź dziecka, poprawna odpowiedź i wyjaśnienie. `mine` — tekst dla dziecka („Twoja odpowiedź”).
+ * `reportFor` — osoba, której błędy pokazujemy: przy każdym zadaniu jest wtedy „Zgłoś błąd w zadaniu”.
+ */
+export function MistakeList({ rows, mine, reportFor }: { rows: MistakeRow[]; mine?: boolean; reportFor?: string }) {
   return (
     <div className="mistake-list">
       {rows.map((m, i) => (
@@ -56,6 +60,15 @@ export function MistakeList({ rows, mine }: { rows: MistakeRow[]; mine?: boolean
           {m.explain && (
             <div className="mistake-why">
               <Icon name="bulb" size={16} /> <span>{withFractions(m.explain)}</span>
+            </div>
+          )}
+          {reportFor && (
+            <div>
+              <ReportButton
+                profileId={reportFor}
+                byParent={!mine}
+                target={{ topicId: m.topicId, exerciseId: m.exerciseId, topic: m.topic, question: m.question, correct: m.correct, given: m.given }}
+              />
             </div>
           )}
         </div>

@@ -27,9 +27,9 @@
   --card-shadow: 0 5px 0 rgba(31, 61, 43, 0.1);
   --card-border: 0 solid transparent;
   --btn-depth: 5px;
-  --font-display: 'Fredoka', 'Nunito', system-ui, sans-serif;
+  --font-display: 'Baloo 2', 'Nunito', system-ui, sans-serif;
   --font-body: 'Nunito', system-ui, sans-serif;
-  --display-weight: 600;
+  --display-weight: 700;
   --panel: #2a7f45;
   --panel-ink: #ffffff;
   --panel-muted: #d7efdf;
@@ -2868,6 +2868,20 @@ p {
   color: #fff;
 }
 
+/* Sekcje panelu: na szerokim ekranie kolumna po lewej, na wąskim pasek przewijany w bok + „Menu” z pełną listą. */
+.parent-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.parent-nav .parent-menu-btn,
+.parent-menu-backdrop {
+  display: none;
+}
+
 .parent-main {
   padding: 24px 28px 60px;
   display: flex;
@@ -2886,7 +2900,8 @@ p {
   }
   .parent-nav {
     flex-direction: row;
-    overflow-x: auto;
+    align-items: center;
+    gap: 8px;
     padding: 10px;
     position: sticky;
     top: 0;
@@ -2897,6 +2912,91 @@ p {
   }
   .parent-nav button {
     white-space: nowrap;
+  }
+  /* „Menu” stoi w miejscu, a sekcje przewijają się obok niego; wyblakły prawy brzeg podpowiada, że jest ich więcej. */
+  .parent-nav .parent-menu-btn {
+    display: flex;
+    flex: none;
+    background: #2a3642;
+    color: #fff;
+  }
+  .parent-tabs {
+    flex-direction: row;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+    mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+    padding-right: 20px;
+  }
+  .parent-tabs::-webkit-scrollbar {
+    display: none;
+  }
+  .parent-menu-backdrop {
+    display: block;
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 40;
+    background: rgba(10, 16, 22, 0.55);
+  }
+  .parent-menu {
+    background: #17212b;
+    color: #fff;
+    padding: 8px 10px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    border-radius: 0 0 16px 16px;
+    max-height: 100dvh;
+    overflow-y: auto;
+  }
+  .parent-menu-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 2px 2px 6px 12px;
+    font-size: 17px;
+  }
+  .parent-menu-head button {
+    width: 46px;
+    height: 46px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: #c9d1dc;
+  }
+  .parent-menu-item {
+    min-height: 52px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 14px;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: #e6ebf1;
+    font-weight: 600;
+    font-size: 17px;
+    text-align: left;
+  }
+  .parent-menu-item > span:first-of-type {
+    flex: 1;
+  }
+  .parent-menu-item[aria-current='page'] {
+    background: #2a3642;
+    color: #fff;
+  }
+  .parent-menu-exit {
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px solid #2a3642;
+    border-radius: 0 0 10px 10px;
+    color: #c9d1dc;
   }
   .parent-main {
     padding: 16px 14px 60px;
@@ -4850,6 +4950,87 @@ details[open] > summary .fold-chev {
   border: 2px solid var(--accent);
 }
 
+/* ───────────────────────── Zgłoszenia błędów w zadaniach ───────────────────────── */
+
+/* Link pod informacją zwrotną i przy błędach na liście — mały, żeby nie konkurował z „Dalej”. */
+.report-link,
+.report-sent {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  margin-top: 2px;
+  font-size: 14px;
+}
+
+.report-sent {
+  font-weight: 800;
+  color: var(--good);
+}
+
+.report-q {
+  font-weight: 800;
+}
+
+.report-reasons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.report-reasons .btn {
+  justify-content: flex-start;
+  text-align: left;
+  white-space: normal;
+  min-height: 56px;
+  padding: 8px 18px;
+  font-size: 18px;
+  line-height: 1.2;
+}
+
+.report-note {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+/* Panel rodzica: jedno zgłoszenie (albo jedno wyłączone zadanie). */
+.report-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  font-weight: 600;
+}
+
+.report-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 10px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.disabled-ex > summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.disabled-ex > summary::-webkit-details-marker {
+  display: none;
+}
+
+.disabled-ex > summary b {
+  flex: 1;
+}
+
 .field .unit-fold .check-row {
   padding-left: 0;
 }
@@ -5360,6 +5541,24 @@ details[open] > summary .fold-chev {
 
 .quiz-row b {
   font-size: 18px;
+}
+
+.quiz-info {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+/* Ocena i „Zobacz błędy” zawsze w jednej linii — para przenosi się pod tytuł w całości, nigdy osobno. */
+.quiz-result {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+}
+
+.quiz-result .pill,
+.quiz-result .btn {
+  white-space: nowrap;
 }
 
 .quiz-meta {

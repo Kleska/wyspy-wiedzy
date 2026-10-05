@@ -20,6 +20,23 @@ function planStamp(d: AnyDoc): string {
 
 const doneStamp = (d: AnyDoc) => (typeof d.doneAt === 'string' ? d.doneAt : '');
 
+type ReportLike = { id: string; at?: string; decidedAt?: string };
+
+/**
+ * Zgłoszenia błędów w zadaniach: dziecko dopisuje nowe, a rodzic na innym urządzeniu decyduje o starszych.
+ * Obie listy sumujemy (po `id`), a przy tym samym zgłoszeniu wygrywa późniejsza decyzja — nic nie ginie.
+ */
+export function mergeReports(a: unknown, b: unknown): ReportLike[] | undefined {
+  if (!Array.isArray(a) && !Array.isArray(b)) return undefined;
+  const byId = new Map<string, ReportLike>();
+  for (const r of [...(Array.isArray(a) ? a : []), ...(Array.isArray(b) ? b : [])] as ReportLike[]) {
+    if (!r || typeof r.id !== 'string') continue;
+    const cur = byId.get(r.id);
+    if (!cur || (r.decidedAt ?? '') > (cur.decidedAt ?? '')) byId.set(r.id, r);
+  }
+  return [...byId.values()].sort((x, y) => (x.at ?? '').localeCompare(y.at ?? '') || x.id.localeCompare(y.id));
+}
+
 /** Porównanie treści JSON bez względu na kolejność kluczy (baza zwraca klucze w innej kolejności). */
 export function sameJson(a: unknown, b: unknown): boolean {
   if (a === b) return true;
@@ -51,7 +68,7 @@ export function sameJson(a: unknown, b: unknown): boolean {
  * - osoba: wygrywa nowsza wersja, ale plan od rodzica i listę „skończonych” tematów bierzemy z tej strony,
  *   gdzie zmieniono je później.
  *
- * Zawsze: usunięcie osoby i „Zacznij od nowa” nie cofają się.
+ * Zawsze: usunięcie osoby i „Zacznij od nowa” nie cofają się, a zgłoszenia błędów w zadaniach z obu stron się sumują.
  */
 export function mergeDoc(kind: DocKind, local: unknown, remote: unknown, opts: { joining?: boolean; base?: unknown } = {}): unknown {
   const l = local as AnyDoc;
@@ -82,6 +99,8 @@ export function mergeDoc(kind: DocKind, local: unknown, remote: unknown, opts: {
   }
 
   if (kind === 'profile') {
+    const reports = mergeReports(l.reports, r.reports);
+    if (reports && !sameJson(reports, out.reports)) out = { ...out, reports };
     const resetAt = [l.resetAt, r.resetAt].filter((x): x is string => typeof x === 'string').sort().pop();
     if (resetAt && resetAt !== out.resetAt) out = { ...out, resetAt };
     if ((l.deleted || r.deleted) && !out.deleted) out = { ...out, deleted: true };

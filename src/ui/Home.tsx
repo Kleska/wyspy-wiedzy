@@ -415,25 +415,25 @@ function QuizCard({ progress }: { progress: Progress }) {
         const when = days === null ? '' : days < 0 ? ' · termin minął' : days === 0 ? ' · termin dziś' : days === 1 ? ' · termin jutro' : ` · termin za ${days} dni`;
         return (
           <div key={quiz.id} className={`quiz-row ${result ? 'done' : ''}`}>
-            <div style={{ flex: '1 1 200px', minWidth: 0 }}>
+            <div className="quiz-info">
               <b>{quiz.title}</b>
               <div className="muted quiz-meta">
                 {result
-                  ? `Napisana: ${result.correct}/${result.total}`
+                  ? `Napisana: ${result.correct}/${result.total} · ${GRADE_NAMES[result.grade]}`
                   : `${n} ${plural(n, ['pytanie', 'pytania', 'pytań'])} bez podpowiedzi${when}`}
               </div>
             </div>
             {result ? (
-              <>
-                <span className={`pill ${result.grade >= 4 ? 'good' : result.grade <= 2 ? 'bad' : ''}`}>
-                  ocena {result.grade} — {GRADE_NAMES[result.grade]}
-                </span>
+              // Ocena i „Zobacz błędy” to jedna, nierozdzielna para: zawsze stoją obok siebie, więc każda karta wygląda tak samo
+              // (nazwa oceny jest w opisie wyżej — z długą nazwą w plakietce przycisk spadał do osobnej linii).
+              <div className="quiz-result">
+                <span className={`pill ${result.grade >= 4 ? 'good' : result.grade <= 2 ? 'bad' : ''}`}>ocena {result.grade}</span>
                 {wrong.length > 0 && (
                   <button className="btn btn-sm" onClick={() => setReview(quiz.id)}>
                     <Icon name="eye" size={16} /> Zobacz błędy ({wrong.length})
                   </button>
                 )}
-              </>
+              </div>
             ) : (
               <button
                 className="btn btn-primary"
@@ -449,7 +449,7 @@ function QuizCard({ progress }: { progress: Progress }) {
                 <p className="muted" style={{ fontWeight: 700 }}>
                   To zadania z błędną odpowiedzią. Przeczytaj wyjaśnienia, a potem popraw je — tak najszybciej zostaną w głowie.
                 </p>
-                <MistakeList mine rows={wrong} />
+                <MistakeList mine rows={wrong} reportFor={profile.id} />
                 <button
                   className="btn btn-primary btn-lg"
                   onClick={() => go(practice({ kind: 'fix', items: wrong.map(({ topicId, exerciseId }) => ({ topicId, exerciseId })), subjectId: null }))}

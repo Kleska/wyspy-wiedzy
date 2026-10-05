@@ -64,6 +64,11 @@ można ją zainstalować na ekranie głównym i używać bez internetu. Postępy
   poprawną i wyjaśnienie), i może do nich wrócić z karty kartkówki („Zobacz błędy”). Rodzic widzi te same pytania
   w „Plan i sprawdziany” i jednym przyciskiem zadaje kartkówkę dokładnie z nich — albo ze wszystkich niepoprawionych
   błędów z ostatnich 30 dni („Kartkówka z błędów”).
+- „Zgłoś błąd w zadaniu”: po złej odpowiedzi (i przy każdym błędzie na liście po sprawdzianie) dziecko jednym
+  dotknięciem zgłasza, że jego odpowiedź też jest dobra, że odpowiedź z aplikacji jest zła albo że pytanie jest
+  niejasne. Zgłoszenia stoją na górze panelu rodzica: „Wyłącz zadanie” (znika u wszystkich dzieci; włączysz je z
+  powrotem na dole zakładki Tematy), „Zadanie jest dobre” albo „Skopiuj zgłoszenia” — do wklejenia w czacie z Claude,
+  bo zadania wbudowane poprawia się w kodzie.
 - Plan od rodzica (tematy przypięte np. przed sprawdzianem w szkole, z terminem i sprawdzianem próbnym),
   cel tygodnia, zamrożenie serii, kamienie milowe serii, wspólny cel rodzeństwa.
 - Powtórki rozłożone w czasie: błędne zadania wracają na końcu ćwiczenia i w kolejnych dniach (1, 2, 4, 7, 14 dni).
@@ -74,7 +79,8 @@ można ją zainstalować na ekranie głównym i używać bez internetu. Postępy
   minuty dziennie, poprawność, poziomy tematów, zadania sprawiające kłopot razem z błędnymi odpowiedziami dziecka,
   raport tygodnia do udostępnienia (np. w wiadomości), historia sesji i sprawdzianów.
 - Panel rodzica za 6-cyfrowym PIN-em: dodawanie tematów ręcznie, ze zdjęcia książki (AI), z opisu (AI) albo przez zwykły
-  czat z Claude (bez klucza API), import/eksport kopii zapasowej.
+  czat z Claude (bez klucza API), import/eksport kopii zapasowej. Na telefonie sekcje panelu wybiera się z paska
+  przewijanego w bok albo z przycisku „Menu”, który pokazuje wszystkie sekcje naraz, jedna pod drugą.
 - Czytanie poleceń na głos (głos systemowy pl-PL), dźwięki.
 
 ## Jak to działa (w skrócie)

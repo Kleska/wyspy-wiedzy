@@ -43,7 +43,7 @@ function gradeComment(g: number): string {
 }
 
 export function Summary({ result }: { result: SessionResult }) {
-  const { theme, go } = useApp();
+  const { theme, go, profile } = useApp();
   const acc = result.firstTotal ? result.firstCorrect / result.firstTotal : 0;
   const run = result.run;
   const exam = result.exam;
@@ -207,7 +207,7 @@ export function Summary({ result }: { result: SessionResult }) {
           <h2 className="card-title" style={{ margin: 0 }}>
             Błędy do poprawy ({exam.mistakes.length})
           </h2>
-          <MistakeList mine rows={mistakeRows(exam.mistakes.map((m) => ({ topicId: m.topicId, exerciseId: m.exerciseId, answer: m.given })), topics)} />
+          <MistakeList mine reportFor={profile.id} rows={mistakeRows(exam.mistakes.map((m) => ({ topicId: m.topicId, exerciseId: m.exerciseId, answer: m.given })), topics)} />
           <button
             className="btn btn-primary btn-lg"
             onClick={() => go(practice({ kind: 'fix', items: exam.mistakes.map((m) => ({ topicId: m.topicId, exerciseId: m.exerciseId })), subjectId: result.subjectId }))}
