@@ -1079,10 +1079,15 @@ test('porządek tematów: rodzic przypina „Teraz”, przenosi dział do „Sko
   await expect(page.locator('.next-card')).toContainText('Teraz · z planu rodzica');
   await expect(page.getByRole('group', { name: 'Dział' }).getByRole('button')).toHaveText([/^Działania pisemne/, /^Ułamki zwykłe/, /^Ułamki dziesiętne/, /^Geometria/]);
   if (phone) {
-    // Na telefonie działy stoją w jednym rzędzie (przewijanym w bok), nie jeden pod drugim.
+    // Na telefonie działy to kafelki po dwa w rzędzie: cztery działy zajmują dwa rzędy i nie wystają poza ekran.
     const chips = await page.getByRole('group', { name: 'Dział' }).getByRole('button').all();
-    const ys = await Promise.all(chips.map(async (c) => Math.round((await c.boundingBox())!.y)));
-    expect(new Set(ys).size).toBe(1);
+    const boxes = await Promise.all(chips.map(async (c) => (await c.boundingBox())!));
+    expect(Math.abs(boxes[1].y - boxes[0].y)).toBeLessThan(2);
+    expect(Math.abs(boxes[1].height - boxes[0].height)).toBeLessThan(2);
+    expect(boxes[2].y).toBeGreaterThan(boxes[0].y + boxes[0].height - 1);
+    expect(Math.abs(boxes[3].y - boxes[2].y)).toBeLessThan(2);
+    const width = page.viewportSize()!.width;
+    for (const b of boxes) expect(b.x >= 0 && b.x + b.width <= width).toBe(true);
   }
   const done = page.locator('details.done-topics');
   await expect(done.locator('summary')).toContainText('Skończone · 2 tematy');
@@ -1260,6 +1265,18 @@ test('lektury: dział w języku polskim, lekcja ze streszczeniem mieści się na
   const parts = ['bohaterowie', 'wydarzenia', 'omówienie'];
   const topicButton = (part: string) => page.getByRole('button', { name: new RegExp(`Chłopcy z Placu Broni: ${part}`) }).first();
   for (const part of parts) await expect(topicButton(part)).toBeVisible();
+  // Działy to nieduże kafelki w dwóch kolumnach: wszystkie widać od razu, nic nie trzeba przesuwać w bok.
+  const units = page.getByRole('group', { name: 'Dział' });
+  for (const name of ['Gramatyka', 'Ortografia', 'Czytanie', 'Lektury']) await expect(units.getByRole('button', { name: new RegExp(`^${name}`) })).toBeInViewport({ ratio: 1 });
+  expect(await units.evaluate((el) => el.scrollWidth - el.clientWidth)).toBeLessThanOrEqual(0);
+  if (phone) {
+    const a = (await units.getByRole('button', { name: /^Gramatyka/ }).boundingBox())!;
+    const b = (await units.getByRole('button', { name: /^Ortografia/ }).boundingBox())!;
+    const c = (await units.getByRole('button', { name: /^Czytanie/ }).boundingBox())!;
+    expect(Math.abs(a.y - b.y)).toBeLessThan(2); // dwa kafelki w rzędzie
+    expect(c.y).toBeGreaterThan(a.y + a.height - 1); // trzeci już w następnym
+    expect(a.height).toBeLessThanOrEqual(48); // nieduże
+  }
   await snap(page, 'f80-lektury-board', true);
 
   // Lekcje wszystkich trzech tematów: każda karta (także kolejne części streszczenia) mieści się na ekranie bez przewijania.

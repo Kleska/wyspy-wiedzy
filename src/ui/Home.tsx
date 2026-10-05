@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { generatorsFor, trainerTopicIds } from '../content/generators';
 import { SUBJECTS, subjectOf } from '../content/seed';
 import { gradeOf, store } from '../data/store';
@@ -648,12 +648,6 @@ export function SubjectScreen({ subjectId, unit: unitFromLink }: { subjectId: st
   const suggested = hasUnits ? suggestTopic(topics, progress, planIds) : suggestedAll;
   const st = subjectStats(every, progress);
   // Na telefonie działy stoją w jednym, przewijanym rzędzie — wybrany dział ma być widoczny od razu.
-  const chipsRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const el = chipsRef.current?.querySelector<HTMLElement>('[aria-pressed="true"]');
-    const box = chipsRef.current;
-    if (el && box && box.scrollWidth > box.clientWidth) box.scrollLeft = Math.max(0, el.getBoundingClientRect().left - box.getBoundingClientRect().left + box.scrollLeft - 60);
-  }, [unit]);
   const play = () => suggested && go(practice({ kind: 'topic', topicId: suggested.id }));
 
   const board = (() => {
@@ -751,7 +745,7 @@ export function SubjectScreen({ subjectId, unit: unitFromLink }: { subjectId: st
           </div>
         </header>
         {hasUnits && (
-          <div className="unit-chips" role="group" aria-label="Dział" ref={chipsRef}>
+          <div className="unit-chips" role="group" aria-label="Dział">
             <span className="label">Dział</span>
             {units.map((u) => {
               const fluent = u.topics.filter((t) => (progress.topics.get(t.id)?.level ?? 0) >= 3).length;

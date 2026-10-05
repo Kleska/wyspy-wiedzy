@@ -4807,20 +4807,27 @@ details[open] > summary .fold-chev {
   .plan-check-how {
     display: none;
   }
-  /* Działy w jednym rzędzie, przewijanym w bok — plansza nie zjeżdża w dół, gdy działów przybywa. */
+  /* Działy jako nieduże kafelki w dwóch kolumnach: widać wszystkie naraz, bez przewijania w bok. */
   .subject-page .unit-chips {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    margin: 0 -12px;
-    padding: 2px 12px 8px;
-    scrollbar-width: none;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    /* Kafelki w jednym rzędzie mają tę samą wysokość, także gdy jedna nazwa łamie się na dwie linie. */
+    align-items: stretch;
+    gap: 6px;
+    margin: 0 0 14px;
   }
-  .subject-page .unit-chips::-webkit-scrollbar {
+  .subject-page .unit-chips .label {
     display: none;
   }
-  .subject-page .unit-chips > * {
-    flex-shrink: 0;
-    white-space: nowrap;
+  .subject-page .unit-chips button {
+    justify-content: space-between;
+    align-items: center;
+    min-height: 44px;
+    padding: 6px 12px;
+    border-radius: 14px;
+    font-size: 15px;
+    line-height: 1.2;
+    text-align: left;
   }
 }
 
