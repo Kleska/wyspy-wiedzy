@@ -1,5 +1,5 @@
 import { plural } from './themes';
-import type { AssignedQuiz, Attempt, Exercise, ExerciseReport, ExerciseType, FamilyGoal, ParsedTopic, Plan, Profile, Redemption, ReportReason, Session, SessionMode, Settings } from './types';
+import type { AssignedQuiz, Attempt, Exercise, ExerciseReport, ExerciseType, FamilyGoal, ParsedTopic, Plan, Profile, QuizHide, Redemption, ReportReason, Session, SessionMode, Settings } from './types';
 
 /*
  * Cały postęp (XP, monety, poziom, seria dni, poziomy tematów, odznaki, cele tygodnia) jest
@@ -1052,6 +1052,27 @@ export function quizStates(quizzes: AssignedQuiz[] | undefined, progress: Progre
     quiz,
     result: progress.exams.filter((e) => e.quizId === quiz.id).sort((a, b) => a.at - b.at)[0] ?? null,
   }));
+}
+
+/** Ostatni wpis o schowaniu kartkówki przez daną stronę. */
+function quizHide(profile: Pick<Profile, 'quizHides'>, quizId: string, by: QuizHide['by']): boolean {
+  return (profile.quizHides ?? []).filter((h) => h.id === quizId && h.by === by).sort((a, b) => a.at.localeCompare(b.at)).pop()?.hidden ?? false;
+}
+
+/**
+ * Czy kartkówka jest schowana. Dziecko nie widzi kartkówek schowanych przez siebie ani przez rodzica;
+ * rodzic w panelu chowa je osobno — to, że dziecko schowało kartkówkę u siebie, nie zabiera mu wyniku sprzed oczu.
+ */
+export function isQuizHidden(profile: Pick<Profile, 'quizHides'>, quizId: string, view: QuizHide['by']): boolean {
+  return quizHide(profile, quizId, 'parent') || (view === 'child' && quizHide(profile, quizId, 'child'));
+}
+
+/** Chowa (albo przywraca) kartkówki po stronie dziecka albo rodzica. */
+export function hideQuizzes(profile: Pick<Profile, 'quizHides'>, ids: string[], by: QuizHide['by'], hidden: boolean, at: string): Pick<Profile, 'quizHides'> {
+  const changed = ids.filter((id) => quizHide(profile, id, by) !== hidden);
+  // Jeden wpis na kartkówkę i stronę, w tej samej kolejności co po scaleniu (`mergeQuizHides`) — dokument nie puchnie.
+  const keep = (profile.quizHides ?? []).filter((h) => !(h.by === by && changed.includes(h.id)));
+  return { quizHides: [...keep, ...changed.map((id) => ({ id, by, hidden, at }))].sort((x, y) => x.id.localeCompare(y.id) || x.by.localeCompare(y.by)) };
 }
 
 // ─── Rozdziały ───────────────────────────────────────────────────────────────

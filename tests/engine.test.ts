@@ -583,6 +583,27 @@ describe('kartkówki od rodzica', () => {
     const st = quizStates([quiz], progress([...done.a, ...later.a], [done.s, later.s], '2026-10-03T14:00:00'))[0];
     expect(st.result).toMatchObject({ sessionId: 's3', correct: 4, total: 5, grade: 4, quizId: 'q1' });
   });
+
+  it('chowanie napisanych kartkówek: dziecko chowa u siebie, rodzic chowa u obojga, „Przywróć” wygrywa jako późniejsze', async () => {
+    const { hideQuizzes, isQuizHidden } = await import('../src/engine');
+    let p: { quizHides?: import('../src/types').QuizHide[] } = {};
+    expect(isQuizHidden(p, 'q1', 'child')).toBe(false);
+    // Dziecko chowa q1: znika z jego ekranu, ale rodzic nadal widzi wynik na liście.
+    p = hideQuizzes(p, ['q1'], 'child', true, '2026-10-05T10:00:00.000Z');
+    expect(isQuizHidden(p, 'q1', 'child')).toBe(true);
+    expect(isQuizHidden(p, 'q1', 'parent')).toBe(false);
+    // Rodzic chowa q2: znika u obojga.
+    p = hideQuizzes(p, ['q2'], 'parent', true, '2026-10-05T11:00:00.000Z');
+    expect([isQuizHidden(p, 'q2', 'child'), isQuizHidden(p, 'q2', 'parent')]).toEqual([true, true]);
+    // Ponowne schowanie nic nie dopisuje; przywrócenie zastępuje wpis — jeden wpis na kartkówkę i stronę.
+    expect(hideQuizzes(p, ['q2'], 'parent', true, '2026-10-05T12:00:00.000Z')).toEqual(p);
+    p = hideQuizzes(p, ['q2'], 'parent', false, '2026-10-05T12:00:00.000Z');
+    expect(isQuizHidden(p, 'q2', 'child')).toBe(false);
+    expect(p.quizHides?.map((h) => [h.id, h.by, h.hidden])).toEqual([
+      ['q1', 'child', true],
+      ['q2', 'parent', false],
+    ]);
+  });
 });
 
 describe('błędy z jednej sesji', () => {

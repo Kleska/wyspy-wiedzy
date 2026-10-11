@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { generatorsFor, trainerTopicIds } from '../content/generators';
 import { SUBJECTS, subjectOf } from '../content/seed';
-import { gradeOf, store } from '../data/store';
+import { gradeOf, nowIso, store } from '../data/store';
 import {
   addDays,
   dateKey,
@@ -10,6 +10,8 @@ import {
   familyGoalProgress,
   GRADE_NAMES,
   groupByUnit,
+  hideQuizzes,
+  isQuizHidden,
   mistakesToFix,
   sessionMistakes,
   planActive,
@@ -391,19 +393,30 @@ function QuizCard({ progress }: { progress: Progress }) {
   const attempts = store.list('attempt');
   const items = quizStates(profile.quizzes, progress)
     .map((q) => ({ ...q, topics: topics.filter((t) => q.quiz.topicIds.includes(t.id)) }))
-    // Napisana kartkówka zostaje na ekranie przez tydzień, potem wynik jest już tylko w panelu rodzica.
-    .filter((q) => q.topics.length > 0 && (!q.result || now - q.result.at < 7 * 86_400_000));
+    // Napisana kartkówka zostaje na ekranie przez tydzień (chyba że dziecko albo rodzic ją schowa), potem wynik jest już tylko w panelu rodzica.
+    .filter((q) => q.topics.length > 0 && (!q.result || (now - q.result.at < 7 * 86_400_000 && !isQuizHidden(profile, q.quiz.id, 'child'))));
   if (!items.length) return null;
+  const written = items.filter((q) => q.result).map((q) => q.quiz.id);
+  // Chowanie zapisujemy na aktualnej wersji osoby ze store (outbox pamięta wersję sprzed zmiany).
+  const hide = (ids: string[]) => {
+    const cur = store.get('profile', profile.id);
+    if (cur) void store.put('profile', { ...cur, ...hideQuizzes(cur, ids, 'child', true, nowIso()), updatedAt: nowIso() });
+  };
   return (
     <section className="card quiz-card" aria-label="Kartkówki od rodzica">
       <div className="plan-head">
         <span className="plan-icon" aria-hidden="true">
           <Icon name="test" size={26} />
         </span>
-        <div style={{ flex: '1 1 190px', minWidth: 0 }}>
+        <div style={{ flex: '1 1 150px', minWidth: 0 }}>
           <div className="label">Od rodzica</div>
           <h2 className="plan-title">{items.length === 1 ? 'Kartkówka' : 'Kartkówki'}</h2>
         </div>
+        {written.length >= 2 && (
+          <button className="btn btn-sm" onClick={() => hide(written)}>
+            <Icon name="eyeOff" size={16} /> Schowaj napisane
+          </button>
+        )}
       </div>
       {items.map(({ quiz, result, topics: ts }) => {
         // Kartkówka z konkretnych zadań (np. z błędów) ma tyle pytań, ile z tych zadań jeszcze istnieje.
@@ -415,6 +428,11 @@ function QuizCard({ progress }: { progress: Progress }) {
         const when = days === null ? '' : days < 0 ? ' · termin minął' : days === 0 ? ' · termin dziś' : days === 1 ? ' · termin jutro' : ` · termin za ${days} dni`;
         return (
           <div key={quiz.id} className={`quiz-row ${result ? 'done' : ''}`}>
+            {result && (
+              <button className="quiz-hide" onClick={() => hide([quiz.id])} aria-label={`Schowaj kartkówkę: ${quiz.title}`} title="Schowaj">
+                <Icon name="x" size={18} stroke={2.6} />
+              </button>
+            )}
             <div className="quiz-info">
               <b>{quiz.title}</b>
               <div className="muted quiz-meta">

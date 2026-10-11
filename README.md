@@ -65,6 +65,8 @@ można ją zainstalować na ekranie głównym i używać bez internetu. Postępy
   planszy czy przedłużyć plan o tydzień.
 - Kartkówka od rodzica: w panelu rodzica wybierasz dziecko, tematy, liczbę pytań i termin; dziecko widzi ją na
   ekranie startowym, pisze raz, bez podpowiedzi, a ocena wraca do panelu rodzica (przy koncie rodziny — na żywo).
+- Napisane kartkówki można schować: dziecko „×” na swojej karcie (u rodzica wynik zostaje, z dopiskiem), rodzic
+  „Schowaj napisane” w „Plan i sprawdziany” — wtedy znikają u obojga i trafiają do zwiniętych „Schowanych” z przyciskiem „Przywróć”.
 - Błędy z kartkówek i sprawdzianów: dziecko po napisaniu widzi pytania, w których się pomyliło (swoją odpowiedź,
   poprawną i wyjaśnienie), i może do nich wrócić z karty kartkówki („Zobacz błędy”). Rodzic widzi te same pytania
   w „Plan i sprawdziany” i jednym przyciskiem zadaje kartkówkę dokładnie z nich — albo ze wszystkich niepoprawionych

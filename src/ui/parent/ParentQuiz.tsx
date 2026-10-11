@@ -1,6 +1,6 @@
 import { Fragment, useState } from 'react';
 import { nowIso, store, uid } from '../../data/store';
-import { dateKey, GRADE_NAMES, mistakesToFix, quizStates } from '../../engine';
+import { dateKey, GRADE_NAMES, hideQuizzes, isQuizHidden, mistakesToFix, quizStates } from '../../engine';
 import { plural } from '../../themes';
 import type { AssignedQuiz, Profile } from '../../types';
 import { askConfirm } from '../dialogs';
@@ -26,7 +26,11 @@ export function ParentQuiz({ p }: { p: Profile }) {
   const [msg, setMsg] = useState('');
   // Kartkówka z rozwiniętą listą błędów.
   const [shown, setShown] = useState<string | null>(null);
-  const states = progress ? quizStates(p.quizzes, progress) : [];
+  const all = progress ? quizStates(p.quizzes, progress) : [];
+  // Schowane przez rodzica kartkówki idą do zwiniętej listy „Schowane” (i znikają też z ekranu dziecka).
+  const states = all.filter((s) => !isQuizHidden(p, s.quiz.id, 'parent'));
+  const hiddenStates = all.filter((s) => isQuizHidden(p, s.quiz.id, 'parent'));
+  const writtenIds = states.filter((s) => s.result).map((s) => s.quiz.id);
   // Zadania, w których dziecko pomyliło się w ostatnich 30 dniach i jeszcze ich nie poprawiło.
   const open30 = mistakesToFix({ profileId: p.id, attempts: store.list('attempt'), topics, now: Date.now(), since: p.resetAt, days: 30 });
   const fromMistakes = Math.min(open30.length, MISTAKE_QUIZ_MAX);
@@ -56,6 +60,15 @@ export function ParentQuiz({ p }: { p: Profile }) {
     flash(`Zadano kartkówkę: ${p.name} zobaczy ją na ekranie startowym.`);
   };
 
+  // „Przywróć” przywraca kartkówkę także na ekranie dziecka (nawet jeśli dziecko schowało ją wcześniej samo).
+  const setHidden = async (ids: string[], hidden: boolean) => {
+    const cur = store.get('profile', p.id);
+    if (!cur) return;
+    const at = nowIso();
+    const byParent = { ...cur, ...hideQuizzes(cur, ids, 'parent', hidden, at) };
+    await store.put('profile', { ...byParent, ...(hidden ? {} : hideQuizzes(byParent, ids, 'child', false, at)), updatedAt: at });
+  };
+
   const remove = async (quiz: AssignedQuiz) => {
     if (!(await askConfirm(`Usunąć kartkówkę „${quiz.title}”? Wynik zostanie w historii sprawdzianów.`, { ok: 'Usuń', danger: true }))) return;
     await store.put('profile', { ...p, quizzes: (p.quizzes ?? []).filter((q) => q.id !== quiz.id), updatedAt: nowIso() });
@@ -76,6 +89,11 @@ export function ParentQuiz({ p }: { p: Profile }) {
             }}
           >
             <Icon name="repeat" size={16} /> Kartkówka z błędów ({fromMistakes})
+          </button>
+        )}
+        {!open && writtenIds.length > 0 && (
+          <button className="btn btn-sm" onClick={() => void setHidden(writtenIds, true)}>
+            <Icon name="eyeOff" size={16} /> Schowaj napisane ({writtenIds.length})
           </button>
         )}
         {!open && (
@@ -135,7 +153,7 @@ export function ParentQuiz({ p }: { p: Profile }) {
       )}
 
       {states.length === 0 ? (
-        !open && <p className="muted">Nie ma zadanych kartkówek.</p>
+        !open && <p className="muted">{hiddenStates.length ? 'Wszystkie kartkówki są schowane — znajdziesz je niżej.' : 'Nie ma zadanych kartkówek.'}</p>
       ) : (
         <div className="table-wrap">
           <table className="table">
@@ -177,6 +195,11 @@ export function ParentQuiz({ p }: { p: Profile }) {
                             <div className="muted" style={{ fontSize: 12 }}>
                               {result.correct}/{result.total} · {new Date(result.at).toLocaleString('pl-PL', { dateStyle: 'short', timeStyle: 'short' })}
                             </div>
+                            {isQuizHidden(p, quiz.id, 'child') && (
+                              <div className="muted" style={{ fontSize: 12 }}>
+                                {p.name} schował(a) ją u siebie
+                              </div>
+                            )}
                             {result.correct < result.total && (
                               <button
                                 className="btn btn-sm"
@@ -193,9 +216,16 @@ export function ParentQuiz({ p }: { p: Profile }) {
                         )}
                       </td>
                       <td>
-                        <button className="btn btn-sm btn-danger" onClick={() => void remove(quiz)} aria-label={`Usuń kartkówkę: ${quiz.title}`}>
-                          <Icon name="trash" size={16} />
-                        </button>
+                        <div className="row" style={{ gap: 6, flexWrap: 'nowrap' }}>
+                          {result && (
+                            <button className="btn btn-sm" onClick={() => void setHidden([quiz.id], true)} aria-label={`Schowaj kartkówkę: ${quiz.title}`} title="Schowaj">
+                              <Icon name="eyeOff" size={16} />
+                            </button>
+                          )}
+                          <button className="btn btn-sm btn-danger" onClick={() => void remove(quiz)} aria-label={`Usuń kartkówkę: ${quiz.title}`}>
+                            <Icon name="trash" size={16} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   </Fragment>
@@ -204,6 +234,29 @@ export function ParentQuiz({ p }: { p: Profile }) {
             </tbody>
           </table>
         </div>
+      )}
+      {hiddenStates.length > 0 && (
+        <details className="detail-box hidden-quizzes">
+          <summary>
+            <b>Schowane kartkówki ({hiddenStates.length})</b> <span className="muted">— nie ma ich też na ekranie dziecka</span>
+          </summary>
+          <ul className="hidden-quiz-list">
+            {[...hiddenStates].reverse().map(({ quiz, result }) => (
+              <li key={quiz.id}>
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <b>{quiz.title}</b>
+                  <span className="muted" style={{ fontSize: 13 }}>
+                    {' '}
+                    · {result ? `${result.correct}/${result.total}, ocena ${result.grade}` : 'nienapisana'} · {new Date(quiz.createdAt).toLocaleDateString('pl-PL')}
+                  </span>
+                </span>
+                <button className="btn btn-sm" onClick={() => void setHidden([quiz.id], false)}>
+                  <Icon name="eye" size={16} /> Przywróć
+                </button>
+              </li>
+            ))}
+          </ul>
+        </details>
       )}
       {/* Błędy pokazujemy pod tabelą (a nie w jej wierszu), żeby na telefonie nie trzeba było przewijać w bok. */}
       {states

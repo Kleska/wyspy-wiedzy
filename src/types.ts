@@ -256,8 +256,22 @@ export interface Profile {
    * listy się sumują (patrz `mergeDoc`).
    */
   reports?: ExerciseReport[];
+  /**
+   * Schowane napisane kartkówki. Dziecko chowa kartkówkę tylko ze swojego ekranu startowego, a rodzic — do „Schowanych”
+   * w panelu (wtedy znika też u dziecka). Wpisów nie usuwamy: „Przywróć” dopisuje nowszy stan, a przy scalaniu zmian
+   * z dwóch urządzeń wygrywa późniejszy wpis dla tej samej kartkówki i strony (patrz `mergeDoc`).
+   */
+  quizHides?: QuizHide[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface QuizHide {
+  /** Id kartkówki (`AssignedQuiz.id`). */
+  id: string;
+  by: 'child' | 'parent';
+  hidden: boolean;
+  at: string;
 }
 
 /** Co według zgłaszającego jest nie tak z zadaniem. */

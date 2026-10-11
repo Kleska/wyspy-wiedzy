@@ -37,6 +37,24 @@ export function mergeReports(a: unknown, b: unknown): ReportLike[] | undefined {
   return [...byId.values()].sort((x, y) => (x.at ?? '').localeCompare(y.at ?? '') || x.id.localeCompare(y.id));
 }
 
+type HideLike = { id: string; by?: string; at?: string };
+
+/**
+ * Schowane kartkówki: dziecko chowa na tablecie, rodzic na telefonie — wpisy z obu stron sumujemy,
+ * a dla tej samej kartkówki i strony (`by`) wygrywa późniejszy wpis (np. „Przywróć” po „Schowaj”).
+ */
+export function mergeQuizHides(a: unknown, b: unknown): HideLike[] | undefined {
+  if (!Array.isArray(a) && !Array.isArray(b)) return undefined;
+  const byKey = new Map<string, HideLike>();
+  for (const h of [...(Array.isArray(a) ? a : []), ...(Array.isArray(b) ? b : [])] as HideLike[]) {
+    if (!h || typeof h.id !== 'string') continue;
+    const key = `${h.id}:${h.by ?? ''}`;
+    const cur = byKey.get(key);
+    if (!cur || (h.at ?? '') > (cur.at ?? '')) byKey.set(key, h);
+  }
+  return [...byKey.values()].sort((x, y) => x.id.localeCompare(y.id) || (x.by ?? '').localeCompare(y.by ?? ''));
+}
+
 /** Porównanie treści JSON bez względu na kolejność kluczy (baza zwraca klucze w innej kolejności). */
 export function sameJson(a: unknown, b: unknown): boolean {
   if (a === b) return true;
@@ -68,7 +86,8 @@ export function sameJson(a: unknown, b: unknown): boolean {
  * - osoba: wygrywa nowsza wersja, ale plan od rodzica i listę „skończonych” tematów bierzemy z tej strony,
  *   gdzie zmieniono je później.
  *
- * Zawsze: usunięcie osoby i „Zacznij od nowa” nie cofają się, a zgłoszenia błędów w zadaniach z obu stron się sumują.
+ * Zawsze: usunięcie osoby i „Zacznij od nowa” nie cofają się, a zgłoszenia błędów w zadaniach i schowane kartkówki
+ * z obu stron się sumują.
  */
 export function mergeDoc(kind: DocKind, local: unknown, remote: unknown, opts: { joining?: boolean; base?: unknown } = {}): unknown {
   const l = local as AnyDoc;
@@ -101,6 +120,8 @@ export function mergeDoc(kind: DocKind, local: unknown, remote: unknown, opts: {
   if (kind === 'profile') {
     const reports = mergeReports(l.reports, r.reports);
     if (reports && !sameJson(reports, out.reports)) out = { ...out, reports };
+    const quizHides = mergeQuizHides(l.quizHides, r.quizHides);
+    if (quizHides && !sameJson(quizHides, out.quizHides)) out = { ...out, quizHides };
     const resetAt = [l.resetAt, r.resetAt].filter((x): x is string => typeof x === 'string').sort().pop();
     if (resetAt && resetAt !== out.resetAt) out = { ...out, resetAt };
     if ((l.deleted || r.deleted) && !out.deleted) out = { ...out, deleted: true };

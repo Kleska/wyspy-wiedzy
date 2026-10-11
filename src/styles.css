@@ -5578,6 +5578,60 @@ details[open] > summary .fold-chev {
   font-size: 18px;
 }
 
+/*
+ * Napisana kartkówka: mały „×” chowa ją z ekranu startowego (wynik zostaje w panelu rodzica).
+ * Na telefonie „×” stoi obok tytułu, a ocena z „Zobacz błędy” mają pod spodem całą szerokość;
+ * na szerokim ekranie wszystko jest w jednej linii, „×” na końcu.
+ */
+.quiz-row.done {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: 'info hide' 'result result';
+  justify-items: start;
+}
+
+.quiz-row.done .quiz-info {
+  grid-area: info;
+}
+
+.quiz-row.done .quiz-result {
+  grid-area: result;
+}
+
+.quiz-hide {
+  grid-area: hide;
+  align-self: start;
+  justify-self: end;
+  width: 36px;
+  height: 36px;
+  margin: -6px -6px 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+@media (min-width: 641px) {
+  .quiz-row.done {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-areas: 'info result hide';
+  }
+  .quiz-hide {
+    align-self: center;
+    margin: 0 -6px 0 0;
+  }
+}
+
+.quiz-hide:hover,
+.quiz-hide:focus-visible {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
 .quiz-info {
   flex: 1 1 200px;
   min-width: 0;
@@ -5599,6 +5653,26 @@ details[open] > summary .fold-chev {
 .quiz-meta {
   font-size: 14px;
   font-weight: 700;
+}
+
+.hidden-quizzes summary {
+  cursor: pointer;
+}
+
+.hidden-quiz-list {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.hidden-quiz-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 [data-theme='pixel'] .quiz-row {

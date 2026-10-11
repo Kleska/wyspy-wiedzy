@@ -680,6 +680,47 @@ test('kartkówka od rodzica: zadanie, napisanie i wynik w panelu rodzica', async
   const history = page.locator('section', { hasText: 'Sprawdziany i testy na start' });
   await history.getByRole('button', { name: `Pokaż (${wrong})` }).click();
   await expect(history.locator('.detail-box .mistake')).toHaveCount(wrong);
+  // Napisane kartkówki rodzic chowa jednym przyciskiem do zwiniętych „Schowanych” i może je przywrócić.
+  // (Wiersz „Poprawa: Have got na piątek” też zawiera tę nazwę — szukamy dokładnego tytułu.)
+  const quizRow = quizzes.locator('tr').filter({ has: page.locator('b', { hasText: /^Have got na piątek$/ }) });
+  await quizzes.getByRole('button', { name: 'Schowaj napisane (1)' }).click();
+  await expect(quizRow).toHaveCount(0);
+  const hidden = quizzes.locator('details.hidden-quizzes');
+  await expect(hidden).toContainText('Schowane kartkówki (1)');
+  await hidden.locator('summary').click();
+  await expect(hidden).toContainText(/Have got na piątek · \d\/5, ocena [1-6]/);
+  await snap(page, 'f44b-quiz-hidden-parent', true);
+  await page.getByRole('button', { name: 'Wyjdź' }).click();
+  // Schowana przez rodzica znika też z ekranu dziecka; nienapisana „Poprawa” zostaje.
+  await expect(card.locator('.quiz-row', { hasText: /^Have got na piątek/ })).toHaveCount(0);
+  await expect(card).toContainText('Poprawa: Have got na piątek');
+  await page.getByRole('button', { name: 'Panel rodzica' }).click();
+  for (const d of '123456') await page.getByRole('button', { name: d, exact: true }).click();
+  await page.getByRole('button', { name: 'Zatwierdź' }).click();
+  await page.getByRole('button', { name: 'Plan i sprawdziany' }).click();
+  await quizzes.locator('details.hidden-quizzes summary').click();
+  await quizzes.locator('details.hidden-quizzes').getByRole('button', { name: 'Przywróć' }).click();
+  await expect(quizRow).toContainText(/\d\/5/);
+  await expect(quizzes.locator('details.hidden-quizzes')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Wyjdź' }).click();
+  // Dziecko samo chowa napisaną kartkówkę „×” — u niego znika, a rodzic nadal widzi wynik (z dopiskiem).
+  const written = card.locator('.quiz-row.done', { hasText: 'Have got na piątek' });
+  await expect(written).toHaveCount(1);
+  if (phone) await page.setViewportSize({ width: 360, height: 740 });
+  const hideBox = (await written.getByRole('button', { name: 'Schowaj kartkówkę: Have got na piątek' }).boundingBox())!;
+  const titleBox = (await written.locator('.quiz-info b').boundingBox())!;
+  const writtenBox = (await written.boundingBox())!;
+  expect(hideBox.x + hideBox.width).toBeLessThanOrEqual(writtenBox.x + writtenBox.width + 1);
+  expect(hideBox.x).toBeGreaterThanOrEqual(titleBox.x + titleBox.width - 1);
+  await snap(page, 'f42c-quiz-hide-child');
+  if (phone) await page.setViewportSize({ width: 390, height: 844 });
+  await written.getByRole('button', { name: 'Schowaj kartkówkę: Have got na piątek' }).click();
+  await expect(written).toHaveCount(0);
+  await page.getByRole('button', { name: 'Panel rodzica' }).click();
+  for (const d of '123456') await page.getByRole('button', { name: d, exact: true }).click();
+  await page.getByRole('button', { name: 'Zatwierdź' }).click();
+  await page.getByRole('button', { name: 'Plan i sprawdziany' }).click();
+  await expect(quizRow).toContainText('Zosia schował(a) ją u siebie');
   await page.getByRole('button', { name: 'Wyjdź' }).click();
 
   // Dziecko dostaje kartkówkę dokładnie z tych pytań.

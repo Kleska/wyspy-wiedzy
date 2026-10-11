@@ -110,6 +110,30 @@ describe('scalanie zmian z dwóch urządzeń', () => {
     expect('reports' in (mergeDoc('profile', profile({}), profile({ updatedAt: '2026-10-05T10:00:00.000Z' })) as Profile)).toBe(false);
   });
 
+  it('osoba: kartkówkę schowaną na tablecie dziecka i nową kartkówkę od rodzica zostawiamy obie', () => {
+    const q = (id: string) => ({ id, title: id, topicIds: ['t'], count: 5, createdAt: '2026-10-03T08:00:00.000Z' });
+    const base = profile({ quizzes: [q('q1')] });
+    // Tablet: dziecko chowa napisaną q1. Telefon rodzica w tym samym czasie: nowa kartkówka q2 i schowanie starej q0.
+    const tablet = { ...base, quizHides: [{ id: 'q1', by: 'child' as const, hidden: true, at: '2026-10-03T09:00:00.000Z' }], updatedAt: '2026-10-03T09:00:00.000Z' };
+    const parent = {
+      ...base,
+      quizzes: [q('q1'), q('q2')],
+      quizHides: [{ id: 'q0', by: 'parent' as const, hidden: true, at: '2026-10-03T09:30:00.000Z' }],
+      updatedAt: '2026-10-03T09:30:00.000Z',
+    };
+    const merged = mergeDoc('profile', tablet, parent, { base }) as Profile;
+    expect(merged.quizzes?.map((x) => x.id)).toEqual(['q1', 'q2']);
+    expect(merged.quizHides?.map((h) => [h.id, h.by])).toEqual([
+      ['q0', 'parent'],
+      ['q1', 'child'],
+    ]);
+    expect(sameJson((mergeDoc('profile', parent, tablet) as Profile).quizHides, merged.quizHides)).toBe(true);
+    // Późniejsze „Przywróć” wygrywa ze schowaniem tej samej kartkówki.
+    const restored = { ...merged, quizHides: [{ id: 'q0', by: 'parent' as const, hidden: false, at: '2026-10-03T10:00:00.000Z' }, merged.quizHides![1]], updatedAt: '2026-10-03T10:00:00.000Z' };
+    expect((mergeDoc('profile', merged, restored) as Profile).quizHides?.find((h) => h.id === 'q0')?.hidden).toBe(false);
+    expect('quizHides' in (mergeDoc('profile', profile({}), profile({ updatedAt: '2026-10-05T10:00:00.000Z' })) as Profile)).toBe(false);
+  });
+
   it('osoba: usunięcie i „Zacznij od nowa” nie cofają się', () => {
     const removed = profile({ deleted: true, resetAt: '2026-10-02T08:00:00.000Z', updatedAt: '2026-10-02T08:00:00.000Z' });
     const stale = profile({ avatar: '🐼', updatedAt: '2026-10-03T08:00:00.000Z' });
