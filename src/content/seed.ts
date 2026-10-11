@@ -1,5 +1,6 @@
 import type { Lang, Subject, Topic } from '../types';
 import { DICTATION_GRADE3, DICTATION_GRADE5 } from './dictation';
+import { ENGLISH_GRADE3 } from './english3';
 import { ENGLISH_GRADE5 } from './english5';
 import { GUIDES } from './guides';
 import { HISTORY_GRADE5 } from './history5';
@@ -199,7 +200,7 @@ wpisz: W pudełku jest 6 rzędów po 7 cukierków. Ile cukierków jest w pudełk
   ),
 ];
 
-// Lektury i historia mają ściągę i lekcję przy temacie (`lektury.ts`, `history5.ts`); pozostałe tematy — w `guides.ts` i `lessons.ts`.
+// Lektury, historia i angielski kl. 3 mają ściągę i lekcję przy temacie (`lektury.ts`, `history5.ts`, `english3.ts`); pozostałe tematy — w `guides.ts` i `lessons.ts`.
 export const BUILTIN_TOPICS: Topic[] = [
   ...GRADE3_BASE,
   DICTATION_GRADE3,
@@ -211,6 +212,7 @@ export const BUILTIN_TOPICS: Topic[] = [
   ...LEKTURY_GRADE5,
   ...MATH_GRADE5,
   ...ENGLISH_GRADE5,
+  ...ENGLISH_GRADE3,
   ...HISTORY_GRADE5,
 ].map((t) => ({
   ...t,

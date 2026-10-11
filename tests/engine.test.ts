@@ -336,7 +336,7 @@ describe('rozdziały i kartkówki od rodzica', () => {
     ]);
     expect(unitLabel('')).toBe('Pozostałe');
     const english = topics.filter((t) => t.subject === 'ang');
-    expect(groupByUnit(english).map((x) => x.unit)).toEqual(['Unit 0']);
+    expect(groupByUnit(english).map((x) => x.unit)).toEqual(['Unit 0', 'Unit 1']);
     // Każdy temat wbudowany ma dział; na planszy działy stoją w kolejności swoich pierwszych tematów.
     for (const t of topics) expect(t.unit, t.id).toBeTruthy();
     const board = (subject: string, grade: number) =>
@@ -358,6 +358,9 @@ describe('rozdziały i kartkówki od rodzica', () => {
       ['Ortografia', 1],
       ['Czytanie', 1],
     ]);
+    // Angielski: klasa 5 ma Unit 0, a klasa 3 — Unit 1 z „Kids Can! 3”.
+    expect(board('ang', 3)).toEqual([['Unit 1', 5]]);
+    expect(board('ang', 5).map((x) => x[0])).toEqual(['Unit 0']);
     expect(board('pl', 5)).toEqual([
       ['Gramatyka', 4],
       ['Ortografia', 3],

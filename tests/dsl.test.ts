@@ -320,7 +320,7 @@ describe('język obcy: podpowiedzi, słówka, apostrofy', () => {
     expect(english.length).toBeGreaterThanOrEqual(9);
     for (const t of english) {
       expect(parseWords(t.words).length, t.title).toBeGreaterThanOrEqual(10);
-      expect(t.grades).toEqual([5]);
+      expect([[3], [5]], t.title).toContainEqual(t.grades);
       for (const ex of parseDsl(t.dsl).exercises) {
         const sentence = ex.type === 'choice' ? ex.sentence ?? '' : ex.type === 'fill' ? ex.parts.filter((p) => typeof p === 'string').join('') : '';
         // Zdanie po angielsku (co najmniej 3 wyrazy) — musi mieć tłumaczenie albo wskazówkę; polecenia z tłumaczeniem w treści są zwolnione.
@@ -486,6 +486,26 @@ describe('tryb nauki: lekcje', () => {
     // To samo pytanie w dwóch tematach rozdziału dałoby dziecku dwa razy to samo w sprawdzianie.
     const prompts = history.flatMap((t) => parseDsl(t.dsl).exercises.map((e) => exerciseToDsl({ ...e, explain: undefined, hint: undefined })));
     expect(new Set(prompts).size).toBe(prompts.length);
+  });
+
+  it('angielski kl. 3 (Kids Can! 3, Unit 1): słówka z pisownią, lekcje, ściągi, bez powtórzonych zadań', () => {
+    const g3 = BUILTIN_TOPICS.filter((t) => t.subject === 'ang' && t.grades?.includes(3));
+    expect(g3.map((t) => t.id)).toEqual(['b-a3-u1-sporty', 'b-a3-u1-joga', 'b-a3-u1-pisownia', 'b-a3-u1-i-play', 'b-a3-u1-do-you']);
+    for (const t of g3) {
+      expect(t.unit, t.title).toBe('Unit 1');
+      expect(t.guide, t.title).toBeTruthy();
+      expect(parseDsl(t.dsl).exercises.length, t.title).toBeGreaterThanOrEqual(15);
+    }
+    // Pisownia: każde słówko ze stron 8, 9 i 12 trzeba choć raz napisać (dyktando albo wpisywanie).
+    const typed = g3
+      .flatMap((t) => parseDsl(t.dsl).exercises)
+      .flatMap((e) => (e.type === 'fill' || e.type === 'dictation' ? e.parts.filter(Array.isArray).map((p) => (p as string[])[0].toLowerCase()) : []));
+    for (const w of ['gym', 'gymnastics', 'football', 'pitch', 'basketball', 'court', 'swimming', 'pool', 'running', 'track', 'left', 'right', 'floor', 'leg'])
+      expect(typed.some((x) => x.split(' ').includes(w)), `nie ma pisania słowa ${w}`).toBe(true);
+    // Formy he / she (plays, doesn't) przychodzą w podręczniku później — w klasie 3 ich nie ma.
+    for (const t of g3) expect(t.dsl, t.title).not.toMatch(/\b(doesn't|does|plays|goes)\b/);
+    const all = g3.flatMap((t) => parseDsl(t.dsl).exercises.map((e) => exerciseToDsl({ ...e, explain: undefined, hint: undefined })));
+    expect(new Set(all).size).toBe(all.length);
   });
 
   it('każdy temat z angielskiego ma kompletną lekcję bez błędów', () => {

@@ -1418,3 +1418,99 @@ test('historia kl. 5: rozdział „Pierwsze cywilizacje”, lekcje mieszczą si�
   await runExam(page);
   await expect(page.locator('.summary')).toBeVisible();
 });
+
+test('angielski kl. 3: Unit 1 z „Kids Can! 3” — lekcje mieszczą się na telefonie, dyktando słówek i sprawdzian z rozdziału', async ({ page }) => {
+  const phone = test.info().project.name === 'phone';
+  if (phone) await page.setViewportSize({ width: 360, height: 740 });
+  await onboard(page, 'Tymek', 3);
+  await page.locator('.subject-big', { hasText: 'Angielski' }).click();
+  await expect(page.getByRole('group', { name: 'Dział' }).getByRole('button', { name: /^Unit 1/ })).toBeVisible();
+  const topics = ['Sporty i miejsca', 'Joga: polecenia', 'Pisownia słówek', "I play… / I don't play…", 'Do you play…? Yes, I do.'];
+  const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const topicButton = (name: string) => page.getByRole('button', { name: new RegExp(esc(name)) }).first();
+  for (const name of topics) await expect(topicButton(name)).toBeAttached();
+  await snap(page, 'f91-ang3-board', true);
+
+  // Lekcje: każda karta mieści się na ekranie bez przewijania; słówka są na kartach-listach.
+  const title = page.locator('.pr-prompt h1');
+  const overflow = () => page.evaluate(() => document.documentElement.scrollHeight - window.innerHeight);
+  for (const name of topics) {
+    await topicButton(name).click();
+    await page.getByRole('dialog').getByRole('button', { name: /Nauka: poznaj temat krok po kroku/ }).click();
+    const seen: string[] = [];
+    for (let i = 0; i < 30; i++) {
+      if (await page.getByText(/^Sprawdź się: pytanie/).count()) break;
+      const card = (await title.innerText()).trim();
+      seen.push(card);
+      expect(await overflow(), `${name}: karta „${card}” nie mieści się na ekranie`).toBeLessThanOrEqual(1);
+      if (name === 'Sporty i miejsca' && card === 'Miejsca') await snap(page, 'f92-ang3-places');
+      await page.getByRole('button', { name: 'Dalej' }).click();
+    }
+    expect(seen[0], name).toBe('Najważniejsze');
+    expect(seen.some((c) => c.startsWith('Tak — nie tak')), name).toBe(true);
+    for (let i = 0; i < 5; i++) {
+      expect(await overflow(), `${name}: pytanie kontrolne nie mieści się na ekranie`).toBeLessThanOrEqual(1);
+      await answerAny(page);
+      await page.getByRole('button', { name: 'Sprawdź' }).click();
+      const last = await page.getByRole('button', { name: 'Kończę lekcję' }).count();
+      await page.getByRole('button', { name: /^(Dalej|Kończę lekcję)$/ }).click();
+      if (last) break;
+    }
+    await expect(page.getByRole('heading', { name: 'Lekcja przeczytana!' })).toBeVisible();
+    await page.getByRole('button', { name: 'Wróć', exact: true }).click();
+  }
+
+  // Pisownia: dyktando — dziecko słyszy zdanie i wpisuje słówko; poprawna pisownia jest zaliczona.
+  await topicButton('Pisownia słówek').click();
+  await page.getByRole('dialog').getByRole('button', { name: /^Graj!/ }).click();
+  for (let i = 0; i < 40 && !(await page.locator('.dictation-text').count()); i++) {
+    // Seria bez dyktanda (mało prawdopodobne) — zaczynamy jeszcze raz.
+    if (await page.locator('.summary').count()) {
+      await page.getByRole('button', { name: /Jeszcze raz/ }).click();
+      continue;
+    }
+    await answerAny(page);
+    await page.getByRole('button', { name: 'Sprawdź' }).click();
+    await page.getByRole('button', { name: /^(Dalej|Zakończ)$/ }).click();
+  }
+  const sentence = (await page.locator('.dictation-text').innerText()).replace(/\s+/g, ' ').trim();
+  const answers: Record<string, string> = {
+    'We go .': 'swimming',
+    'I go .': 'running',
+    'I play .': 'basketball',
+    'We play .': 'football',
+    'I do .': 'gymnastics',
+    'This is a .': 'gym',
+    'This is a swimming .': 'pool',
+    'This is a running .': 'track',
+    'This is a football .': 'pitch',
+    'This is a basketball .': 'court',
+    'Please sit on the .': 'floor',
+    'Now bend to the .': 'right',
+  };
+  expect(answers[sentence], `nieznane zdanie dyktanda: ${sentence}`).toBeTruthy();
+  await page.locator('.dictation-text .gap').fill(answers[sentence]);
+  await snap(page, 'f93-ang3-dictation');
+  await page.getByRole('button', { name: 'Sprawdź' }).click();
+  await expect(page.locator('.pr-foot.good')).toBeVisible();
+  await page.getByRole('button', { name: 'Zakończ ćwiczenie' }).click();
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Skończ' }).click();
+
+  // Powtórka i sprawdzian z całego rozdziału.
+  await page.getByRole('button', { name: /^Powtórka: Unit 1/ }).click();
+  await expect(page.getByRole('heading', { name: 'Miejsca', exact: true })).toBeVisible();
+  await expect(page.getByText('boisko do koszykówki').first()).toBeVisible();
+  await page.getByRole('button', { name: 'Wróć', exact: true }).click();
+  await page.getByRole('button', { name: /^Sprawdzian: Unit 1/ }).click();
+  const dlg = page.getByRole('dialog', { name: 'Sprawdzian' });
+  // Domyślnie zaznaczone są tematy już ćwiczone (tu: pisownia) — zaznaczamy cały rozdział.
+  const boxes = dlg.locator('input[type=checkbox]');
+  await expect(boxes).toHaveCount(topics.length);
+  for (let i = 0; i < topics.length; i++) if (!(await boxes.nth(i).isChecked())) await boxes.nth(i).click();
+  await dlg.getByRole('button', { name: 'Zaczynam sprawdzian' }).click();
+  await expect(page.locator('.pr-topic')).toContainText('Sprawdzian: Angielski, Unit 1');
+  expect(await overflow(), 'pierwsze pytanie sprawdzianu nie mieści się nad stopką').toBeLessThanOrEqual(1);
+  await runExam(page);
+  await expect(page.locator('.summary')).toBeVisible();
+  await snap(page, 'f94-ang3-summary');
+});
