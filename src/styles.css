@@ -3378,6 +3378,12 @@ p {
   color: var(--accent-ink);
 }
 
+.subject-big[data-subject='his'] .subject-badge,
+.subject-head[data-subject='his'] .subject-badge {
+  background: #8a5a2b;
+  color: #ffffff;
+}
+
 [data-theme='pixel'] .subject-badge {
   border-radius: 0;
   box-shadow: 4px 4px 0 #0a0d1a;
@@ -4159,14 +4165,21 @@ p {
 
 /* ───────────────────────── Sprawdzian i podsumowanie ───────────────────────── */
 
+/* W stopce sprawdzianu, obok „Dalej” (tylko przy pierwszym pytaniu). */
 .exam-note {
-  margin-top: 10px;
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.25;
   font-weight: 800;
   color: var(--muted);
-  background: var(--surface-2);
-  border-radius: 12px;
-  padding: 8px 12px;
-  display: inline-block;
+}
+
+@media (max-width: 380px) {
+  .exam-note {
+    font-size: 13px;
+  }
 }
 
 .fb-actions {

@@ -1350,3 +1350,71 @@ test('lektury: dział w języku polskim, lekcja ze streszczeniem mieści się na
   await page.getByRole('alertdialog').getByRole('button', { name: 'Skończ' }).click();
   await expect(page.getByRole('button', { name: /Test na start/ })).toContainText('24 pytania');
 });
+
+test('historia kl. 5: rozdział „Pierwsze cywilizacje”, lekcje mieszczą się na telefonie, powtórka z datami i sprawdzian', async ({ page }) => {
+  const phone = test.info().project.name === 'phone';
+  if (phone) await page.setViewportSize({ width: 360, height: 740 });
+  await onboard(page, 'Zosia', 5);
+  await expect(page.locator('.subject-big', { hasText: 'Historia' })).toBeVisible();
+  await snap(page, 'f86-historia-home', true);
+  await page.locator('.subject-big', { hasText: 'Historia' }).click();
+  await expect(page.getByRole('group', { name: 'Dział' }).getByRole('button', { name: /^Pierwsze cywilizacje/ })).toBeVisible();
+  const topics = ['Życie pierwszych ludzi', 'Miasta-państwa Mezopotamii', 'W Egipcie faraonów', 'W starożytnym Izraelu', 'Cywilizacje Indii i Chin', 'Od hieroglifów do alfabetu', 'Pierwsze cywilizacje: daty i pojęcia'];
+  const topicButton = (name: string) => page.getByRole('button', { name: new RegExp(name) }).first();
+  for (const name of topics) await expect(topicButton(name)).toBeAttached();
+  await snap(page, 'f87-historia-board', true);
+
+  // Każda karta lekcji (także druga część długiej listy) mieści się na ekranie bez przewijania; w każdej lekcji są daty.
+  const title = page.locator('.pr-prompt h1');
+  const partLabel = page.getByText(/^Część \d+ z \d+$/);
+  const overflow = () => page.evaluate(() => document.documentElement.scrollHeight - window.innerHeight);
+  for (const name of topics) {
+    await topicButton(name).click();
+    await page.getByRole('dialog').getByRole('button', { name: /Nauka: poznaj temat krok po kroku/ }).click();
+    const seen: string[] = [];
+    for (let i = 0; i < 30; i++) {
+      if (await page.getByText(/^Sprawdź się: pytanie/).count()) break;
+      const card = (await title.innerText()).trim();
+      const label = (await partLabel.count()) ? (await partLabel.innerText()).trim() : '';
+      seen.push(card);
+      expect(await overflow(), `${name}: karta „${card}” ${label} nie mieści się na ekranie`).toBeLessThanOrEqual(1);
+      if (name === 'W Egipcie faraonów' && card === 'Daty') await snap(page, 'f88-historia-dates');
+      if (name === 'W Egipcie faraonów' && card === 'Społeczeństwo Egiptu' && !label.startsWith('Część 2')) await snap(page, 'f88b-historia-society');
+      await page.getByRole('button', { name: 'Dalej' }).click();
+    }
+    expect(seen[0], name).toBe('Najważniejsze');
+    expect(seen.some((c) => c === 'Daty' || c === 'Oś czasu rozdziału'), `${name}: brak dat`).toBe(true);
+    expect(seen.some((c) => c.startsWith('Tak — nie tak')), name).toBe(true);
+    for (let i = 0; i < 5; i++) {
+      expect(await overflow(), `${name}: pytanie kontrolne nie mieści się na ekranie`).toBeLessThanOrEqual(1);
+      await answerAny(page);
+      await page.getByRole('button', { name: 'Sprawdź' }).click();
+      const last = await page.getByRole('button', { name: 'Kończę lekcję' }).count();
+      await page.getByRole('button', { name: /^(Dalej|Kończę lekcję)$/ }).click();
+      if (last) break;
+    }
+    await expect(page.getByRole('heading', { name: 'Lekcja przeczytana!' })).toBeVisible();
+    await page.getByRole('button', { name: 'Wróć', exact: true }).click();
+  }
+
+  // Strona powtórki rozdziału: daty z każdego tematu i oś czasu całego rozdziału.
+  await page.getByRole('button', { name: /^Powtórka: Pierwsze cywilizacje/ }).click();
+  await expect(page.getByRole('heading', { name: 'Oś czasu rozdziału' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Daty' }).first()).toBeVisible();
+  await expect(page.getByText('Panowanie Hammurabiego — szczyt potęgi Babilonii.')).toBeVisible();
+  await snap(page, 'f89-historia-review', true);
+  await page.getByRole('button', { name: 'Wróć', exact: true }).click();
+
+  // Sprawdzian z całego rozdziału: z oceną na końcu.
+  await page.getByRole('button', { name: /^Sprawdzian: Pierwsze cywilizacje/ }).click();
+  const dlg = page.getByRole('dialog', { name: 'Sprawdzian' });
+  await expect(dlg.locator('input[type=checkbox]:checked')).toHaveCount(topics.length);
+  await dlg.getByRole('button', { name: 'Zaczynam sprawdzian' }).click();
+  await expect(page.locator('.pr-topic')).toContainText('Sprawdzian: Historia, Pierwsze cywilizacje');
+  // Uwaga „bez podpowiedzi” stoi w stopce obok „Dalej” — nie spycha odpowiedzi pierwszego pytania pod stopkę.
+  await expect(page.locator('.pr-foot .exam-note')).toBeVisible();
+  expect(await overflow(), 'pierwsze pytanie sprawdzianu nie mieści się nad stopką').toBeLessThanOrEqual(1);
+  await snap(page, 'f90-historia-question');
+  await runExam(page);
+  await expect(page.locator('.summary')).toBeVisible();
+});

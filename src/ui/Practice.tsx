@@ -476,7 +476,6 @@ export function Practice({ run }: { run: Run }) {
               <Icon name="volume" />
             </button>
           </div>
-          {exam && idx === 0 && <p className="exam-note">Bez podpowiedzi i poprawek. Wynik i ocenę zobaczysz na końcu.</p>}
         </div>
 
         <ExerciseView
@@ -520,7 +519,8 @@ export function Practice({ run }: { run: Run }) {
               Podpowiedź
             </button>
           )}
-          <span className="spacer" />
+          {/* Uwaga o sprawdzianie stoi w stopce obok „Dalej”: nad zadaniem spychała odpowiedzi pod stopkę na telefonie. */}
+          {exam && idx === 0 ? <p className="exam-note">Bez podpowiedzi i poprawek. Ocena na końcu.</p> : <span className="spacer" />}
           <button className="btn btn-primary btn-lg" onClick={check} disabled={!ready}>
             {exam ? (idx + 1 >= queue.length ? 'Zakończ sprawdzian' : 'Dalej') : 'Sprawdź'}
             {exam && <Icon name="arrowRight" />}

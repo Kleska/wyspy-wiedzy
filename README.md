@@ -32,7 +32,10 @@ można ją zainstalować na ekranie głównym i używać bez internetu. Postępy
   - dyktanda dla klasy 3 i 5 (ó, rz, ż, ch, h);
   - czytanie ze zrozumieniem dla klasy 3 i 5 (teksty z pytaniami; tekst jest nad każdym pytaniem);
   - klasa 5 — angielski, dział powtórzeniowy „Unit 0”: to be, kraje i narodowości, miesiące, have got, can,
-    there is / there are, this / that / these / those, zaimki dzierżawcze i przymiotniki, czytanie po angielsku.
+    there is / there are, this / that / these / those, zaimki dzierżawcze i przymiotniki, czytanie po angielsku;
+  - klasa 5 — historia według podręcznika „Wczoraj i dziś 5”, rozdział I „Pierwsze cywilizacje”: życie pierwszych
+    ludzi, Mezopotamia, Egipt, starożytny Izrael, Indie i Chiny, od hieroglifów do alfabetu oraz powtórka dat
+    i pojęć. Każdy temat ma lekcję (z kartą dat), ściągę i 20–28 pytań; sprawdzian obejmuje cały rozdział.
   Wyniki zadań matematycznych są liczone w kodzie, nie wpisywane ręcznie.
 - Poziomy tematów (Nowy → Próbowany → Znany → Biegły → Opanowany) — rosną i spadają razem z pamięcią dziecka;
   po ćwiczeniu ekran „Co się zmieniło”.

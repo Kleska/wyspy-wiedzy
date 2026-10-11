@@ -399,21 +399,57 @@ export function parseLesson(text: string | undefined): Lesson | null {
 export const LIST_BUDGET = 540;
 const LIST_ITEM_COST = 70;
 
-/** Dzieli listę lekcji na karty: [od, do) kolejnych punktów. Pojedynczy punkt nigdy nie jest dzielony. */
+/**
+ * Dzieli listę lekcji na karty: [od, do) kolejnych punktów. Pojedynczy punkt nigdy nie jest dzielony.
+ * Kart jest tyle, ile trzeba przy pełnym budżecie, ale punkty rozkładają się po nich równo — bez ostatniej karty
+ * z jednym samotnym punktem.
+ */
 export function lessonListParts(list: LessonList): [number, number][] {
-  const out: [number, number][] = [];
-  let from = 0;
-  let used = 0;
-  list.items.forEach((it, i) => {
-    const cost = it.head.length + it.text.length + LIST_ITEM_COST;
-    if (i > from && used + cost > LIST_BUDGET) {
-      out.push([from, i]);
-      from = i;
-      used = 0;
+  const costs = list.items.map((it) => it.head.length + it.text.length + LIST_ITEM_COST);
+  const split = (cap: number) => {
+    const out: [number, number][] = [];
+    let from = 0;
+    let used = 0;
+    costs.forEach((cost, i) => {
+      if (i > from && used + cost > cap) {
+        out.push([from, i]);
+        from = i;
+        used = 0;
+      }
+      used += cost;
+    });
+    if (costs.length > from) out.push([from, costs.length]);
+    return out;
+  };
+  const parts = split(LIST_BUDGET);
+  const k = parts.length;
+  if (k < 2) return parts;
+  // Ten sam podział na k kart, ale z najrówniejszymi kartami: najmniejsza suma kwadratów „wagi” kart.
+  const n = costs.length;
+  const sum = (a: number, b: number) => costs.slice(a, b).reduce((x, y) => x + y, 0);
+  const ok = (a: number, b: number) => b - a === 1 || sum(a, b) <= LIST_BUDGET;
+  const best: number[][] = Array.from({ length: k + 1 }, () => Array(n + 1).fill(Infinity));
+  const prev: number[][] = Array.from({ length: k + 1 }, () => Array(n + 1).fill(-1));
+  best[0][0] = 0;
+  for (let j = 1; j <= k; j++) {
+    for (let i = 1; i <= n; i++) {
+      for (let p = j - 1; p < i; p++) {
+        if (best[j - 1][p] === Infinity || !ok(p, i)) continue;
+        const v = best[j - 1][p] + sum(p, i) ** 2;
+        if (v < best[j][i]) {
+          best[j][i] = v;
+          prev[j][i] = p;
+        }
+      }
     }
-    used += cost;
-  });
-  if (list.items.length > from) out.push([from, list.items.length]);
+  }
+  if (best[k][n] === Infinity) return parts;
+  const out: [number, number][] = [];
+  for (let j = k, i = n; j > 0; j--) {
+    const p = prev[j][i];
+    out.unshift([p, i]);
+    i = p;
+  }
   return out;
 }
 

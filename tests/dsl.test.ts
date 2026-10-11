@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { BUILTIN_TOPICS } from '../src/content/seed';
+import { BUILTIN_TOPICS, subjectName } from '../src/content/seed';
 import { evalSchool } from '../src/content/math';
 import { exerciseToDsl, isFillAnswerCorrect, LESSON_HELP, lessonListParts, LIST_BUDGET, maskSpelling, parseDsl, parseLesson, parseLine, parseTapSentence, parseWords, wordHints } from '../src/dsl';
 import { LESSONS } from '../src/content/lessons';
@@ -389,6 +389,17 @@ describe('tryb nauki: lekcje', () => {
       expect(to - from === 1 || size <= LIST_BUDGET).toBe(true);
     }
     expect(lessonListParts({ title: 'Pusta', numbered: false, items: [] })).toEqual([]);
+    // Punkty rozkładają się równo: siedem podobnych punktów to 3 + 2 + 2, a nie 3 + 3 + 1 (samotny punkt na ostatniej karcie).
+    const seven = { title: 'Społeczeństwo', numbered: false, items: Array.from({ length: 7 }, (_, i) => ({ head: `Grupa ${i + 1}`, text: 'x'.repeat(100) })) };
+    const sizes = lessonListParts(seven).map(([a, b]) => b - a);
+    expect(sizes.reduce((a, b) => a + b, 0)).toBe(7);
+    expect(Math.max(...sizes) - Math.min(...sizes)).toBeLessThanOrEqual(1);
+    // Punkt dłuższy niż cała karta stoi sam, a reszta nadal mieści się w budżecie.
+    const huge = { title: 'Długi', numbered: false, items: [{ head: 'A', text: 'x'.repeat(300) }, { head: 'B', text: 'x'.repeat(300) }, { head: 'C', text: 'x'.repeat(700) }] };
+    for (const [from, to] of lessonListParts(huge)) {
+      const size = huge.items.slice(from, to).reduce((a, it) => a + it.head.length + it.text.length, 0);
+      expect(to - from === 1 || size <= LIST_BUDGET).toBe(true);
+    }
   });
 
   it('lektury: dział, lekcja z listami bez błędów, streszczenie w „wydarzeniach”, pytania kontrolne inne niż zadania', () => {
@@ -434,6 +445,47 @@ describe('tryb nauki: lekcje', () => {
     // Zadania nie powtarzają się między tematami tej samej książki.
     const all = books.flatMap((t) => parseDsl(t.dsl).exercises.map((e) => e.id));
     expect(new Set(all).size).toBe(all.length);
+  });
+
+  it('historia kl. 5: przedmiot, rozdział jako dział, lekcja z listami, wyjaśnienia, pytania kontrolne inne niż zadania', () => {
+    const history = BUILTIN_TOPICS.filter((t) => t.subject === 'his');
+    expect(history.length).toBeGreaterThanOrEqual(7);
+    expect(subjectName('his')).toBe('Historia');
+    for (const t of history) {
+      expect(t.id, t.id).toMatch(/^b-h5-r\d+-/);
+      expect(t.grades, t.title).toEqual([5]);
+      expect(t.unit, t.title).toBe('Pierwsze cywilizacje');
+      expect(t.guide, t.title).toBeTruthy();
+      const { exercises, errors } = parseDsl(t.dsl);
+      expect(errors, t.title).toEqual([]);
+      expect(exercises.length, t.title).toBeGreaterThanOrEqual(18);
+      for (const ex of exercises) expect(ex.explain, `${t.title}: zadanie bez wyjaśnienia — ${ex.prompt}`).toBeTruthy();
+      expect(exercises.some((e) => e.type === 'fill'), t.title).toBe(true);
+      const l = parseLesson(t.lesson);
+      expect(l, t.title).not.toBeNull();
+      expect(l!.errors, t.title).toEqual([]);
+      expect(l!.key.length, t.title).toBeGreaterThanOrEqual(2);
+      expect(l!.key.length, t.title).toBeLessThanOrEqual(3);
+      // Daty mają być widoczne na arkuszu powtórki z hasłem (lista nienumerowana).
+      const dates = l!.lists.find((x) => /^(Daty|Oś czasu)/.test(x.title));
+      expect(dates, `${t.title}: brak listy dat`).toBeTruthy();
+      expect(dates!.numbered, t.title).toBe(false);
+      for (const list of l!.lists) for (const it of list.items) expect(it.head, `${t.title}: punkt bez hasła — ${it.text}`).toBeTruthy();
+      expect(l!.pairs.length, t.title).toBeGreaterThanOrEqual(3);
+      expect(l!.pairs.length, t.title).toBeLessThanOrEqual(4);
+      for (const p of l!.pairs) expect(p.why, `${t.title}: para bez „bo”`).toBeTruthy();
+      expect(l!.trick.length, t.title).toBeGreaterThanOrEqual(1);
+      expect(l!.checks.length, t.title).toBeGreaterThanOrEqual(2);
+      const body = (e: Exercise) => exerciseToDsl({ ...e, explain: undefined, hint: undefined });
+      const own = new Set(exercises.map(body));
+      for (const ex of l!.checks) {
+        expect(ex.explain, `${t.title}: pytanie kontrolne bez wyjaśnienia`).toBeTruthy();
+        expect(own.has(body(ex)), `${t.title}: pytanie kontrolne powtarza zadanie tematu`).toBe(false);
+      }
+    }
+    // To samo pytanie w dwóch tematach rozdziału dałoby dziecku dwa razy to samo w sprawdzianie.
+    const prompts = history.flatMap((t) => parseDsl(t.dsl).exercises.map((e) => exerciseToDsl({ ...e, explain: undefined, hint: undefined })));
+    expect(new Set(prompts).size).toBe(prompts.length);
   });
 
   it('każdy temat z angielskiego ma kompletną lekcję bez błędów', () => {
