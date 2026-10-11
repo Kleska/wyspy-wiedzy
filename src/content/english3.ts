@@ -156,10 +156,10 @@ wybierz: Uzupełnij polecenie „stań na jednej nodze”. >> Stand on one ___. 
 wybierz: Które słowo znaczy „usiądź”? >> ___ on the floor. | *Sit | Stand | Bend ?? Stand to stań. !! Sit — usiądź, stand — stań, bend — zrób skłon.
 wybierz: Które słowo znaczy „stań”? >> ___ on one leg. | *Stand | Sit | Bend ?? Sit to usiądź. !! Stand — stań, sit — usiądź, bend — zrób skłon.
 sortuj: Na stojąco czy na siedząco? >> na stojąco = stand on one leg, bend to the left, bend to the right ; na siedząco = sit on the floor !! Na siedząco robisz tylko jedno: sit on the floor. Skłony i stanie na jednej nodze robisz na stojąco.
-wpisz: Napisz brakujące słowo. >> Sit on the [floor]. ?? Po polsku: Usiądź na podłodze. !! Floor — podłoga. Piszemy dwa „o”.
-wpisz: Napisz brakujące słowo. >> Stand on one [leg]. ?? Po polsku: Stań na jednej nodze. !! Leg — noga.
-wpisz: Napisz brakujące słowo. >> Bend to the [left]. ?? Po polsku: Zrób skłon w lewo. !! Left — lewo. Oba słowa zaczynają się na L.
-wpisz: Napisz brakujące słowo. >> Bend to the [right]. ?? Po polsku: Zrób skłon w prawo. !! Right — prawo. Piszemy r-i-g-h-t, chociaż słychać „rajt”.
+wpisz: Napisz po angielsku „usiądź na podłodze”. >> Sit on the [floor]. ?? Podłoga to po angielsku słowo z dwoma „o”. !! Floor — podłoga. Piszemy dwa „o”.
+wpisz: Napisz po angielsku „stań na jednej nodze”. >> Stand on one [leg]. ?? Noga to krótkie słowo — trzy litery. !! Leg — noga.
+wpisz: Napisz po angielsku „zrób skłon w lewo”. >> Bend to the [left]. ?? Lewo po angielsku też zaczyna się na L. !! Left — lewo. Oba słowa zaczynają się na L.
+wpisz: Napisz po angielsku „zrób skłon w prawo”. >> Bend to the [right]. ?? Prawo po angielsku zaczyna się na R. !! Right — prawo. Piszemy r-i-g-h-t, chociaż słychać „rajt”.
 `,
   `
 stand on one leg — stań na jednej nodze
