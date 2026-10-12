@@ -21,6 +21,7 @@ import { ThemePicker } from './ui/ThemePicker';
 import { TopicSheet } from './ui/TopicSheet';
 
 const PROFILE_KEY = 'ww-profile';
+const PARENT_CONTEXT: Profile = { id: 'parent-view', name: 'Rodzic', avatar: '', grade: 3, theme: 'wyspy', createdAt: '2000-01-01T00:00:00Z', updatedAt: '2000-01-01T00:00:00Z' };
 const ParentGate = lazy(() => import('./ui/parent/ParentGate').then((m) => ({ default: m.ParentGate })));
 
 function Splash({ text }: { text: string }) {
@@ -48,6 +49,7 @@ export function App() {
   const [themesOpen, setThemesOpen] = useState(false);
   const [topicOpen, setTopicOpen] = useState<string | null>(null);
   const [picking, setPicking] = useState(false);
+  const [parentEntry, setParentEntry] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   // Urządzenie jeszcze niepodłączone do konta rodziny może działać lokalnie (do zamknięcia aplikacji) —
   // dziecko nie zostaje bez nauki, gdy rodzic nie zdążył się zalogować. Dane wyślą się przy pierwszym logowaniu.
@@ -56,7 +58,7 @@ export function App() {
 
   const profiles = store.profiles();
   const only = profiles.length === 1 ? profiles[0] : undefined;
-  const profile: Profile | undefined = profiles.find((p) => p.id === profileId) ?? only;
+  const profile: Profile | undefined = profiles.find((p) => p.id === profileId) ?? (parentEntry && screen.name === 'parent' ? profiles[0] ?? PARENT_CONTEXT : only);
   // Jedyna osoba na urządzeniu wybiera się sama — i zostaje wybrana, gdy w trakcie nauki
   // synchronizacja dołoży kolejne osoby (inaczej ćwiczenie przerwałby ekran „Kto się dziś uczy?”).
   useEffect(() => {
@@ -72,6 +74,7 @@ export function App() {
 
   const choose = useCallback(
     (id: string) => {
+      setParentEntry(false);
       setProfileId(id);
       try {
         localStorage.setItem(PROFILE_KEY, id);
@@ -131,12 +134,13 @@ export function App() {
     [profile, theme, go, toast, openOverlay, registerBackGuard],
   );
 
+  const enterParent = () => { setParentEntry(true); setPicking(false); go({ name: 'parent' }); };
   if (!st.ready) return <Splash text="Ładuję…" />;
   if (st.cloud && st.auth.status === 'checking') return <Splash text="Łączę z chmurą…" />;
-  if (st.cloud && st.auth.status === 'signedOut' && !(localOnly && !st.joined)) return <Login onSkip={st.joined ? undefined : () => setLocalOnly(true)} />;
+  if (st.cloud && st.auth.status === 'signedOut' && !(localOnly && !st.joined)) return <Login onDestination={(parent) => { setParentEntry(parent); if (parent) go({ name: 'parent' }); else reset(); }} onSkip={st.joined ? undefined : () => setLocalOnly(true)} />;
   if (st.cloud && st.auth.status === 'signedIn' && !st.sync.firstPullDone) return <Splash text="Pobieram postępy…" />;
-  if (profiles.length === 0) return <Onboarding onDone={choose} />;
-  if (!profile || picking) return <ProfilePicker profiles={profiles} onPick={choose} onCancel={profile ? () => setPicking(false) : undefined} />;
+  if (profiles.length === 0 && !(parentEntry && screen.name === 'parent')) return <Onboarding onDone={choose} onParent={enterParent} />;
+  if (!profile || picking) return <ProfilePicker profiles={profiles} onPick={choose} onParent={enterParent} onCancel={profile ? () => setPicking(false) : undefined} />;
 
   return (
     <AppContext.Provider value={ctx}>
@@ -153,7 +157,7 @@ export function App() {
         {screen.name === 'rewards' && <Rewards />}
         {screen.name === 'parent' && (
           <Suspense fallback={<Splash text="Otwieram panel rodzica…" />}>
-            <ParentGate onExit={() => go({ name: 'home' })} />
+            <ParentGate onExit={() => { setParentEntry(false); go({ name: 'home' }); }} />
           </Suspense>
         )}
         {themesOpen && (

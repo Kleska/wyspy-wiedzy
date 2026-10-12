@@ -1,4 +1,4 @@
-import { openSubjectMore, openTopicMore, openPlan } from './clear-helpers';
+import { openSubjectMore, openTopicMore, openPlan, openParentPlan, openParentStats } from './clear-helpers';
 import type { Locator, Page } from '@playwright/test';
 import { divisionInputs, divisionLayout } from '../src/longdiv';
 import { multiplicationLayout } from '../src/longmul';
@@ -41,6 +41,10 @@ async function openStartCard(page: Page, title: string) {
     .getByRole('navigation', { name: 'Menu ucznia' })
     .getByRole('button', { name: title === 'Mini-gry' ? 'Gry' : title === 'Test na start' ? 'Nauka' : 'Postępy', exact: true })
     .click();
+  if (!['Mini-gry', 'Test na start'].includes(title)) {
+    const goals = page.locator('details.clear-details', { has: page.locator(':scope > summary', { hasText: 'Cele, odznaki i tabliczka mnożenia' }) });
+    if ((await goals.count()) && (await goals.getAttribute('open')) === null) await goals.locator(':scope > summary').click();
+  }
   const card = page.locator('details.fold', { has: page.getByRole('heading', { name: title, exact: true }) });
   if ((await card.getAttribute('open')) === null) await card.locator('summary').click();
 }
@@ -51,7 +55,7 @@ async function parentLogin(page: Page) {
     for (const d of '123456') await page.getByRole('button', { name: d, exact: true }).click();
     await page.getByRole('button', { name: 'Zatwierdź' }).click();
   }
-  await expect(page.getByRole('heading', { name: 'Postępy' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /^Postępy:/ })).toBeVisible();
 }
 
 /** Odpowiada na bieżące zadanie „jakkolwiek”. */
@@ -230,6 +234,7 @@ test('rodzic: plan, raport tygodnia, pomysły na nagrody i wspólny cel', async 
   await expect(page.getByText('Na liście jest na razie jedna osoba.')).toBeVisible();
 
   await page.getByRole('button', { name: 'Plan i sprawdziany' }).click();
+  await openParentPlan(page);
   await expect(page.getByLabel('Uczeń').locator('option')).toHaveText([/Kuba \(klasa 3\)/]);
   await page.getByPlaceholder('np. Sprawdzian z ułamków').fill('Sprawdzian z czasowników');
   const d = new Date();
@@ -243,6 +248,7 @@ test('rodzic: plan, raport tygodnia, pomysły na nagrody i wspólny cel', async 
   await snap(page, 'f14-parent-plan', true);
 
   await page.getByRole('button', { name: 'Postępy' }).click();
+  await openParentStats(page);
   await expect(page.getByRole('heading', { name: /^Ten tydzień/ })).toBeVisible();
   await page.getByRole('button', { name: 'Pokaż tekst' }).click();
   await expect(page.getByLabel('Tekst raportu')).toHaveValue(/Raport tygodniowy — Kuba \(klasa 3\)/);
@@ -475,6 +481,7 @@ test('plan ze zdjęcia zakresu (przez czat z Claude)', async ({ page }) => {
   await onboard(page, 'Kuba', 3);
   await parentLogin(page);
   await page.getByRole('button', { name: 'Plan i sprawdziany' }).click();
+  await openParentPlan(page);
   await expect(page.getByRole('heading', { name: /Sprawdzian w szkole\? Zrób zdjęcie zakresu/ })).toBeVisible();
   await snap(page, 'f28-plan-photo', true);
   await page
@@ -607,6 +614,7 @@ test('angielski: czytanie ze słówkami z tekstu i plan potwierdzany sprawdziane
 
   await parentLogin(page);
   await page.getByRole('button', { name: 'Plan i sprawdziany' }).click();
+  await openParentPlan(page);
   await page.getByPlaceholder('np. Sprawdzian z ułamków').fill('Sprawdzian: Unit 0');
   // Cały dział jednym stuknięciem: wszystkie tematy z angielskiego.
   await page.getByRole('group', { name: 'Angielski' }).getByRole('button', { name: 'Zaznacz wszystkie (9)' }).click();
@@ -680,6 +688,7 @@ test('rozdziały: plansza angielskiego pokazuje Unit 0, sprawdzian jest z rozdzi
   await page.getByRole('button', { name: 'Wróć', exact: true }).click();
   await parentLogin(page);
   await page.getByRole('button', { name: 'Plan i sprawdziany' }).click();
+  await openParentPlan(page);
   const planEnglish = page.getByRole('group', { name: 'Angielski' }).first();
   await expect(planEnglish.locator('.unit-fold > summary', { hasText: 'Unit 0' })).toContainText('zaznaczone 0 z 9');
   await page.getByRole('button', { name: 'Tematy' }).click();
@@ -693,6 +702,7 @@ test('kartkówka od rodzica: zadanie, napisanie i wynik w panelu rodzica', async
   await onboard(page, 'Zosia', 5);
   await parentLogin(page);
   await page.getByRole('button', { name: 'Plan i sprawdziany' }).click();
+  await openParentPlan(page);
   await expect(page.getByText('Nie ma zadanych kartkówek.')).toBeVisible();
   await page.getByRole('button', { name: 'Zadaj kartkówkę' }).click();
   const form = page.locator('.quiz-form');
@@ -756,6 +766,7 @@ test('kartkówka od rodzica: zadanie, napisanie i wynik w panelu rodzica', async
   for (const d of '123456') await page.getByRole('button', { name: d, exact: true }).click();
   await page.getByRole('button', { name: 'Zatwierdź' }).click();
   await page.getByRole('button', { name: 'Plan i sprawdziany' }).click();
+  await openParentPlan(page);
   const row = page.locator('tr', { hasText: 'Have got na piątek' });
   await expect(row).toContainText(/\d\/5/);
   await expect(row).not.toContainText('czeka na napisanie');
@@ -809,6 +820,7 @@ test('kartkówka od rodzica: zadanie, napisanie i wynik w panelu rodzica', async
   for (const d of '123456') await page.getByRole('button', { name: d, exact: true }).click();
   await page.getByRole('button', { name: 'Zatwierdź' }).click();
   await page.getByRole('button', { name: 'Plan i sprawdziany' }).click();
+  await openParentPlan(page);
   await quizzes.locator('details.hidden-quizzes summary').click();
   await quizzes.locator('details.hidden-quizzes').getByRole('button', { name: 'Przywróć' }).click();
   await expect(quizRow).toContainText(/\d\/5/);
@@ -832,6 +844,7 @@ test('kartkówka od rodzica: zadanie, napisanie i wynik w panelu rodzica', async
   for (const d of '123456') await page.getByRole('button', { name: d, exact: true }).click();
   await page.getByRole('button', { name: 'Zatwierdź' }).click();
   await page.getByRole('button', { name: 'Plan i sprawdziany' }).click();
+  await openParentPlan(page);
   await expect(quizRow).toContainText('Zosia schował(a) ją u siebie');
   await page.getByRole('button', { name: 'Wyjdź' }).click();
   await openPlan(page);
@@ -879,7 +892,7 @@ test('PIN rodzica: nowy ma 6 cyfr, stary 4-cyfrowy wpuszcza raz i każe ustawić
   await expect(page.getByRole('heading', { name: 'Powtórz PIN' })).toBeVisible();
   for (const d of '654321') await page.getByRole('button', { name: d, exact: true }).click();
   await page.getByRole('button', { name: 'Zatwierdź' }).click();
-  await expect(page.getByRole('heading', { name: 'Postępy' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /^Postępy:/ })).toBeVisible();
 
   // Od teraz obowiązuje tylko nowy PIN.
   await page.getByRole('button', { name: 'Wyjdź' }).click();
@@ -892,7 +905,7 @@ test('PIN rodzica: nowy ma 6 cyfr, stary 4-cyfrowy wpuszcza raz i każe ustawić
   await expect(page.getByText('Zły PIN.')).toBeVisible();
   for (const d of '654321') await page.getByRole('button', { name: d, exact: true }).click();
   await page.getByRole('button', { name: 'Zatwierdź' }).click();
-  await expect(page.getByRole('heading', { name: 'Postępy' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /^Postępy:/ })).toBeVisible();
   // W ustawieniach też tylko 6 cyfr.
   await page.getByRole('button', { name: 'Ustawienia' }).click();
   await page.getByLabel('Nowy PIN').fill('12345');
@@ -992,10 +1005,12 @@ test('tryb nauki: karty lekcji, pytania kontrolne, powtórka rozdziału i kroki 
   // Karta planu prowadzi po kolei: Nauka → Ćwiczenia → Sprawdzian próbny.
   await parentLogin(page);
   await page.getByRole('button', { name: 'Plan i sprawdziany' }).click();
+  await openParentPlan(page);
   await page.getByPlaceholder('np. Sprawdzian z ułamków').fill('Sprawdzian: Unit 0');
   await page.getByRole('group', { name: 'Angielski' }).getByRole('button', { name: 'Zaznacz wszystkie (9)' }).click();
   await page.getByRole('button', { name: 'Zapisz plan (9)' }).click();
   await page.getByRole('button', { name: 'Postępy' }).click();
+  await openParentStats(page);
   await expect(page.locator('tr', { hasText: 'Nauka (lekcja)' })).toContainText('To be: am, is, are');
   await page.getByRole('button', { name: 'Wyjdź' }).click();
   await openPlan(page);
@@ -1255,6 +1270,7 @@ test('porządek tematów: rodzic przypina „Teraz”, przenosi dział do „Sko
 
   // Plan powstał sam (bez terminu) i ma oba tematy; lista w edytorze planu ma zwijane działy.
   await page.getByRole('button', { name: 'Plan i sprawdziany' }).click();
+  await openParentPlan(page);
   await expect(page.getByRole('button', { name: 'Zapisz plan (2)' })).toBeVisible();
   await page.getByRole('button', { name: 'Wyjdź' }).click();
   await openPlan(page);
@@ -1312,6 +1328,7 @@ test('porządek tematów: rodzic przypina „Teraz”, przenosi dział do „Sko
   await page.getByRole('button', { name: 'Zatwierdź' }).click();
   await expect(page.getByRole('region', { name: /Termin planu minął/ })).toHaveCount(0);
   await page.getByRole('button', { name: 'Plan i sprawdziany' }).click();
+  await openParentPlan(page);
   const d = new Date();
   d.setDate(d.getDate() + 1);
   await page.getByLabel('Termin (opcjonalnie)').fill(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
@@ -1319,6 +1336,7 @@ test('porządek tematów: rodzic przypina „Teraz”, przenosi dział do „Sko
   await expect(page.getByText('Zapisano plan: Ola.')).toBeVisible();
   await page.clock.fastForward(72 * 3_600_000);
   await page.getByRole('button', { name: 'Postępy' }).click();
+  await openParentStats(page);
   const notice = page.getByRole('region', { name: 'Termin planu minął: Ola' });
   await expect(notice).toContainText('Dzielenie pisemne bez reszty, Dzielenie pisemne z resztą');
   await snap(page, 'f64-plan-expired', true);

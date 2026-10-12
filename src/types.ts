@@ -184,6 +184,8 @@ export type SessionMode = 'topic' | 'review' | 'test' | 'diagnostic' | 'gen' | '
 
 export interface Session {
   id: string;
+  /** Nazwa w chwili rozpoczęcia — historia zachowuje nazwę także po edycji planu lub kartkówki. */
+  title?: string;
   profileId: string;
   topicId: string | null;
   mode: SessionMode;
@@ -300,6 +302,8 @@ export interface ExerciseReport {
 /** Kartkówka od rodzica: krótki sprawdzian z wybranych tematów, bez podpowiedzi, do zrobienia raz. */
 export interface AssignedQuiz {
   id: string;
+  /** Wspólne zadanie dla kilku profili, każdy ma własne quiz.id i wynik. */
+  batchId?: string;
   title: string;
   topicIds: string[];
   /** Liczba pytań. */

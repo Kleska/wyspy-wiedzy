@@ -1,3 +1,4 @@
+import { AvatarPortrait } from './AvatarPortrait';
 import { useApp } from './hooks';
 import { Icon } from './icons';
 
@@ -19,7 +20,7 @@ export function TopBar({ back }: { back?: () => void }) {
         </div>
       )}
       <button className="person-btn" onClick={switchProfile} aria-label={`${profile.name} — zmień osobę`}>
-        <span className="avatar">{profile.avatar}</span>
+        <span className="avatar"><AvatarPortrait value={profile.avatar} /></span>
         <span className="person-btn-text">
           <b>{profile.name}</b>
           <small>zmień osobę</small>

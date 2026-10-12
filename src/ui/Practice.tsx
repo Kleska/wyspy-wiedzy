@@ -147,6 +147,7 @@ export function Practice({ run }: { run: Run }) {
 
   const session = useRef<Session>({
     id: uid(),
+    title,
     profileId: profile.id,
     topicId: run.kind === 'topic' ? run.topicId : null,
     mode: run.kind,

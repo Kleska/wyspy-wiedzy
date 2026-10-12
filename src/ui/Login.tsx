@@ -1,13 +1,15 @@
 import { useState } from 'react';
 import { store } from '../data/store';
 
-export function Login({ onSkip }: { onSkip?: () => void }) {
+export function Login({ onSkip, onDestination }: { onSkip?: () => void; onDestination?: (parent: boolean) => void }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(store.state.auth.error ?? '');
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (busy) return;
+    onDestination?.((e.nativeEvent as SubmitEvent).submitter?.getAttribute('value') === 'parent');
     setBusy(true);
     setErr('');
     try {
@@ -41,6 +43,7 @@ export function Login({ onSkip }: { onSkip?: () => void }) {
         <button className="btn btn-primary btn-lg" disabled={busy}>
           {busy ? 'Loguję…' : 'Zaloguj'}
         </button>
+        <button className="btn btn-lg" type="submit" value="parent" disabled={busy}>Zaloguj do panelu rodzica</button>
         {onSkip && (
           <>
             <button type="button" className="btn" onClick={onSkip}>

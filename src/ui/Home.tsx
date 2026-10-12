@@ -2,7 +2,8 @@ import { SUBJECTS } from '../content/seed';
 import { store } from '../data/store';
 import { splitDone } from '../engine';
 import { plural } from '../themes';
-import { DailyCard, DiagnosticCard, FamilyCard, HelloCard, QuizCard, TimesCard, WeekCard } from './HomeCards';
+import { DiagnosticCard, QuizCard } from './HomeCards';
+import { ChildProgress } from './ChildProgress';
 import { GamesScreen } from './GamesScreen';
 import { TodayCard } from './TodayCard';
 import { ReviewCard } from './ReviewCard';
@@ -42,7 +43,7 @@ export function SubjectCards() {
 }
 
 export function Home({ section }: { section?: Extract<Screen, { name: 'home' }>['section'] }) {
-  const { profile, theme } = useApp();
+  const { profile } = useApp();
   const progress = useProgress(profile.id)!;
   const topics = store.topicsFor(profile.id);
   const { active } = splitDone(topics, profile, Date.now());
@@ -87,21 +88,7 @@ export function Home({ section }: { section?: Extract<Screen, { name: 'home' }>[
           </>
         )}
         {section === 'games' && <GamesScreen />}
-        {section === 'progress' && (
-          <>
-            <header className="clear-page-head">
-              <span className="label">Każde ćwiczenie się liczy</span>
-              <h1>Moje postępy</h1>
-            </header>
-            <HelloCard progress={progress} />
-            <div className="progress-cards">
-              <DailyCard progress={progress} theme={theme} wide />
-              <WeekCard progress={progress} theme={theme} wide />
-              <FamilyCard wide />
-              {(profile.grade ?? 3) >= 2 && (profile.grade ?? 3) <= 4 && <TimesCard wide />}
-            </div>
-          </>
-        )}
+        {section === 'progress' && <ChildProgress />}
       </main>
     </>
   );

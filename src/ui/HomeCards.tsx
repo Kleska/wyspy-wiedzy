@@ -1,3 +1,4 @@
+import { AvatarPortrait } from './AvatarPortrait';
 import { useState, type ReactNode } from 'react';
 import { generatorsFor } from '../content/generators';
 import { SUBJECTS } from '../content/seed';
@@ -318,7 +319,7 @@ export function FamilyCard({ wide }: { wide: boolean }) {
       <div className="family-people">
         {profiles.map((p) => (
           <span key={p.id} className="family-person">
-            <span className="avatar">{p.avatar}</span> {p.name}: <b>{fp.per.get(p.id) ?? 0}</b>
+            <span className="avatar"><AvatarPortrait value={p.avatar} /></span> {p.name}: <b>{fp.per.get(p.id) ?? 0}</b>
           </span>
         ))}
       </div>
@@ -360,7 +361,7 @@ export function HelloCard({ progress }: { progress: Progress }) {
     <section className="card hello-card hello-wide">
       <div className="col" style={{ flex: 1, gap: 10, minWidth: 0 }}>
         <div className="hello-row">
-          <span className="avatar avatar-lg">{profile.avatar}</span>
+          <span className="avatar avatar-lg"><AvatarPortrait value={profile.avatar} /></span>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div className="hello-name">
               {theme.hello}, {profile.name}!

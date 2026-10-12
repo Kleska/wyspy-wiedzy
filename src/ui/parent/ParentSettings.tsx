@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { askConfirm, askText } from '../dialogs';
 import { aiMode, getLocalApiKey, setLocalApiKey } from '../../ai';
-import { AVATAR_GROUPS, AVATARS, FREE_AVATARS } from '../../avatars';
+import { AVATAR_GROUPS, AVATARS, STARTER_AVATARS } from '../../avatars';
 import { nowIso, store, uid } from '../../data/store';
 import { plural, THEME_ORDER, THEMES } from '../../themes';
 import { useStoreVersion } from '../hooks';
@@ -72,7 +72,7 @@ export function ParentSettings() {
             onClick={async () => {
               const name = await askText('Imię nowego ucznia (klasę ustawisz obok imienia)', { ok: 'Dodaj' });
               if (name?.trim())
-                void store.put('profile', { id: uid(), name: name.trim(), avatar: FREE_AVATARS[profiles.length % FREE_AVATARS.length], theme: 'wyspy', grade: 3, createdAt: nowIso(), updatedAt: nowIso() });
+                void store.put('profile', { id: uid(), name: name.trim(), avatar: STARTER_AVATARS[profiles.length % STARTER_AVATARS.length], theme: 'wyspy', grade: 3, createdAt: nowIso(), updatedAt: nowIso() });
             }}
           >
             <Icon name="users" size={16} /> Dodaj ucznia
@@ -265,14 +265,14 @@ function ProfileEditor({ p, others, onMsg }: { p: Profile; others: Profile[]; on
   return (
     <div className="profile-editor">
       <div className="row" style={{ flexWrap: 'wrap', gap: 12 }}>
-        <label className="field" style={{ width: 90 }}>
+        <label className="field" style={{ width: 180 }}>
           <span>Bohater</span>
-          <select className="select" style={{ fontSize: 24, padding: '4px 8px' }} value={p.avatar} onChange={(e) => save({ avatar: e.target.value })} aria-label={`Bohater: ${p.name}`}>
+          <select className="select" style={{ fontSize: 16, padding: '4px 8px' }} value={p.avatar} onChange={(e) => save({ avatar: e.target.value })} aria-label={`Bohater: ${p.name}`}>
             {AVATAR_GROUPS.map((g) => (
               <optgroup key={g.id} label={g.title}>
                 {AVATARS.filter((a) => a.group === g.id).map((a) => (
                   <option key={a.emoji} value={a.emoji}>
-                    {a.emoji}
+                    {a.name}
                   </option>
                 ))}
               </optgroup>
@@ -296,7 +296,7 @@ function ProfileEditor({ p, others, onMsg }: { p: Profile; others: Profile[]; on
             aria-label={`Imię: ${p.name}`}
           />
         </label>
-        <label className="field" style={{ width: 90 }}>
+        <label className="field" style={{ width: 180 }}>
           <span>Klasa</span>
           <select className="select" value={p.grade ?? 3} onChange={(e) => save({ grade: Number(e.target.value) })} aria-label={`Klasa: ${p.name}`}>
             {GRADES.map((g) => (
@@ -352,7 +352,7 @@ function ProfileEditor({ p, others, onMsg }: { p: Profile; others: Profile[]; on
             <option value="">Połącz z…</option>
             {others.map((o) => (
               <option key={o.id} value={o.id}>
-                {o.avatar} {o.name} (klasa {o.grade ?? 3})
+                {o.name} (klasa {o.grade ?? 3})
               </option>
             ))}
           </select>

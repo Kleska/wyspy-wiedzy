@@ -1,5 +1,7 @@
+import { AvatarPortrait } from './AvatarPortrait';
 import { useState } from 'react';
 import { AVATAR_GROUPS, AVATARS, ownedAvatars } from '../avatars';
+import { unlockAvatar } from '../avatarPurchase';
 import { askConfirm } from './dialogs';
 import { nowIso, store, uid } from '../data/store';
 import { FREEZE_COST, FREEZE_ID, FREEZE_MAX } from '../engine';
@@ -13,6 +15,7 @@ type Tab = 'shop' | 'badges' | 'requests';
 export function Rewards() {
   const { profile, theme, go, toast } = useApp();
   const progress = useProgress(profile.id)!;
+  const [heroBusy, setHeroBusy] = useState(false);
   const [tab, setTab] = useState<Tab>('shop');
   const settings = store.settings;
   const mine = store
@@ -30,13 +33,14 @@ export function Rewards() {
 
   const buyAvatar = async (emoji: string, name: string, cost: number) => {
     if (progress.coins < cost) return;
-    if (!(await askConfirm(`Kupić bohatera ${emoji} (${name}) za ${coinText(cost, theme)}?`, { ok: 'Kupuję' }))) return;
-    await store.put('redemption', { id: uid(), profileId: profile.id, rewardId: `avatar:${emoji}`, title: `Bohater ${emoji}`, cost, status: 'approved', real: false, at: nowIso(), decidedAt: nowIso() });
-    await store.put('profile', { ...profile, avatar: emoji, updatedAt: nowIso() });
-    toast('Nowy bohater odblokowany!');
+    if (!(await askConfirm(`Kupić bohatera ${name} za ${coinText(cost, theme)}?`, { ok: 'Kupuję' }))) return;
+    setHeroBusy(true);
+    try { await unlockAvatar(profile.id, emoji); toast('Nowy bohater odblokowany!'); }
+    catch (error) { toast(error instanceof Error ? error.message : 'Nie udało się zapisać bohatera.'); }
+    finally { setHeroBusy(false); }
   };
 
-  const setAvatar = (emoji: string) => void store.put('profile', { ...profile, avatar: emoji, updatedAt: nowIso() });
+  const setAvatar = (emoji: string) => void unlockAvatar(profile.id, emoji).catch((error) => toast(error instanceof Error ? error.message : 'Nie udało się zmienić bohatera.'));
 
   const buyFreeze = async () => {
     if (progress.coins < FREEZE_COST || progress.freezes >= FREEZE_MAX) return;
@@ -119,17 +123,18 @@ export function Rewards() {
             )}
             <h2 style={{ fontSize: 22, marginTop: 8 }}>Bohaterowie</h2>
             {AVATAR_GROUPS.map((g) => (
-              <section key={g.id} className="hero-group" aria-label={g.title}>
-                <h3 className="hero-group-title">{g.title}</h3>
+              <details key={g.id} open={['starter', 'sport', 'screen'].includes(g.id) ? true : undefined} className="hero-group clear-details" aria-label={g.title}>
+                <summary className="hero-group-title">{g.title}</summary>
                 <div className="hero-grid">
-                  {AVATARS.filter((x) => x.group === g.id).map(({ emoji, name, cost }) => {
+                  {AVATARS.filter((x) => x.group === g.id).map(({ emoji, name, cost, art, description }) => {
                     const has = owned.has(emoji);
                     const current = profile.avatar === emoji;
                     return (
-                      <div key={emoji} className={`hero-item${current ? ' current' : ''}`}>
+                      <div key={emoji} className={`hero-item${art ? ' portrait-hero' : ''}${current ? ' current' : ''}`}>
                         <span className="hero-emoji" role="img" aria-label={name} title={name}>
-                          {emoji}
+                          <AvatarPortrait value={emoji} />
                         </span>
+                        <b className="hero-name">{name}</b>{description && <small className="muted hero-description">{description}</small>}<small>{has ? cost ? 'Odblokowany' : 'Bezpłatny' : `${cost} punktów · brakuje ${Math.max(0, cost - progress.coins)}`}</small>
                         {current ? (
                           <span className="pill good">Twój bohater</span>
                         ) : has ? (
@@ -137,7 +142,7 @@ export function Rewards() {
                             Wybierz
                           </button>
                         ) : (
-                          <button className="btn btn-sm btn-primary btn-block" disabled={progress.coins < cost} onClick={() => buyAvatar(emoji, name, cost)} aria-label={`Kup za ${cost}: ${name}`}>
+                          <button className="btn btn-sm btn-primary btn-block" disabled={heroBusy || progress.coins < cost} onClick={() => buyAvatar(emoji, name, cost)} aria-label={`Kup za ${cost}: ${name}`}>
                             <Icon name="coin" size={16} />
                             {cost}
                           </button>
@@ -146,7 +151,7 @@ export function Rewards() {
                     );
                   })}
                 </div>
-              </section>
+              </details>
             ))}
           </>
         )}

@@ -128,6 +128,7 @@ export function Pairs({ game }: { game: SprintGame }) {
         profileId: profile.id,
         topicId: null,
         mode: 'pairs' as const,
+        title,
         genId: key,
         startedAt: new Date(startAt.current).toISOString(),
         endedAt: nowIso(),
@@ -143,7 +144,7 @@ export function Pairs({ game }: { game: SprintGame }) {
       setPhase('done');
       if (settings.sounds) playSound('done');
     },
-    [best, key, profile.id, settings.sounds],
+    [best, key, title, profile.id, settings.sounds],
   );
 
   useEffect(() => {

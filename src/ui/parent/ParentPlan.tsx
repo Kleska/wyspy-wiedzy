@@ -73,14 +73,12 @@ export function ParentPlan({ pin }: { pin: string }) {
         </p>
       )}
       <p className="muted">
-        Wszystko tutaj dotyczy jednej osoby (gdy dzieci jest kilka, wybierasz ją u góry). Plan: przypnij tematy, które dziecko ma teraz ćwiczyć (np. przed
-        sprawdzianem w szkole) — zobaczy je na górze ekranu startowego, a aplikacja będzie je polecać w pierwszej kolejności. Kartkówka: krótki sprawdzian z
-        wybranych tematów, pisany raz.
+        Zadaj kartkówkę jednej lub kilku osobom z tej samej klasy. Plan nauki poniżej dotyczy dziecka wybranego u góry.
       </p>
       <ParentQuiz key={`quiz-${p.id}`} p={p} />
-      <PlanEditor key={`${p.id}:${ver}`} p={p} />
-      <PlanFromPhoto key={`photo-${p.id}`} p={p} pin={pin} onPlanSaved={() => setVer((v) => v + 1)} />
-      <ExamHistory profileId={p.id} />
+      <details className="clear-details card parent-plan-editor"><summary>Plan nauki: {p.name}</summary><PlanEditor key={`${p.id}:${ver}`} p={p} /></details>
+      <details className="clear-details card"><summary>Ułóż plan ze zdjęcia</summary><PlanFromPhoto key={`photo-${p.id}`} p={p} pin={pin} onPlanSaved={() => setVer((v) => v + 1)} /></details>
+      <details className="clear-details card"><summary>Historia sprawdzianów i testów na start</summary><ExamHistory profileId={p.id} /></details>
     </>
   );
 }

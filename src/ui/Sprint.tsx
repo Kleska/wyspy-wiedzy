@@ -87,6 +87,7 @@ export function Sprint({ game }: { game: SprintGame }) {
       profileId: profile.id,
       topicId: null,
       mode: 'sprint',
+      title,
       genId: key,
       startedAt: nowIso(),
       endedAt: null,

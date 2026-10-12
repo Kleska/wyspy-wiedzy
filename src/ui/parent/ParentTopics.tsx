@@ -1,3 +1,4 @@
+import { AvatarPortrait } from '../AvatarPortrait';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { askConfirm } from '../dialogs';
 import { SUBJECTS, subjectLang, subjectOf } from '../../content/seed';
@@ -113,7 +114,7 @@ export function ParentTopics({ onEdit }: { onEdit: (s: EditorSeed) => void }) {
         <span className="who-label">Dla kogo</span>
         {profiles.map((p) => (
           <button key={p.id} type="button" aria-pressed={who === p.id} onClick={() => setWho(p.id)}>
-            {p.avatar} {p.name} · kl. {gradeOf(p)}
+            <AvatarPortrait value={p.avatar} /> {p.name} · kl. {gradeOf(p)}
           </button>
         ))}
         <button type="button" aria-pressed={who === 'all'} onClick={() => setWho('all')}>

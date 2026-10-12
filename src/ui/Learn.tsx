@@ -217,6 +217,7 @@ export function Learn({ topicId, from }: { topicId: string; from?: 'home' | 'sub
       profileId: profile.id,
       topicId: topic.id,
       mode: 'learn',
+      title: topic.title,
       startedAt: startedAt.current.iso,
       endedAt: nowIso(),
       // Liczymy czas czytania, ale z rozsądnym limitem (odłożony tablet nie nabija minut).

@@ -505,3 +505,70 @@
     flex-shrink: 0;
   }
 }
+/* Dziennik ucznia i prosty pulpit rodzica. */
+.child-progress-tabs { display:flex; gap:8px; padding:6px; border:1px solid var(--line); border-radius:16px; flex-wrap:wrap; background:var(--surface); }
+.child-progress-tabs button { flex:1 1 180px; border:0; border-radius:12px; padding:14px; color:var(--text); background:transparent; font:inherit; font-weight:800; cursor:pointer; }
+.child-progress-tabs [aria-selected='true'] { background:var(--accent); color:var(--accent-ink); }
+.child-progress-panel { gap:20px; }
+.history-filters { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:16px; }
+.child-history-stats { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; }
+.child-history-stats .card { display:flex; flex-direction:column; gap:8px; align-items:flex-start; padding:20px; }
+.child-history-stats b { font-size:clamp(26px,4vw,36px); line-height:1.2; }
+.child-history-stats span { font-weight:700; font-size:15px; }
+.child-history-stats small { color:var(--muted); }
+.child-week-activity { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:10px; list-style:none; margin:0; padding:12px 0 0; }
+.child-week-activity li { display:flex; flex-direction:column; align-items:center; gap:8px; font-size:13px; }
+.child-day-bar { height:130px; width:100%; max-width:50px; background:var(--surface-2); border-radius:10px; display:flex; align-items:flex-end; overflow:hidden; }
+.child-day-bar i { display:block; width:100%; background:var(--accent); border-radius:10px; }
+.child-topic-progress { display:grid; gap:12px; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); margin-top:16px; }
+.history-topic { padding:16px; background:var(--surface); color:var(--text); border:1px solid var(--line); border-radius:14px; display:flex; flex-direction:column; align-items:flex-start; gap:10px; text-align:left; font:inherit; cursor:pointer; }
+.history-topic .bar { width:100%; }
+.history-list-head { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:baseline; gap:8px; }
+.history-entry { width:100%; display:flex; gap:16px; align-items:center; color:var(--text); text-align:left; font:inherit; cursor:pointer; }
+.history-entry:hover,.history-topic:hover { border-color:var(--accent); }
+.history-entry-icon { flex-shrink:0; display:grid; place-items:center; width:48px; height:48px; border-radius:14px; background:var(--surface-2); color:var(--accent); }
+.history-entry-body { flex:1; min-width:0; display:flex; flex-direction:column; gap:6px; }
+.history-entry-body b { overflow-wrap:anywhere; font-size:18px; }
+.history-entry-body small { color:var(--muted); }
+.history-entry-result { display:flex; align-items:center; gap:12px; flex-shrink:0; }
+.history-empty { text-align:center; display:flex; flex-direction:column; align-items:center; gap:14px; }
+.history-detail-result { padding:20px; border:1px solid var(--line); border-radius:16px; display:flex; gap:18px; align-items:center; margin:18px 0; }
+.pending-history-quiz { display:flex; gap:16px; align-items:center; justify-content:space-between; border-top:1px solid var(--line); padding:16px 0; }
+.pending-history-quiz > div { display:flex; flex-direction:column; gap:6px; }
+.quiz-recipients { border:1px solid var(--line); border-radius:16px; padding:16px; display:flex; flex-direction:column; gap:12px; }
+.quiz-recipients legend { font-size:17px; font-weight:800; padding:0 6px; }
+.quiz-recipients label { display:flex; align-items:center; gap:10px; padding:12px 16px; border:1px solid var(--line); border-radius:12px; cursor:pointer; font-weight:700; }
+.quiz-recipients input { width:20px; height:20px; accent-color:var(--accent); }
+.parent-entry-btn { align-self:center; width:100%; max-width:300px; }
+.parent .clear-details > .card { margin-top:16px; box-shadow:none; border:none; padding:0; }
+/* Portrety pozostają ostre także na ekranie Retina. */
+.avatar-portrait { display:inline-block; width:48px; height:48px; border-radius:12px; object-fit:cover; object-position:center 38%; vertical-align:middle; }
+.avatar { overflow:hidden; }
+.avatar .avatar-portrait { width:100%; height:100%; border-radius:inherit; }
+.hero-pick.starter-pick,.hero-pick.portrait-pick { display:grid; grid-template-columns:repeat(auto-fill,minmax(110px,1fr)); gap:12px; }
+.hero-pick.starter-pick button,.hero-pick.portrait-pick button { width:auto; height:auto; min-width:0; padding:10px; border-radius:16px; display:flex; flex-direction:column; gap:8px; align-items:center; justify-content:center; font-size:30px; }
+.hero-pick .avatar-portrait { width:100%; height:auto; aspect-ratio:6 / 7; border-radius:10px; }
+.hero-pick small { font-size:13px; font-weight:800; line-height:1.3; }
+.hero-group { padding:16px 0; }
+.hero-group .hero-grid { margin-top:16px; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:16px; }
+.hero-item { padding:14px; gap:10px; min-width:0; border-radius:20px; }
+.hero-item.portrait-hero { align-items:stretch; text-align:left; }
+.portrait-hero .hero-emoji { height:auto; width:100%; font-size:inherit; }
+.portrait-hero .avatar-portrait { width:100%; height:auto; aspect-ratio:6 / 7; border-radius:14px; }
+.hero-name { font-size:17px; line-height:1.3; }
+.hero-description { min-height:34px; line-height:1.4; }
+.hero-item small { font-size:12px; }
+.hero-item .btn,.hero-item .pill { margin-top:auto; }
+.hero-item.current { outline:2px solid var(--accent); outline-offset:2px; }
+.onboarding-choice summary .avatar { width:32px; height:32px; display:inline-flex; vertical-align:middle; }
+@media (max-width:760px) {
+ .child-history-stats { grid-template-columns:repeat(2,minmax(0,1fr)); }
+ .child-history-stats .card { padding:16px; }
+ .history-entry { flex-wrap:wrap; gap:12px; }
+ .history-entry-result { width:100%; justify-content:flex-end; }
+ .pending-history-quiz { align-items:flex-start; flex-direction:column; }
+ .hero-group .hero-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+ .hero-item { padding:10px; }
+ .child-week-activity { gap:4px; }
+ .child-week-activity li { font-size:11px; }
+}

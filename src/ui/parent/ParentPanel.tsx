@@ -128,7 +128,7 @@ export function ParentPanel({ pin, onExit }: { pin: string; onExit: () => void }
                 >
                   {profiles.map((p) => (
                     <option key={p.id} value={p.id}>
-                      {p.avatar} {p.name} (klasa {p.grade ?? 3})
+                      {p.name} (klasa {p.grade ?? 3})
                     </option>
                   ))}
                 </select>
@@ -167,7 +167,7 @@ export function ParentPanel({ pin, onExit }: { pin: string; onExit: () => void }
                 {store.profiles().map((p) => (
                   <ExpiredPlanNotice key={p.id} p={p} />
                 ))}
-                {tab === 'stats' && <ParentStats />}
+                {tab === 'stats' && <ParentStats key={studentId} onOpenPlan={() => openTab('plan')} />}
                 {tab === 'plan' && <ParentPlan pin={pin} />}
                 {tab === 'topics' && <ParentTopics onEdit={openEditor} />}
                 {tab === 'add' && <ParentAdd key={studentId} pin={pin} onResult={openEditor} />}

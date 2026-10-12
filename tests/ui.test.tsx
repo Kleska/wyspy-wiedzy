@@ -194,3 +194,69 @@ describe('okna i historia', () => {
     expect(nav.screen).toEqual({ name: 'subject', subjectId: 'mat', unit: 'Mnożenie i dzielenie' });
   });
 });
+
+describe('historia i wejście rodzica', () => {
+  it('z wyboru profilu otwiera PIN rodzica i wraca do wyboru, bez wybierania dziecka', async () => {
+    await render(<App />);
+    await click('Panel rodzica');
+    await act(async () => { await new Promise((r) => setTimeout(r, 20)); });
+    expect(host.querySelector('.pin-pad')).not.toBeNull();
+    expect(host.querySelector('.clear-start')).toBeNull();
+    await click('Wróć');
+    expect(host.textContent).toContain('Kto się dziś uczy?');
+  });
+  it('panel z wczesnego wejścia wymaga poprawnego PIN-u', async () => {
+    await render(<App />); await click('Panel rodzica');
+    await act(async () => { await new Promise((r) => setTimeout(r, 20)); });
+    for (const digit of '123456') await click(digit);
+    await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Zatwierdź"]')!.click());
+    expect(host.querySelector('.parent-layout')).not.toBeNull();
+    expect(host.querySelector('h1')?.textContent).toBe('Postępy: Odkrywca');
+  });
+  it('historia pokazuje oceny, a szczegóły przerwanego sprawdzianu nie nadają oceny', async () => {
+    await render(<Home section="progress" />);
+    await click('Sprawdziany i kartkówki');
+    const incomplete = [...host.querySelectorAll<HTMLButtonElement>('.history-entry')].find((el) => el.textContent?.includes('Niedokończone'))!;
+    expect(incomplete).toBeDefined();
+    expect(host.textContent).toContain('Ocena 4');
+    await act(async () => incomplete.click());
+    const dialog = host.querySelector('[role="dialog"]')!;
+    expect(dialog.textContent).toContain('Niedokończony sprawdzian nie dostaje oceny');
+    expect(dialog.querySelector('.grade-num')).toBeNull();
+    expect(dialog.textContent).toContain('Zobacz, co warto poprawić');
+  });
+  it('odbiorcy kartkówki obejmują tylko wybraną klasę', async () => {
+    await render(<ParentPanel pin="123456" onExit={vi.fn()} />);
+    const select = host.querySelector<HTMLSelectElement>('[aria-label="Uczeń"]')!;
+    await act(async () => { select.value = 'demo-badaczka'; select.dispatchEvent(new Event('change', { bubbles: true })); });
+    await click('Plan i sprawdziany'); await click('Zadaj kartkówkę');
+    const fieldset = host.querySelector('.quiz-recipients')!;
+    expect(fieldset.textContent).toContain('Badaczka'); expect(fieldset.textContent).toContain('Koleżanka');
+    expect(fieldset.textContent).not.toContain('Odkrywca');
+    expect(fieldset.querySelectorAll('input:checked')).toHaveLength(1);
+    await click('Wybierz całą klasę (2)');
+    expect(fieldset.querySelectorAll('input:checked')).toHaveLength(2);
+    await act(async () => { fieldset.querySelectorAll<HTMLInputElement>('input').forEach((input) => input.click()); });
+    expect(button('Wybierz odbiorców').disabled).toBe(true);
+  });
+  it('historia nie pokazuje wyników drugiego dziecka', async () => {
+    await render(<Home section="progress" />); await click('Historia nauki');
+    const count = host.querySelectorAll('.history-entry').length;
+    expect(count).toBe(store.list('session').filter((s) => s.profileId === context.profile.id).length);
+  });
+});
+
+ it('logowanie do rodzica nie omija uwierzytelnienia konta mimo lokalnych profili', async () => {
+   const previous = store.state;
+   const signIn = vi.spyOn(store, 'signIn').mockRejectedValue(new Error('Błędne hasło'));
+   try {
+     store.state = { ...previous, cloud: true, joined: true, auth: { status: 'signedOut' } };
+     await render(<App />);
+     const form = host.querySelector('form')!;
+     const submitter = button('Zaloguj do panelu rodzica');
+     await act(async () => { form.dispatchEvent(new SubmitEvent('submit', { bubbles: true, cancelable: true, submitter })); });
+     expect(signIn).toHaveBeenCalledOnce();
+     expect(host.textContent).toContain('Błędne hasło');
+     expect(host.querySelector('.pin-pad, .parent-layout')).toBeNull();
+   } finally { store.state = previous; signIn.mockRestore(); }
+ });

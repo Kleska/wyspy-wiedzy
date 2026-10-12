@@ -3,10 +3,10 @@
  *
  * `emoji` jest kluczem: zapisuje się w `Profile.avatar` i w zakupach (`rewardId` = `avatar:<emoji>`),
  * więc istniejącego znaku nie wolno zmieniać ani usuwać — można tylko dopisywać nowe.
- * Wybieramy znaki, które rysują stare iPady, Android i Windows 10 (emoji do wersji 11, bez nowszych).
+ * Nowe klucze hero:* wskazują własne portrety SVG. Starsze emoji i zakupy pozostają kompatybilne.
  */
 
-export type AvatarGroupId = 'zwierzaki' | 'postacie' | 'pojazdy' | 'skarby';
+export type AvatarGroupId = 'starter' | 'sport' | 'screen' | 'zwierzaki' | 'postacie' | 'pojazdy' | 'skarby';
 
 export interface Avatar {
   emoji: string;
@@ -15,9 +15,14 @@ export interface Avatar {
   /** 0 = dostępny od razu; inaczej cena w sklepie. */
   cost: number;
   group: AvatarGroupId;
+  art?: string;
+  description?: string;
 }
 
 export const AVATAR_GROUPS: { id: AvatarGroupId; title: string }[] = [
+  { id: 'starter', title: 'Na start · bez punktów' },
+  { id: 'sport', title: 'Gwiazdy sportu · za punkty' },
+  { id: 'screen', title: 'Film i komiks · za punkty' },
   { id: 'zwierzaki', title: 'Zwierzaki' },
   { id: 'postacie', title: 'Postacie' },
   { id: 'pojazdy', title: 'Pojazdy' },
@@ -96,13 +101,30 @@ export const AVATARS: Avatar[] = [
   a('skarby', '💎', 'diament', 250),
   a('skarby', '👑', 'korona', 250),
   a('skarby', '🏆', 'puchar', 300),
+  {"emoji": "hero:street", "name": "Rider", "group": "starter", "cost": 0, "art": "avatars/street.svg", "description": "Miejski styl i nowe wyzwania"},
+  {"emoji": "hero:nova", "name": "Nova", "group": "starter", "cost": 0, "art": "avatars/nova.svg", "description": "Kosmos, odkrycia i odwaga"},
+  {"emoji": "hero:code", "name": "Pixel", "group": "starter", "cost": 0, "art": "avatars/code.svg", "description": "Technologia i świat gier"},
+  {"emoji": "hero:striker", "name": "Napastnik", "group": "starter", "cost": 0, "art": "avatars/striker.svg", "description": "Energia, drużyna i sport"},
+  {"emoji": "hero:artist", "name": "Artystka", "group": "starter", "cost": 0, "art": "avatars/artist.svg", "description": "Wyobraźnia, muzyka i własny styl"},
+  {"emoji": "hero:detective", "name": "Detektyw", "group": "starter", "cost": 0, "art": "avatars/detective.svg", "description": "Zagadki i sprytne rozwiązania"},
+  {"emoji": "hero:ronaldo", "name": "Cristiano Ronaldo", "group": "sport", "cost": 300, "art": "avatars/ronaldo.svg", "description": "Piłkarska kolekcja · numer 7"},
+  {"emoji": "hero:messi", "name": "Lionel Messi", "group": "sport", "cost": 300, "art": "avatars/messi.svg", "description": "Piłkarska kolekcja · numer 10"},
+  {"emoji": "hero:harry", "name": "Harry Potter", "group": "screen", "cost": 350, "art": "avatars/harry.svg", "description": "Magia · okulary i błyskawica"},
+  {"emoji": "hero:hermione", "name": "Hermiona", "group": "screen", "cost": 350, "art": "avatars/hermione.svg", "description": "Magia · wiedza i odwaga"},
+  {"emoji": "hero:wednesday", "name": "Wednesday", "group": "screen", "cost": 400, "art": "avatars/wednesday.svg", "description": "Mroczny styl · czarno-biały kołnierzyk"},
+  {"emoji": "hero:spider", "name": "Spider-Man", "group": "screen", "cost": 450, "art": "avatars/spider.svg", "description": "Komiksowa kolekcja · pajęcza maska"},
+  {"emoji": "hero:batman", "name": "Batman", "group": "screen", "cost": 450, "art": "avatars/batman.svg", "description": "Komiksowa kolekcja · nocny obrońca"},
+  {"emoji": "hero:mando", "name": "Mandalorianin", "group": "screen", "cost": 500, "art": "avatars/mando.svg", "description": "Kosmiczna kolekcja · metalowy hełm"},
 ];
 
 /** Bohaterowie dostępni od razu (zwierzaki na początku — pierwsza osoba dostaje lisa jak dotąd). */
 export const FREE_AVATARS: string[] = AVATARS.filter((x) => x.cost === 0).map((x) => x.emoji);
 
+export const STARTER_AVATARS = AVATARS.filter((a) => a.group === 'starter').map((a) => a.emoji);
+
 const BY_EMOJI = new Map(AVATARS.map((x) => [x.emoji, x]));
 
+export const avatarInfo = (id: string) => BY_EMOJI.get(id);
 export const avatarName = (emoji: string): string => BY_EMOJI.get(emoji)?.name ?? 'bohater';
 
 /**

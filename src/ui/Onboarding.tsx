@@ -1,5 +1,6 @@
+import { AvatarPortrait } from './AvatarPortrait';
 import { useState } from 'react';
-import { avatarName, FREE_AVATARS } from '../avatars';
+import { avatarName, STARTER_AVATARS } from '../avatars';
 import { nowIso, store, uid } from '../data/store';
 import { THEME_ORDER, THEMES } from '../themes';
 import type { Profile, ThemeId } from '../types';
@@ -7,11 +8,11 @@ import { ThemePreview } from './ThemePreview';
 
 export const GRADES = [1, 2, 3, 4, 5, 6, 7, 8];
 
-export function Onboarding({ onDone, onCancel, first = true }: { onDone: (id: string) => void; onCancel?: () => void; first?: boolean }) {
+export function Onboarding({ onDone, onCancel, onParent, first = true }: { onDone: (id: string) => void; onCancel?: () => void; onParent?: () => void; first?: boolean }) {
   const taken = new Set(store.profiles().map((p) => p.avatar));
   const [name, setName] = useState('');
   const [grade, setGrade] = useState<number | null>(null);
-  const [avatar, setAvatar] = useState(FREE_AVATARS.find((a) => !taken.has(a)) ?? FREE_AVATARS[0]);
+  const [avatar, setAvatar] = useState(STARTER_AVATARS.find((a) => !taken.has(a)) ?? STARTER_AVATARS[0]);
   const [theme, setTheme] = useState<ThemeId>('wyspy');
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
@@ -33,6 +34,7 @@ export function Onboarding({ onDone, onCancel, first = true }: { onDone: (id: st
     <div className="center-screen">
       <div className="card col onboarding" style={{ maxWidth: 680, width: '100%', gap: 22 }}>
         <h1 style={{ fontSize: 34 }}>{first ? 'Witaj w Wyspach Wiedzy!' : 'Nowa osoba'}</h1>
+        {onParent && <button className="btn parent-entry-btn" onClick={onParent}>Panel rodzica</button>}
         <label className="field">
           <span>Imię</span>
           <input
@@ -57,15 +59,15 @@ export function Onboarding({ onDone, onCancel, first = true }: { onDone: (id: st
         </div>
         <details className="clear-details onboarding-choice">
           <summary>
-            {avatar} Bohater i wygląd <span className="muted">— opcjonalnie</span>
+            <span className="avatar"><AvatarPortrait value={avatar} /></span> Bohater i wygląd <span className="muted">— opcjonalnie</span>
           </summary>
           <p className="muted">Możesz zmienić je później przyciskiem Wygląd.</p>
           <div className="field">
             <span>Bohater</span>
-            <div className="emoji-grid" role="group" aria-label="Bohater">
-              {FREE_AVATARS.map((a) => (
+            <div className="hero-pick starter-pick" role="group" aria-label="Bohater">
+              {STARTER_AVATARS.map((a) => (
                 <button key={a} type="button" aria-pressed={a === avatar} onClick={() => setAvatar(a)} aria-label={avatarName(a)} title={avatarName(a)}>
-                  {a}
+                  <AvatarPortrait value={a} /><small>{avatarName(a)}</small>
                 </button>
               ))}
             </div>
@@ -102,7 +104,7 @@ export function Onboarding({ onDone, onCancel, first = true }: { onDone: (id: st
   );
 }
 
-export function ProfilePicker({ profiles, onPick, onCancel }: { profiles: Profile[]; onPick: (id: string) => void; onCancel?: () => void }) {
+export function ProfilePicker({ profiles, onPick, onCancel, onParent }: { profiles: Profile[]; onPick: (id: string) => void; onCancel?: () => void; onParent?: () => void }) {
   const [adding, setAdding] = useState(false);
   if (adding) return <Onboarding first={false} onDone={onPick} onCancel={() => setAdding(false)} />;
   return (
@@ -113,7 +115,7 @@ export function ProfilePicker({ profiles, onPick, onCancel }: { profiles: Profil
           {profiles.map((p) => (
             <button key={p.id} className="person" onClick={() => onPick(p.id)}>
               <span className="avatar" aria-hidden="true">
-                {p.avatar}
+                <AvatarPortrait value={p.avatar} />
               </span>
               <span className="person-text">
                 <span className="person-name">{p.name}</span>
@@ -128,6 +130,7 @@ export function ProfilePicker({ profiles, onPick, onCancel }: { profiles: Profil
             <span className="person-name">Dodaj osobę</span>
           </button>
         </div>
+        {onParent && <button className="btn parent-entry-btn" onClick={onParent}>Panel rodzica</button>}
         {onCancel && (
           <button className="btn" style={{ alignSelf: 'center' }} onClick={onCancel}>
             Wróć
