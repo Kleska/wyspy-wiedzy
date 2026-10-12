@@ -2,8 +2,7 @@ Cristiano Ronaldo — fotografia: Анна Нэсси / soccer.ru
 Źródło: https://commons.wikimedia.org/wiki/File:Cristiano_Ronaldo_2018.jpg
 Licencja: CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0/
 Pliki: ronaldo-v2.webp, ronaldo-icon-v2.webp
-Zmiany: kadrowanie, zmniejszenie i konwersja do WebP.
-Powyższe wersje fotografii także są udostępnione na CC BY-SA 3.0.
+Zmiany: kadrowanie, zmniejszenie i konwersja do WebP. Wersje na tej samej licencji.
 
 Lionel Messi — fotografia: Hossein Zohrevand / Tasnim News Agency
 Źródło: https://commons.wikimedia.org/wiki/File:Lionel_Messi_WC2022.jpg
@@ -11,30 +10,6 @@ Licencja: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/
 Pliki: messi-v2.webp, messi-icon-v2.webp
 Zmiany: kadrowanie, zmniejszenie i konwersja do WebP.
 
-Autorzy i sportowcy nie są przedstawiani jako osoby popierające aplikację.
-
-Harry Potter — fotografia cosplay: Solomon203
-Źródło: https://commons.wikimedia.org/wiki/File:Cosplayers_of_Harry_Potter_and_Hermione_Granger_20181209a.jpg
-Licencja: CC BY-SA 4.0 — https://creativecommons.org/licenses/by-sa/4.0/
-Pliki: harry-v2.webp, harry-icon-v2.webp
-Zmiany: Kadrowanie, zmniejszenie i konwersja do WebP. Wersje udostępnione na tej samej licencji.
-
-Spider-Man — fotografia cosplay: ManoSolo13241324
-Źródło: https://commons.wikimedia.org/wiki/File:Spider-Man_cosplay.jpg
-Licencja: CC BY-SA 4.0 — https://creativecommons.org/licenses/by-sa/4.0/
-Pliki: spider-v2.webp, spider-icon-v2.webp
-Zmiany: Kadrowanie, zmniejszenie i konwersja do WebP. Wersje udostępnione na tej samej licencji.
-
-Batman — fotografia cosplay: Andrew Guyton; opracowanie Hic et nunc
-Źródło: https://commons.wikimedia.org/wiki/File:Batman_(black_background).jpg
-Licencja: CC BY-SA 2.0 — https://creativecommons.org/licenses/by-sa/2.0/
-Pliki: batman-v2.webp, batman-icon-v2.webp
-Zmiany: Fotografia źródłowa ma tło zastąpione czernią przez Hic et nunc. Kadrowanie, zmniejszenie i konwersja do WebP. Wersje udostępnione na tej samej licencji.
-
-Mandalorianin — fotografia cosplay: Claudio Marinangeli
-Źródło: https://commons.wikimedia.org/wiki/File:Din_Djarin_Cosplayer_at_Lucca_Comics_%26_Games_2022.jpg
-Licencja: CC BY 2.0 — https://creativecommons.org/licenses/by/2.0/
-Pliki: mando-v2.webp, mando-icon-v2.webp
-Zmiany: Kadrowanie, zmniejszenie i konwersja do WebP.
-
-Pozostałe 8 portretów w kolekcji v2 to ilustracje ImageGen. Fotografie cosplay przedstawiają osoby w kostiumach, nie są kadrami z filmu.
+Pozostałe materiały: 8 nowych ilustracji ImageGen oraz bezpośrednie odnośniki do 4 wizerunków postaci opublikowanych przez wydawców.
+Źródła i prawa: docs/AVATAR_ART.md oraz docs/avatar-source-verification-v3.json.
+Nie przypisujemy materiałom wydawców licencji Creative Commons.

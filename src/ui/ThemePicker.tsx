@@ -44,7 +44,7 @@ export function ThemePicker({ onClose }: { onClose: () => void }) {
               <AvatarPortrait value={a.emoji} variant="card" /><small>{a.name}</small>
             </button>
           ))}</div></details>
-        <details className="clear-details"><summary>Źródła fotografii</summary><div className="col">{AVATARS.filter((a) => a.credit).map((a) => <div key={a.emoji}><b>{a.name}</b><AvatarCredit value={a.emoji} /></div>)}</div></details>
+        <details className="clear-details"><summary>Źródła grafik</summary><div className="col">{AVATARS.filter((a) => a.credit).map((a) => <div key={a.emoji}><b>{a.name}</b><AvatarCredit value={a.emoji} /></div>)}</div></details>
         {more > 0 && (
           <button
             className="btn btn-sm look-more"

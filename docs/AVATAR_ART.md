@@ -1,39 +1,25 @@
-# Bohaterowie — grafiki v2
+# Bohaterowie — kolekcja v3
 
-14 portretów: 8 nowych ilustracji ImageGen, 2 prawdziwe fotografie sportowców i 4 fotografie cosplay. Fotografie w kostiumach są oznaczone w aplikacji jako „Fotografia cosplay”; nie przedstawiamy ich jako oficjalnych kadrów filmowych. Grafiki w `public/avatars/*-v2.webp` mają 600 × 700 pikseli; miniatury `*-icon-v2.webp` mają 128 × 150 pikseli. Klucze profili, własność bohaterów i ceny pozostają zgodne z poprzednią kolekcją.
+Aktualna kolekcja ma 14 portretów: zachowane zdjęcia Ronaldo i Messiego, 8 nowych ilustracji oraz 4 właściwe wizerunki postaci pochodzące z ich stron wydawców. Nie wykorzystuje zdjęć cosplay. Klucze profili, zakupy i ceny pozostają zgodne z wcześniejszą wersją.
 
-## Fotografie
+## Nowe ilustracje
 
-- **Cristiano Ronaldo:** Анна Нэсси / soccer.ru, [plik źródłowy](https://commons.wikimedia.org/wiki/File:Cristiano_Ronaldo_2018.jpg), [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/). Pliki `ronaldo-v2.webp` i `ronaldo-icon-v2.webp` udostępnione na CC BY-SA 3.0. Zmiany: kadrowanie, zmniejszenie i konwersja do WebP.
-- **Lionel Messi:** Hossein Zohrevand / Tasnim News Agency, [plik źródłowy](https://commons.wikimedia.org/wiki/File:Lionel_Messi_WC2022.jpg), [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Zmiany: kadrowanie, zmniejszenie i konwersja do WebP.
+Wbudowany ImageGen przygotował nową kolekcję Ridera, Novy, Pixela, Napastnika, Artystki, Detektywa, Hermiony i Wednesday. Prompty są w [avatar-prompts-v3.json](avatar-prompts-v3.json). Kierunek: dopracowana ilustracja postaci, naturalne proporcje, wyrazista twarz, filmowe światło, ciemne tło i spójny kadr popiersia.
 
-Autorzy i licencje są dostępne przy kartach w Nagrodach, w powiększeniu portretu oraz pod „Źródła fotografii” w wyborze wyglądu. Nie sugerujemy poparcia aplikacji przez fotografów ani sportowców.
+Pliki końcowe: `public/avatars/{street,nova,code,striker,artist,detective,hermione,wednesday}-v3.webp` (600 × 700) oraz `*-icon-v3.webp` (128 × 150). Optymalizacja zmienia rozmiar i format; grafiki są sprawdzane przed włączeniem do kolekcji.
 
-- **harry (cosplay):** Solomon203, [źródło](https://commons.wikimedia.org/wiki/File:Cosplayers_of_Harry_Potter_and_Hermione_Granger_20181209a.jpg), [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). Kadrowanie, zmniejszenie i konwersja do WebP; dla licencji BY-SA nasze wersje pozostają na tej samej licencji.
+## Zweryfikowane wizerunki postaci
 
-- **spider (cosplay):** ManoSolo13241324, [źródło](https://commons.wikimedia.org/wiki/File:Spider-Man_cosplay.jpg), [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). Kadrowanie, zmniejszenie i konwersja do WebP; dla licencji BY-SA nasze wersje pozostają na tej samej licencji.
+- **Harry Potter:** Daniel Radcliffe w oficjalnej fotografii promocyjnej z „Harry'ego Pottera i Czary Ognia”; [HarryPotter.com](https://www.harrypotter.com/features/harry-potter-book-character-descriptions-versus-how-they-looked-in-the-films). © Warner Bros. / Wizarding World.
+- **Spider-Man:** grafika komiksowej postaci z [oficjalnej strony Marvel Japan](https://marvel.disney.co.jp/character/spiderman). © Marvel / Disney.
+- **Batman:** portret komiksowej postaci z [oficjalnej strony DC](https://www.dc.com/characters/batman). © DC.
+- **Mandalorianin:** Din Djarin z [oficjalnego Databanku StarWars.com](https://www.starwars.com/databank/the-mandalorian/). © Lucasfilm / Disney.
 
-- **batman (cosplay):** Andrew Guyton; opracowanie Hic et nunc, [źródło](https://commons.wikimedia.org/wiki/File:Batman_(black_background).jpg), [CC BY-SA 2.0](https://creativecommons.org/licenses/by-sa/2.0/). Kadrowanie, zmniejszenie i konwersja do WebP; dla licencji BY-SA nasze wersje pozostają na tej samej licencji.
+Adresy grafik, źródła i kadrowanie zapisano w [avatar-source-verification-v3.json](avatar-source-verification-v3.json). To bezpośrednie odnośniki do materiałów wydawców, nie fotografie przypadkowych osób. Nie przypisujemy tym materiałom licencji Creative Commons ani nie przedstawiamy ich jako własnych ilustracji. Dostępność czterech materiałów i ich miniatur zależy od źródeł zewnętrznych; aplikacja pokazuje czytelny komunikat w razie błędu zamiast podmieniać postać.
 
-- **mando (cosplay):** Claudio Marinangeli, [źródło](https://commons.wikimedia.org/wiki/File:Din_Djarin_Cosplayer_at_Lucca_Comics_%26_Games_2022.jpg), [CC BY 2.0](https://creativecommons.org/licenses/by/2.0/). Kadrowanie, zmniejszenie i konwersja do WebP; dla licencji BY-SA nasze wersje pozostają na tej samej licencji.
+## Zachowane fotografie sportowców
 
-## Grafiki kolekcji
+- **Cristiano Ronaldo:** Анна Нэсси / soccer.ru, [źródło](https://commons.wikimedia.org/wiki/File:Cristiano_Ronaldo_2018.jpg), [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/). Pliki `ronaldo-v2.webp` i `ronaldo-icon-v2.webp` zachowane bez zmian; wersje po kadrowaniu, zmniejszeniu i konwersji do WebP pozostają na CC BY-SA 3.0.
+- **Lionel Messi:** Hossein Zohrevand / Tasnim News Agency, [źródło](https://commons.wikimedia.org/wiki/File:Lionel_Messi_WC2022.jpg), [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Pliki `messi-v2.webp` i `messi-icon-v2.webp` zachowane bez zmian.
 
-| Klucz | Portret | Plik |
-| --- | --- | --- |
-| street | Rider, młodzieżowy styl miejski | public/avatars/street-v2.webp |
-| nova | Nova, odkrywczyni kosmosu | public/avatars/nova-v2.webp |
-| code | Pixel, technologia i gaming | public/avatars/code-v2.webp |
-| striker | Napastnik, piłka nożna | public/avatars/striker-v2.webp |
-| artist | Artystka, muzyka i własny styl | public/avatars/artist-v2.webp |
-| detective | Detektyw, zagadki | public/avatars/detective-v2.webp |
-| harry | Harry Potter | public/avatars/harry-v2.webp |
-| hermione | Hermiona | public/avatars/hermione-v2.webp |
-| wednesday | Wednesday | public/avatars/wednesday-v2.webp |
-| spider | Spider-Man | public/avatars/spider-v2.webp |
-| batman | Batman | public/avatars/batman-v2.webp |
-| mando | Mandalorianin | public/avatars/mando-v2.webp |
-
-## Prompty
-
-Wspólny prompt i dopiski dla każdej postaci zapisano w [avatar-prompts.json](avatar-prompts.json). Użyto wbudowanego ImageGen, bez CLI/API fallback. Kopie zoptymalizowane do aplikacji są w repozytorium; generatorowe oryginały nie są ładowane przez stronę.
+Źródła i prawa są dostępne w powiększeniu oraz w rozwijanej sekcji kolekcji. Karty wyboru pokazują portret, nazwę, krótki opis, stan odblokowania i przycisk.

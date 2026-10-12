@@ -1,0 +1,38 @@
+[
+  {
+    "key": "harry",
+    "name": "Harry Potter",
+    "source": "https://www.harrypotter.com/features/harry-potter-book-character-descriptions-versus-how-they-looked-in-the-films",
+    "image": "https://contentful.harrypotter.com/usf1vwtuqyxm/3SQ3X2km8wkQIsQWa02yOY/8801d7055a3e99dae8e60f54bb4b1db8/HarryPotter_WB_F4_HarryPotterMidshot_Promo_080615_Port.jpg?fm=jpg&q=75&w=914",
+    "thumbnail": "https://contentful.harrypotter.com/usf1vwtuqyxm/3SQ3X2km8wkQIsQWa02yOY/8801d7055a3e99dae8e60f54bb4b1db8/HarryPotter_WB_F4_HarryPotterMidshot_Promo_080615_Port.jpg?fm=jpg&q=75&w=128",
+    "rights": "Warner Bros. / Wizarding World",
+    "position": "50% 18%"
+  },
+  {
+    "key": "spider",
+    "name": "Spider-Man",
+    "source": "https://marvel.disney.co.jp/character/spiderman",
+    "image": "https://lumiere-a.akamaihd.net/v1/images/eb_comic_12473_12497_12452_12480_12540_12510_12531_816eeaca.jpeg?region=0%2C0%2C2048%2C878",
+    "thumbnail": "https://lumiere-a.akamaihd.net/v1/images/eb_comic_12473_12497_12452_12480_12540_12510_12531_816eeaca.jpeg?region=1260%2C0%2C760%2C878&width=128",
+    "rights": "Marvel / Disney",
+    "position": "86% 50%"
+  },
+  {
+    "key": "batman",
+    "name": "Batman",
+    "source": "https://www.dc.com/characters/batman",
+    "image": "https://static.dc.com/dc/files/default_images/Char_Thumb_Batman_20190116_5c3fc4b40fae42.85141247.jpg",
+    "thumbnail": "https://static.dc.com/dc/files/default_images/Char_Thumb_Batman_20190116_5c3fc4b40fae42.85141247.jpg?w=160",
+    "rights": "DC",
+    "position": "50% 15%"
+  },
+  {
+    "key": "mando",
+    "name": "Mandalorianin",
+    "source": "https://www.starwars.com/databank/the-mandalorian/",
+    "image": "https://lumiere-a.akamaihd.net/v1/images/din-djarin-the-mandalorian-main_66f8a62f.jpeg?region=98%2C0%2C1821%2C1023",
+    "thumbnail": "https://lumiere-a.akamaihd.net/v1/images/din-djarin-the-mandalorian-main_66f8a62f.jpeg?region=800%2C0%2C600%2C700&width=128",
+    "rights": "Lucasfilm / Disney",
+    "position": "50% 15%"
+  }
+]

@@ -585,3 +585,18 @@
 .avatar-credit > span { display:block; margin-top:3px; font-size:10px; }
 .hero-large-preview { width:100%; max-width:430px; margin:0 auto; }
 .hero-large-preview .avatar-portrait { display:block; width:100%; height:auto; aspect-ratio:6 / 7; border-radius:18px; }
+/* Kolekcja v3: grafika na pierwszym planie, krótkie karty i źródła pod szczegółami. */
+.hero-item.portrait-hero { justify-content:flex-start; gap:10px; box-shadow:0 5px 16px rgba(0,0,0,.12); }
+.hero-card-copy { display:flex; flex-direction:column; gap:5px; min-height:64px; }
+.hero-card-copy .hero-name { font-size:17px; font-weight:800; line-height:1.25; }
+.hero-card-copy .hero-description { min-height:0; font-size:12px; line-height:1.45; }
+.hero-ownership { color:var(--muted); font-weight:700; min-height:18px; }
+.hero-item.portrait-hero > .btn,.hero-item.portrait-hero > .pill { width:100%; margin-top:auto; min-height:42px; }
+.hero-art-preview { box-shadow:0 2px 8px rgba(0,0,0,.14); }
+.hero-art-preview .avatar-portrait { aspect-ratio:6 / 7; }
+.avatar-credit { margin-top:10px; padding:12px; border:1px solid var(--line); border-radius:12px; font-size:12px; }
+.avatar-credit > summary { cursor:pointer; font-weight:800; }
+.avatar-credit > div { margin-top:12px; gap:8px; }
+.avatar-unavailable { display:grid; place-items:center; width:100%; aspect-ratio:6 / 7; background:var(--surface-2); color:var(--muted); font:inherit; font-size:13px; text-align:center; }
+.hero-art-preview > .avatar-unavailable { position:static; padding:16px; font-size:13px; border-radius:14px; }
+@media(max-width:760px) { .hero-group .hero-grid { gap:12px; } .hero-item.portrait-hero { padding:10px; } .hero-card-copy { min-height:62px; } }

@@ -1,0 +1,25 @@
+{
+  "method": "built-in ImageGen",
+  "transparent_background": false,
+  "common_prompt": "Use case: stylized-concept. Create one final production avatar illustration for a youth learning app. High-end hand-painted semi-realistic character key art, richly illustrated cinematic finish, not a photograph or cosplay snapshot. Strong character design and identity, carefully painted face and hair, believable proportions, detailed clothing, confident expression, polished lighting and depth. Bust portrait in 6:7 format: face centered, entire head with 12% top margin, shoulders and upper chest visible. Dark atmospheric backdrop with soft colored cinematic light and subtle bokeh. Clean elegant composition designed for a collectible card, readable at 64px. Natural adolescent/young-adult proportions, no toddler cartoon, no chibi, no flat vector shapes, no excessive photographic skin pores, no crowd, no text, no watermark, no border. ",
+  "subjects": {
+    "street": "Original Rider: teenage male urban skater, age 16–18, layered medium-length sandy-brown hair swept to one side, warm olive skin, confident half smile. Dark graphite streetwear jacket with tasteful emerald lining, skate deck rests over shoulder. Blue-hour urban rooftops and teal light. Bold, adventurous and stylish.",
+    "nova": "Original Nova: female space explorer age 17–19 with dark skin, short asymmetric silver-and-black textured hair, bright thoughtful eyes. Futuristic graphite astronaut flight suit with luminous violet trim, a compact helmet at hip mostly out of frame, face fully visible. Deep purple orbital-station window and subtle stars. Smart, adventurous and charismatic.",
+    "code": "Original Pixel: male tech creator age 16–18, East Asian facial features, layered black hair with one cool-blue streak, observant brown eyes, subtle friendly smile. Minimal modern navy jacket and blue gaming headphones resting around neck. Cinematic cobalt studio glow, faint abstract tech shapes without lettering. Distinctive believable face.",
+    "striker": "Original football striker age 16–18: male athlete with tan skin and short naturally curly dark hair, confident focused eyes. Lightweight green association-football soccer jersey WITHOUT bulky shoulder pads, no black eye paint, bare hand holds a ROUND black-and-white soccer ball just below chest. Warm stadium floodlight and emerald edge light. No American football equipment, no club logos.",
+    "artist": "Original artist-musician: female age 17–19, soft copper bob hairstyle, freckles and expressive hazel eyes, confident playful smile. Black denim music jacket over plum tee, tasteful guitar strap and part of electric guitar below frame. Amber and magenta studio glow. Elegant creative styling, no jewellery clutter, no logos.",
+    "detective": "Original modern detective: male age 17–19 with South Asian features, wavy dark hair, curious sharp eyes and calm clever expression. Charcoal fitted trench coat and midnight-blue turtleneck. Warm gold desk lamp light and mysterious blue-gray city-window bokeh. Sophisticated adventure look, no weapon.",
+    "hermione": "Hermione Granger, recognizable as the Harry Potter film character played by Emma Watson. Young witch with distinctive expressive brown eyes, long voluminous chestnut waves, thoughtful intelligent expression. Black Hogwarts-style wizard robe, white shirt and burgundy-gold school tie. An old magical library glowing warmly behind her, book against upper chest. Faithful recognizable character face, beautiful original illustrated treatment.",
+    "wednesday": "Wednesday Addams, recognizable film/series character with pale skin, black straight fringe, two long black braids, intense composed deadpan gaze. Black fitted gothic coat, crisp white pointed collar. Violet-gray gothic academy windows and moonlit atmospheric depth. Distinctive character face, premium original illustrated treatment."
+  },
+  "asset_paths": [
+    "public/avatars/street-v3.webp",
+    "public/avatars/nova-v3.webp",
+    "public/avatars/code-v3.webp",
+    "public/avatars/striker-v3.webp",
+    "public/avatars/artist-v3.webp",
+    "public/avatars/detective-v3.webp",
+    "public/avatars/hermione-v3.webp",
+    "public/avatars/wednesday-v3.webp"
+  ]
+}

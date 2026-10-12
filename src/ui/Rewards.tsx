@@ -129,14 +129,13 @@ export function Rewards() {
               <details key={g.id} open={['starter', 'sport', 'screen'].includes(g.id) ? true : undefined} className="hero-group clear-details" aria-label={g.title}>
                 <summary className="hero-group-title">{g.title}</summary>
                 <div className="hero-grid">
-                  {AVATARS.filter((x) => x.group === g.id).map(({ emoji, name, cost, art, description, credit }) => {
+                  {AVATARS.filter((x) => x.group === g.id).map(({ emoji, name, cost, art, description }) => {
                     const has = owned.has(emoji);
                     const current = profile.avatar === emoji;
                     return (
                       <div key={emoji} className={`hero-item${art ? ' portrait-hero' : ''}${current ? ' current' : ''}`}>
                         <button type="button" className="hero-art-preview" aria-label={`Powiększ: ${name}`} onClick={() => setPreview(emoji)} disabled={!art}><AvatarPortrait value={emoji} variant="card" />{art && <span>Powiększ</span>}</button>
-                        <b className="hero-name">{name}</b>{art && <small className="hero-art-kind">{credit ? credit.kind ?? 'Prawdziwe zdjęcie' : 'Ilustracja'}</small>}{description && <small className="muted hero-description">{description}</small>}<small>{has ? cost ? 'Odblokowany' : 'Bezpłatny' : `${cost} punktów · brakuje ${Math.max(0, cost - progress.coins)}`}</small>
-                        {credit && <AvatarCredit value={emoji} />}
+                        <div className="hero-card-copy"><b className="hero-name">{name}</b>{description && <small className="muted hero-description">{description}</small>}</div><small className="hero-ownership">{has ? cost ? 'Odblokowany' : 'Bezpłatny' : progress.coins < cost ? `Brakuje ${cost - progress.coins} pkt` : 'Gotowy do odblokowania'}</small>
                         {current ? (
                           <span className="pill good">Twój bohater</span>
                         ) : has ? (
@@ -146,7 +145,7 @@ export function Rewards() {
                         ) : (
                           <button className="btn btn-sm btn-primary btn-block" disabled={heroBusy || progress.coins < cost} onClick={() => buyAvatar(emoji, name, cost)} aria-label={`Kup za ${cost}: ${name}`}>
                             <Icon name="coin" size={16} />
-                            {cost}
+                            {cost} pkt
                           </button>
                         )}
                       </div>
@@ -155,6 +154,7 @@ export function Rewards() {
                 </div>
               </details>
             ))}
+            <details className="card clear-details"><summary>Autorzy i źródła grafik</summary><div className="col">{AVATARS.filter((a) => a.credit).map((a) => <div key={a.emoji}><b>{a.name}</b><AvatarCredit value={a.emoji} /></div>)}</div></details>
           </>
         )}
 
