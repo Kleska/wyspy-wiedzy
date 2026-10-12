@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { generatorsFor } from '../content/generators';
+import { historyChapter1ExamItems } from '../content/history5Exam';
 import { subjectOf } from '../content/seed';
 import { gradeOf } from '../data/store';
 import { untouchedTopics, type Progress } from '../engine';
@@ -192,7 +193,9 @@ function TestSetup({
   const planned = topics.filter((t) => planIds.includes(t.id)).map((t) => t.id);
   const started = boardTopics.filter((t) => (progress.topics.get(t.id)?.level ?? 0) > 0).map((t) => t.id);
   const [sel, setSel] = useState<string[]>(planned.length ? planned : started.length ? started : (boardTopics.length ? boardTopics : topics).map((t) => t.id));
-  const [count, setCount] = useState(15);
+  const chapterExam = subjectId === 'his' ? historyChapter1ExamItems(topics) : undefined;
+  const [count, setCount] = useState(chapterExam ? 24 : 15);
+  const selectedChapterExam = count === 24 ? historyChapter1ExamItems(topics.filter((t) => sel.includes(t.id))) : undefined;
   const available = topics.filter((t) => sel.includes(t.id)).reduce((a, t) => a + t.exercises.length, 0);
   const title =
     sel.length === 1 ? `Sprawdzian: ${topics.find((t) => t.id === sel[0])?.title}` : `Sprawdzian: ${subjectOf(subjectId).name}${scope ? `, ${scope}` : ''}`;
@@ -223,17 +226,18 @@ function TestSetup({
       <div className="field">
         <span>Ile pytań?</span>
         <div className="grade-grid count-grid" role="group" aria-label="Liczba pytań">
-          {[10, 15, 20].map((n) => (
+          {(chapterExam ? [10, 15, 20, 24] : [10, 15, 20]).map((n) => (
             <button key={n} type="button" aria-pressed={count === n} onClick={() => setCount(n)}>
               {n}
             </button>
           ))}
         </div>
       </div>
+      {selectedChapterExam && <p className="muted">Pełny rozdział: po 4 pytania z każdego z 6 tematów.</p>}
       <button
         className="btn btn-primary btn-lg btn-block"
         disabled={sel.length === 0}
-        onClick={() => go(practice({ kind: 'test', topicIds: sel, title, subjectId, count: Math.min(count, available) }))}
+        onClick={() => go(practice({ kind: 'test', topicIds: sel, title, subjectId, count: Math.min(count, available), ...(selectedChapterExam ? { items: selectedChapterExam } : {}) }))}
       >
         <Icon name="test" /> Zaczynam sprawdzian
       </button>
