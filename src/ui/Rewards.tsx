@@ -1,6 +1,6 @@
-import { AvatarPortrait } from './AvatarPortrait';
+import { AvatarPortrait, AvatarCredit } from './AvatarPortrait';
 import { useState } from 'react';
-import { AVATAR_GROUPS, AVATARS, ownedAvatars } from '../avatars';
+import { AVATAR_GROUPS, AVATARS, avatarInfo, ownedAvatars } from '../avatars';
 import { unlockAvatar } from '../avatarPurchase';
 import { askConfirm } from './dialogs';
 import { nowIso, store, uid } from '../data/store';
@@ -8,6 +8,7 @@ import { FREEZE_COST, FREEZE_ID, FREEZE_MAX } from '../engine';
 import { coinText, plural } from '../themes';
 import { useApp, useProgress } from './hooks';
 import { Icon } from './icons';
+import { Modal } from './bits';
 import { TopBar } from './TopBar';
 
 type Tab = 'shop' | 'badges' | 'requests';
@@ -15,6 +16,8 @@ type Tab = 'shop' | 'badges' | 'requests';
 export function Rewards() {
   const { profile, theme, go, toast } = useApp();
   const progress = useProgress(profile.id)!;
+  const [preview, setPreview] = useState<string | null>(null);
+  const previewHero = preview ? avatarInfo(preview) : undefined;
   const [heroBusy, setHeroBusy] = useState(false);
   const [tab, setTab] = useState<Tab>('shop');
   const settings = store.settings;
@@ -126,15 +129,14 @@ export function Rewards() {
               <details key={g.id} open={['starter', 'sport', 'screen'].includes(g.id) ? true : undefined} className="hero-group clear-details" aria-label={g.title}>
                 <summary className="hero-group-title">{g.title}</summary>
                 <div className="hero-grid">
-                  {AVATARS.filter((x) => x.group === g.id).map(({ emoji, name, cost, art, description }) => {
+                  {AVATARS.filter((x) => x.group === g.id).map(({ emoji, name, cost, art, description, credit }) => {
                     const has = owned.has(emoji);
                     const current = profile.avatar === emoji;
                     return (
                       <div key={emoji} className={`hero-item${art ? ' portrait-hero' : ''}${current ? ' current' : ''}`}>
-                        <span className="hero-emoji" role="img" aria-label={name} title={name}>
-                          <AvatarPortrait value={emoji} />
-                        </span>
-                        <b className="hero-name">{name}</b>{description && <small className="muted hero-description">{description}</small>}<small>{has ? cost ? 'Odblokowany' : 'Bezpłatny' : `${cost} punktów · brakuje ${Math.max(0, cost - progress.coins)}`}</small>
+                        <button type="button" className="hero-art-preview" aria-label={`Powiększ: ${name}`} onClick={() => setPreview(emoji)} disabled={!art}><AvatarPortrait value={emoji} variant="card" />{art && <span>Powiększ</span>}</button>
+                        <b className="hero-name">{name}</b>{art && <small className="hero-art-kind">{credit ? credit.kind ?? 'Prawdziwe zdjęcie' : 'Ilustracja'}</small>}{description && <small className="muted hero-description">{description}</small>}<small>{has ? cost ? 'Odblokowany' : 'Bezpłatny' : `${cost} punktów · brakuje ${Math.max(0, cost - progress.coins)}`}</small>
+                        {credit && <AvatarCredit value={emoji} />}
                         {current ? (
                           <span className="pill good">Twój bohater</span>
                         ) : has ? (
@@ -202,6 +204,13 @@ export function Rewards() {
           </div>
         )}
       </div>
+      {previewHero && <Modal title={previewHero.name} onClose={() => setPreview(null)}>
+        <div className="hero-large-preview"><AvatarPortrait value={previewHero.emoji} variant="card" /></div>
+        <p className="muted">{previewHero.description} · {previewHero.cost ? `${previewHero.cost} punktów` : 'Bezpłatny'}</p>
+        <AvatarCredit value={previewHero.emoji} />
+        {owned.has(previewHero.emoji) ? <button className="btn btn-primary" onClick={() => { setAvatar(previewHero.emoji); setPreview(null); }}>{profile.avatar === previewHero.emoji ? 'To mój bohater' : 'Wybierz bohatera'}</button> : <button className="btn btn-primary" disabled={heroBusy || progress.coins < previewHero.cost} onClick={() => { setPreview(null); void buyAvatar(previewHero.emoji, previewHero.name, previewHero.cost); }}>{progress.coins < previewHero.cost ? `Brakuje ${previewHero.cost - progress.coins} punktów` : `Odblokuj za ${previewHero.cost}`}</button>}
+        <button className="btn" onClick={() => setPreview(null)}>Wróć do kolekcji</button>
+      </Modal>}
     </>
   );
 }

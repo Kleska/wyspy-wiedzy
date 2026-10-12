@@ -67,7 +67,7 @@ export function Onboarding({ onDone, onCancel, onParent, first = true }: { onDon
             <div className="hero-pick starter-pick" role="group" aria-label="Bohater">
               {STARTER_AVATARS.map((a) => (
                 <button key={a} type="button" aria-pressed={a === avatar} onClick={() => setAvatar(a)} aria-label={avatarName(a)} title={avatarName(a)}>
-                  <AvatarPortrait value={a} /><small>{avatarName(a)}</small>
+                  <AvatarPortrait value={a} variant="card" /><small>{avatarName(a)}</small>
                 </button>
               ))}
             </div>

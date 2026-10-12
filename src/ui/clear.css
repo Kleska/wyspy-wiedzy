@@ -572,3 +572,16 @@
  .child-week-activity { gap:4px; }
  .child-week-activity li { font-size:11px; }
 }
+/* Nowa kolekcja: pełne portrety i małe miniatury profilu. */
+.hero-art-preview { position:relative; display:grid; width:100%; padding:0; border:0; border-radius:14px; overflow:hidden; background:var(--surface-2); color:white; cursor:zoom-in; margin:0 !important; }
+.hero-art-preview:disabled { opacity:1; cursor:default; }
+.hero-art-preview .avatar-portrait { display:block; width:100%; height:auto; aspect-ratio:6 / 7; object-fit:cover; object-position:50% 30%; border-radius:14px; }
+.hero-art-preview > span:last-child { position:absolute; bottom:10px; right:10px; background:rgba(12,18,30,.75); padding:5px 8px; border-radius:8px; font-size:11px; font-weight:800; }
+.hero-art-preview > span:first-child { font-size:52px; padding:20px; }
+.hero-art-preview:hover .avatar-portrait { filter:brightness(1.07); }
+.hero-art-kind { font-size:11px; color:var(--muted); }
+.avatar-credit { display:block; color:var(--muted); font-size:11px; line-height:1.5; overflow-wrap:anywhere; }
+.avatar-credit a { color:inherit; text-decoration:underline; text-underline-offset:2px; }
+.avatar-credit > span { display:block; margin-top:3px; font-size:10px; }
+.hero-large-preview { width:100%; max-width:430px; margin:0 auto; }
+.hero-large-preview .avatar-portrait { display:block; width:100%; height:auto; aspect-ratio:6 / 7; border-radius:18px; }

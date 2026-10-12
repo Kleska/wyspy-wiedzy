@@ -12,7 +12,7 @@ Podgląd jest osobną aplikacją z danymi demonstracyjnymi. Nie podłącza się 
 - Karta tematu: „Poznaj temat” i „Ćwicz”; ściąga, dodatkowe treningi i sprawdzian są pod „Więcej”.
 - Gry, Postępy i Nagrody: osobne pozycje w stałym menu ucznia.
 - Postępy ucznia: podsumowanie, historia oraz sprawdziany i kartkówki. Filtry okresu, przedmiotu i rodzaju; szczegóły wyniku z błędami do poprawy. Oceny tylko ukończonych sprawdzianów.
-- Bohaterowie: 6 darmowych portretów na start i 8 postaci sportu, filmu i komiksu za 300–500 punktów. Dawne ikony i zakupy pozostają dostępne.
+- Bohaterowie: 6 darmowych ilustracji na start i 8 postaci sportu, filmu i komiksu za 300–500 punktów. Wersja v2: prawdziwe zdjęcia Ronaldo i Messiego oraz 8 nowych ilustracji i 4 fotografie cosplay, oznaczone jako zdjęcia osób w kostiumach. Przycisk „Powiększ” pozwala obejrzeć grafikę przed wyborem; miniatury profili są osobnymi, lekkimi plikami. Źródła i prompty: docs/AVATAR_ART.md. Dawne ikony i zakupy pozostają dostępne.
 - Panel rodzica dostępny także bez wyboru dziecka na ekranie profili i przez przycisk „Zaloguj do panelu rodzica” po uwierzytelnieniu konta.
 - Kartkówka: zaznacz Badaczkę i Koleżankę jako odbiorców, wybierz tematy i zadaj. Identyczne pytania, osobne podejścia i oceny; „Wyniki grupy” pokazują odbiorców. Odbiorcy muszą mieć profil w tym samym koncie rodziny i tę samą klasę.
 - Panel rodzica: PIN demonstracyjny **123456**. Wybierz inne dziecko i przejdź między Postępami, Planem i Tematami — wybór powinien zostać.

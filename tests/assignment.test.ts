@@ -35,7 +35,10 @@ describe('nowa kolekcja bohaterów', () => {
   it('podstawowe portrety są darmowe, sport i kino wymagają punktów, grafiki istnieją', () => {
     expect(STARTER_AVATARS).toHaveLength(6);
     for (const a of AVATARS.filter((a) => !!a.art)) {
-      expect(readFileSync(`public/${a.art}`, 'utf8')).toContain('<svg');
+      const data = readFileSync(`public/${a.art}`);
+      expect(data.subarray(0, 4).toString()).toBe('RIFF');
+      expect(data.subarray(8, 12).toString()).toBe('WEBP');
+      expect(readFileSync(`public/${a.thumbnail}`).length).toBeGreaterThan(100);
       if (a.group === 'starter') expect(a.cost).toBe(0);
       if (a.group !== 'starter') expect(a.cost).toBeGreaterThan(0);
     }

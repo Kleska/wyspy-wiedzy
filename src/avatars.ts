@@ -3,7 +3,7 @@
  *
  * `emoji` jest kluczem: zapisuje się w `Profile.avatar` i w zakupach (`rewardId` = `avatar:<emoji>`),
  * więc istniejącego znaku nie wolno zmieniać ani usuwać — można tylko dopisywać nowe.
- * Nowe klucze hero:* wskazują własne portrety SVG. Starsze emoji i zakupy pozostają kompatybilne.
+ * Nowe klucze hero:* wskazują ilustracje i fotografie, wraz z lekkimi miniaturami. Starsze emoji i zakupy pozostają kompatybilne.
  */
 
 export type AvatarGroupId = 'starter' | 'sport' | 'screen' | 'zwierzaki' | 'postacie' | 'pojazdy' | 'skarby';
@@ -16,6 +16,9 @@ export interface Avatar {
   cost: number;
   group: AvatarGroupId;
   art?: string;
+  thumbnail?: string;
+  /** Źródło i licencja prawdziwej fotografii. */
+  credit?: { kind?: string; author: string; source: string; license: string; licenseUrl: string; changes: string };
   description?: string;
 }
 
@@ -101,23 +104,23 @@ export const AVATARS: Avatar[] = [
   a('skarby', '💎', 'diament', 250),
   a('skarby', '👑', 'korona', 250),
   a('skarby', '🏆', 'puchar', 300),
-  {"emoji": "hero:street", "name": "Rider", "group": "starter", "cost": 0, "art": "avatars/street.svg", "description": "Miejski styl i nowe wyzwania"},
-  {"emoji": "hero:nova", "name": "Nova", "group": "starter", "cost": 0, "art": "avatars/nova.svg", "description": "Kosmos, odkrycia i odwaga"},
-  {"emoji": "hero:code", "name": "Pixel", "group": "starter", "cost": 0, "art": "avatars/code.svg", "description": "Technologia i świat gier"},
-  {"emoji": "hero:striker", "name": "Napastnik", "group": "starter", "cost": 0, "art": "avatars/striker.svg", "description": "Energia, drużyna i sport"},
-  {"emoji": "hero:artist", "name": "Artystka", "group": "starter", "cost": 0, "art": "avatars/artist.svg", "description": "Wyobraźnia, muzyka i własny styl"},
-  {"emoji": "hero:detective", "name": "Detektyw", "group": "starter", "cost": 0, "art": "avatars/detective.svg", "description": "Zagadki i sprytne rozwiązania"},
-  {"emoji": "hero:ronaldo", "name": "Cristiano Ronaldo", "group": "sport", "cost": 300, "art": "avatars/ronaldo.svg", "description": "Piłkarska kolekcja · numer 7"},
-  {"emoji": "hero:messi", "name": "Lionel Messi", "group": "sport", "cost": 300, "art": "avatars/messi.svg", "description": "Piłkarska kolekcja · numer 10"},
-  {"emoji": "hero:harry", "name": "Harry Potter", "group": "screen", "cost": 350, "art": "avatars/harry.svg", "description": "Magia · okulary i błyskawica"},
-  {"emoji": "hero:hermione", "name": "Hermiona", "group": "screen", "cost": 350, "art": "avatars/hermione.svg", "description": "Magia · wiedza i odwaga"},
-  {"emoji": "hero:wednesday", "name": "Wednesday", "group": "screen", "cost": 400, "art": "avatars/wednesday.svg", "description": "Mroczny styl · czarno-biały kołnierzyk"},
-  {"emoji": "hero:spider", "name": "Spider-Man", "group": "screen", "cost": 450, "art": "avatars/spider.svg", "description": "Komiksowa kolekcja · pajęcza maska"},
-  {"emoji": "hero:batman", "name": "Batman", "group": "screen", "cost": 450, "art": "avatars/batman.svg", "description": "Komiksowa kolekcja · nocny obrońca"},
-  {"emoji": "hero:mando", "name": "Mandalorianin", "group": "screen", "cost": 500, "art": "avatars/mando.svg", "description": "Kosmiczna kolekcja · metalowy hełm"},
+  {"emoji": "hero:street", "name": "Rider", "group": "starter", "cost": 0, "art": "avatars/street-v2.webp", "thumbnail": "avatars/street-icon-v2.webp", "description": "Miejski styl i nowe wyzwania"},
+  {"emoji": "hero:nova", "name": "Nova", "group": "starter", "cost": 0, "art": "avatars/nova-v2.webp", "thumbnail": "avatars/nova-icon-v2.webp", "description": "Kosmos, odkrycia i odwaga"},
+  {"emoji": "hero:code", "name": "Pixel", "group": "starter", "cost": 0, "art": "avatars/code-v2.webp", "thumbnail": "avatars/code-icon-v2.webp", "description": "Technologia i świat gier"},
+  {"emoji": "hero:striker", "name": "Napastnik", "group": "starter", "cost": 0, "art": "avatars/striker-v2.webp", "thumbnail": "avatars/striker-icon-v2.webp", "description": "Energia, drużyna i sport"},
+  {"emoji": "hero:artist", "name": "Artystka", "group": "starter", "cost": 0, "art": "avatars/artist-v2.webp", "thumbnail": "avatars/artist-icon-v2.webp", "description": "Wyobraźnia, muzyka i własny styl"},
+  {"emoji": "hero:detective", "name": "Detektyw", "group": "starter", "cost": 0, "art": "avatars/detective-v2.webp", "thumbnail": "avatars/detective-icon-v2.webp", "description": "Zagadki i sprytne rozwiązania"},
+  {"emoji": "hero:ronaldo", "name": "Cristiano Ronaldo", "group": "sport", "cost": 300, "credit": {"author": "Анна Нэсси / soccer.ru", "source": "https://commons.wikimedia.org/wiki/File:Cristiano_Ronaldo_2018.jpg", "license": "CC BY-SA 3.0", "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0/", "changes": "Kadrowanie, zmniejszenie i konwersja do WebP. Fotografia i jej wersje udostępnione na tej samej licencji."}, "art": "avatars/ronaldo-v2.webp", "thumbnail": "avatars/ronaldo-icon-v2.webp", "description": "Piłkarska kolekcja · numer 7"},
+  {"emoji": "hero:messi", "name": "Lionel Messi", "group": "sport", "cost": 300, "credit": {"author": "Hossein Zohrevand / Tasnim News Agency", "source": "https://commons.wikimedia.org/wiki/File:Lionel_Messi_WC2022.jpg", "license": "CC BY 4.0", "licenseUrl": "https://creativecommons.org/licenses/by/4.0/", "changes": "Kadrowanie, zmniejszenie i konwersja do WebP."}, "art": "avatars/messi-v2.webp", "thumbnail": "avatars/messi-icon-v2.webp", "description": "Piłkarska kolekcja · numer 10"},
+  {"emoji": "hero:harry", "name": "Harry Potter", "group": "screen", "cost": 350, "art": "avatars/harry-v2.webp", "thumbnail": "avatars/harry-icon-v2.webp", "description": "Magia · okulary i błyskawica", "credit": {"kind": "Fotografia cosplay", "author": "Solomon203", "source": "https://commons.wikimedia.org/wiki/File:Cosplayers_of_Harry_Potter_and_Hermione_Granger_20181209a.jpg", "license": "CC BY-SA 4.0", "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/", "changes": "Kadrowanie, zmniejszenie i konwersja do WebP. Wersje udostępnione na tej samej licencji."}},
+  {"emoji": "hero:hermione", "name": "Hermiona", "group": "screen", "cost": 350, "art": "avatars/hermione-v2.webp", "thumbnail": "avatars/hermione-icon-v2.webp", "description": "Magia · wiedza i odwaga"},
+  {"emoji": "hero:wednesday", "name": "Wednesday", "group": "screen", "cost": 400, "art": "avatars/wednesday-v2.webp", "thumbnail": "avatars/wednesday-icon-v2.webp", "description": "Mroczny styl · czarno-biały kołnierzyk"},
+  {"emoji": "hero:spider", "name": "Spider-Man", "group": "screen", "cost": 450, "art": "avatars/spider-v2.webp", "thumbnail": "avatars/spider-icon-v2.webp", "description": "Komiksowa kolekcja · pajęcza maska", "credit": {"kind": "Fotografia cosplay", "author": "ManoSolo13241324", "source": "https://commons.wikimedia.org/wiki/File:Spider-Man_cosplay.jpg", "license": "CC BY-SA 4.0", "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/", "changes": "Kadrowanie, zmniejszenie i konwersja do WebP. Wersje udostępnione na tej samej licencji."}},
+  {"emoji": "hero:batman", "name": "Batman", "group": "screen", "cost": 450, "art": "avatars/batman-v2.webp", "thumbnail": "avatars/batman-icon-v2.webp", "description": "Komiksowa kolekcja · nocny obrońca", "credit": {"kind": "Fotografia cosplay", "author": "Andrew Guyton; opracowanie Hic et nunc", "source": "https://commons.wikimedia.org/wiki/File:Batman_(black_background).jpg", "license": "CC BY-SA 2.0", "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0/", "changes": "Fotografia źródłowa ma tło zastąpione czernią przez Hic et nunc. Kadrowanie, zmniejszenie i konwersja do WebP. Wersje udostępnione na tej samej licencji."}},
+  {"emoji": "hero:mando", "name": "Mandalorianin", "group": "screen", "cost": 500, "art": "avatars/mando-v2.webp", "thumbnail": "avatars/mando-icon-v2.webp", "description": "Kosmiczna kolekcja · metalowy hełm", "credit": {"kind": "Fotografia cosplay", "author": "Claudio Marinangeli", "source": "https://commons.wikimedia.org/wiki/File:Din_Djarin_Cosplayer_at_Lucca_Comics_%26_Games_2022.jpg", "license": "CC BY 2.0", "licenseUrl": "https://creativecommons.org/licenses/by/2.0/", "changes": "Kadrowanie, zmniejszenie i konwersja do WebP."}},
 ];
 
-/** Bohaterowie dostępni od razu (zwierzaki na początku — pierwsza osoba dostaje lisa jak dotąd). */
+/** Bohaterowie dostępni bez punktów; zachowujemy dawne klucze i ich kolejność. */
 export const FREE_AVATARS: string[] = AVATARS.filter((x) => x.cost === 0).map((x) => x.emoji);
 
 export const STARTER_AVATARS = AVATARS.filter((a) => a.group === 'starter').map((a) => a.emoji);

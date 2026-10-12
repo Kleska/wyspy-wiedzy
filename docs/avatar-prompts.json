@@ -1,0 +1,28 @@
+{
+  "method": "built-in ImageGen",
+  "transparent_background": false,
+  "common_prompt": "Use case: stylized-concept. Production asset for a youth learning app avatar collection, appealing to ages 9–14 and older teens. A single exceptionally polished cinematic character portrait, premium collectible game card artwork. Sophisticated stylized realism, richly painted 3D forms with illustrated finish, convincing facial anatomy, nuanced expressive eyes, detailed hair strands and clothing material, strong art direction. Not a flat vector icon, not an emoji, not a geometric face, not a toddler cartoon, not chibi, no oversized baby head, no generic smiling stock illustration. Portrait aspect ratio 6:7. Chest-up three-quarter pose, face centered in upper half, full head comfortably inside frame with 10% headroom, shoulders filling lower frame, distinctive layered background with atmospheric depth and bokeh. Detailed face sharp and readable as a small circular thumbnail. Cinematic soft key light and colored rim light, dimensional shadows and subtle texture, confident charismatic expression. No text, no letters, no watermark, no card border, no montage, no UI, no labels. ",
+  "subjects": {
+    "street": "Original teenage male street rider around 16, athletic, tousled dark brown hair, warm olive skin, relaxed confident expression. Layered charcoal hoodie and teal technical jacket, skateboard edge over one shoulder. Twilight urban skate park with neon teal accents and distant city bokeh. Mature streetwear, no logos.",
+    "nova": "Original character Nova, teenage female space explorer around age 16, short wavy dark purple hair with a subtle silver streak, warm brown skin, intelligent confident expression. Sleek white and charcoal astronaut jacket, small glowing violet accents, futuristic collar, no bulky helmet over face. Violet-blue space station and nebula window background, wonder and confidence, mature teen aesthetic.",
+    "code": "Original teenage male tech gamer around 16, dark skin, rich curly black hair, smart subtle smile. Premium black and electric-blue gaming headset resting around neck, technical bomber jacket and casual tee. Dim futuristic esports desk background with blue holographic light patterns, no visible writing, no logos. Cool intelligent coder hero.",
+    "striker": "Original teenage male football player around 16 with naturally curly light-brown hair, athletic facial features and focused optimistic expression. Premium emerald-green football jersey with understated dark trim, football tucked subtly below chest. Stadium tunnel and floodlights at evening, vivid emerald rim light, no logos.",
+    "artist": "Original teenage female creative musician around 16 with auburn wavy hair, light freckles, hazel eyes, confident warm expression. Tasteful purple streetwear jacket over graphic-free dark tee, guitar strap across shoulder with small part of guitar below frame. Music studio at sunset with rose-orange and purple light, textured artistic background, no logos.",
+    "detective": "Original teenage male detective around 17, medium-brown skin, textured dark hair, observant sharp eyes, composed intriguing expression. Modern charcoal trench jacket layered over a dark turtleneck, subtle leather satchel strap. Rainy city street at dusk with amber lamp bokeh and rich navy shadows, mystery adventure vibe, no weapon, no text.",
+    "hermione": "Hermione Granger as a teenage witch, instantly recognizable voluminous wavy chestnut hair, alert intelligent brown eyes, brave composed expression. Detailed dark wizard robe, burgundy and gold knit scarf over school shirt, book held subtly below chest, wand only if within frame. Magical castle library background, glowing amber windows, warm brown and golden light. Premium cinematic fantasy illustration, no school logo.",
+    "wednesday": "Wednesday Addams as a teenage girl, instantly recognizable pale complexion, dark straight fringe and two black braided pigtails, deadpan smart composed expression. Elegant black tailored school coat and crisp white pointed collar, subtle charcoal stripes. Gothic academy arched windows with cool violet moonlight and mist, premium cinematic gothic portrait. No horror injuries, no gore, no text."
+  },
+  "edits": {
+    "striker": "Edit target: the attached generated teenage athlete portrait. Correct the sport to association football (soccer), not American football. Replace the brown oval laced ball with a normal ROUND white soccer ball with black pentagonal panels. Replace the thick padded shoulder jersey with a lightweight green professional soccer shirt without shoulder padding. Remove the black eye-paint stripes from his cheeks. Remove the black glove if visible and show a natural bare hand holding the ball. Preserve EXACTLY his face identity, curly hair, eye color, confident expression, camera framing, cinematic golden stadium lighting, original atmosphere and background, premium rendered illustration quality. Change only the sport equipment, shirt construction and cheek paint. No text, no logos, no watermark."
+  },
+  "asset_paths": [
+    "public/avatars/street-v2.webp",
+    "public/avatars/nova-v2.webp",
+    "public/avatars/code-v2.webp",
+    "public/avatars/striker-v2.webp",
+    "public/avatars/artist-v2.webp",
+    "public/avatars/detective-v2.webp",
+    "public/avatars/hermione-v2.webp",
+    "public/avatars/wednesday-v2.webp"
+  ]
+}
