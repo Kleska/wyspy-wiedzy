@@ -56,6 +56,21 @@ async function click(text: string, scope: ParentNode = host) {
 }
 
 describe('czytelny interfejs', () => {
+  it('historia kl. 5 pokazuje sześć tematów i uruchamia pełny sprawdzian z czterema pytaniami na temat', async () => {
+    context = { ...context, profile: store.get('profile', 'demo-badaczka')! };
+    await render(<SubjectScreen subjectId="his" />);
+    expect(host.querySelectorAll('.clear-topic')).toHaveLength(6);
+    expect(host.querySelector('.unit-chips')?.textContent).toContain('Rozdział 1. Pierwsze cywilizacje');
+    await act(async () => host.querySelector<HTMLDetailsElement>('.subject-more')!.open = true);
+    await act(async () => host.querySelector<HTMLButtonElement>('.challenges .challenge')!.click());
+    expect(host.querySelector('[aria-label="Liczba pytań"] [aria-pressed="true"]')?.textContent).toBe('24');
+    await click('Zaczynam sprawdzian');
+    const screen = vi.mocked(context.go).mock.calls.at(-1)![0];
+    expect(screen.name).toBe('practice');
+    if (screen.name !== 'practice' || screen.run.kind !== 'test') throw new Error('Nie uruchomiono sprawdzianu');
+    expect(screen.run.items).toHaveLength(24);
+    for (const id of screen.run.topicIds) expect(screen.run.items!.filter((item) => item.topicId === id)).toHaveLength(4);
+  });
   it('Wstecz z rzeczywistego ćwiczenia zachowuje wybrany dział przedmiotu', async () => {
     await render(<App />);
     await act(async () => host.querySelector<HTMLButtonElement>('.person')!.click());

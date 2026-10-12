@@ -449,12 +449,12 @@ describe('tryb nauki: lekcje', () => {
 
   it('historia kl. 5: przedmiot, rozdział jako dział, lekcja z listami, wyjaśnienia, pytania kontrolne inne niż zadania', () => {
     const history = BUILTIN_TOPICS.filter((t) => t.subject === 'his');
-    expect(history.length).toBeGreaterThanOrEqual(7);
+    expect(history.map((t) => t.title)).toEqual(['Życie pierwszych ludzi', 'Miasta-państwa Mezopotamii', 'W Egipcie faraonów', 'W starożytnym Izraelu', 'Cywilizacje Indii i Chin', 'Od hieroglifów do alfabetu']);
     expect(subjectName('his')).toBe('Historia');
     for (const t of history) {
       expect(t.id, t.id).toMatch(/^b-h5-r\d+-/);
       expect(t.grades, t.title).toEqual([5]);
-      expect(t.unit, t.title).toBe('Pierwsze cywilizacje');
+      expect(t.unit, t.title).toBe('Rozdział 1. Pierwsze cywilizacje');
       expect(t.guide, t.title).toBeTruthy();
       const { exercises, errors } = parseDsl(t.dsl);
       expect(errors, t.title).toEqual([]);

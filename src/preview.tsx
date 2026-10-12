@@ -1,4 +1,6 @@
 import { BUILTIN_TOPICS } from './content/seed';
+import { HISTORY_GRADE5 } from './content/history5';
+import { HISTORY_CHAPTER1_EXAM } from './content/history5Exam';
 import { store, nowIso } from './data/store';
 import { parseDsl } from './dsl';
 import { hashPin } from './ui/parent/ParentGate';
@@ -81,6 +83,12 @@ export async function seedPreview() {
     }
   }
 
+  const historyProfile = store.get('profile', 'demo-badaczka');
+  const historyQuizId = 'demo-history-chapter1-pdf-v1';
+  if (historyProfile && !historyProfile.quizzes?.some((q) => q.id === historyQuizId)) {
+    const topicIds = HISTORY_GRADE5.map((t) => t.id);
+    await store.put('profile', { ...historyProfile, plan: historyProfile.plan ?? { title: 'Historia — Pierwsze cywilizacje', topicIds, setAt: at, until }, quizzes: [...(historyProfile.quizzes ?? []), { id: historyQuizId, title: 'Sprawdzian: Pierwsze cywilizacje', topicIds, items: HISTORY_CHAPTER1_EXAM, count: HISTORY_CHAPTER1_EXAM.length, createdAt: at }], updatedAt: at });
+  }
 }
 
 export function PreviewBanner() {
@@ -91,7 +99,7 @@ export function PreviewBanner() {
       <details>
         <summary>Jak sprawdzić tę wersję?</summary>
         <p>
-          Wybierz Odkrywcę (klasa 3) lub Badaczkę i Koleżankę (klasa 5). Obejrzyj historię, wyniki i nową kolekcję bohaterów. Badaczka i Koleżanka pozwalają sprawdzić wspólną kartkówkę. W panelu rodzica przełącz dziecko, a potem
+          Wybierz Badaczkę (klasa 5), aby otworzyć plan historii i sprawdzian z pierwszego rozdziału: 6 tematów i 24 pytania. Odkrywca ma klasę 3, a Badaczka i Koleżanka pozwalają też sprawdzić wspólną kartkówkę. W panelu rodzica przełącz dziecko, a potem
           sekcję — wybór zostaje. Możesz też dodać własny profil testowy. Dane zapisują się tylko w tej przeglądarce; ta strona nie łączy się z kontem rodziny.
         </p>
       </details>
