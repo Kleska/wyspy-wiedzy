@@ -35,5 +35,16 @@
     "thumbnail": "https://lumiere-a.akamaihd.net/v1/images/din-djarin-the-mandalorian-main_66f8a62f.jpeg?region=800%2C0%2C600%2C700&width=128",
     "rights": "Lucasfilm / Disney",
     "position": "50% 15%"
+  },
+  {
+    "key": "ronaldo",
+    "name": "Cristiano Ronaldo",
+    "provenance": "Fotografia w zrzucie ekranu przesłanym przez użytkownika; wycięcie tła i elementów telefonu w ImageGen",
+    "original_filename": "34016.png",
+    "original_sha256": "39a1c5b48ca9bf5da3e7e334297ebe59a929ab8260dd39005046d5ac171d5ff4",
+    "image": "avatars/ronaldo-v4.webp",
+    "thumbnail": "avatars/ronaldo-icon-v4.webp",
+    "method": "built-in ImageGen background-extraction; zachowana przezroczystość; kadrowanie i konwersja do WebP",
+    "original_source": "Autor i pierwotne źródło fotografii w zrzucie nie zostały podane. Nie przypisujemy temu plikowi licencji wcześniejszej fotografii Ronaldo."
   }
 ]

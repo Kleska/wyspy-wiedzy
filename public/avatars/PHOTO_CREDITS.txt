@@ -1,15 +1,11 @@
-Cristiano Ronaldo — fotografia: Анна Нэсси / soccer.ru
-Źródło: https://commons.wikimedia.org/wiki/File:Cristiano_Ronaldo_2018.jpg
-Licencja: CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0/
-Pliki: ronaldo-v2.webp, ronaldo-icon-v2.webp
-Zmiany: kadrowanie, zmniejszenie i konwersja do WebP. Wersje na tej samej licencji.
-
 Lionel Messi — fotografia: Hossein Zohrevand / Tasnim News Agency
 Źródło: https://commons.wikimedia.org/wiki/File:Lionel_Messi_WC2022.jpg
 Licencja: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/
 Pliki: messi-v2.webp, messi-icon-v2.webp
 Zmiany: kadrowanie, zmniejszenie i konwersja do WebP.
 
-Pozostałe materiały: 8 nowych ilustracji ImageGen, grafika Harry’ego Pottera przesłana przez użytkownika (34015.jpg; pliki harry-v4.webp i harry-icon-v4.webp; autor i pierwotne źródło nie zostały podane) oraz bezpośrednie odnośniki do 3 wizerunków postaci opublikowanych przez wydawców.
+Pozostałe materiały: 6 darmowych postaci gry 3D i 2 ilustracje premium ImageGen, wycięty w ImageGen Ronaldo z przesłanego zrzutu 34016.png (ronaldo-v4.webp i ronaldo-icon-v4.webp; autor i pierwotne źródło fotografii nie zostały podane), grafika Harry’ego Pottera przesłana przez użytkownika (34015.jpg; pliki harry-v4.webp i harry-icon-v4.webp; autor i pierwotne źródło nie zostały podane) oraz bezpośrednie odnośniki do 3 wizerunków postaci opublikowanych przez wydawców.
 Źródła i prawa: docs/AVATAR_ART.md oraz docs/avatar-source-verification-v3.json.
 Nie przypisujemy materiałom wydawców licencji Creative Commons.
+
+Prompty i sposób wycięcia: docs/avatar-prompts-v4.json. Nowy portret Ronaldo nie korzysta z poprzedniego źródła soccer.ru ani z jego deklaracji CC BY-SA.
