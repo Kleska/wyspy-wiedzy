@@ -1,6 +1,6 @@
 # Bohaterowie — kolekcja v3
 
-Aktualna kolekcja ma 14 portretów: zachowane zdjęcia Ronaldo i Messiego, 8 nowych ilustracji oraz 4 właściwe wizerunki postaci pochodzące z ich stron wydawców. Nie wykorzystuje zdjęć cosplay. Klucze profili, zakupy i ceny pozostają zgodne z wcześniejszą wersją.
+Aktualna kolekcja ma 14 portretów: zachowane zdjęcia Ronaldo i Messiego, 8 nowych ilustracji, grafika Harry’ego Pottera przesłana przez użytkownika oraz 3 właściwe wizerunki postaci pochodzące z ich stron wydawców. Nie wykorzystuje zdjęć cosplay. Klucze profili, zakupy i ceny pozostają zgodne z wcześniejszą wersją.
 
 ## Nowe ilustracje
 
@@ -10,12 +10,12 @@ Pliki końcowe: `public/avatars/{street,nova,code,striker,artist,detective,hermi
 
 ## Zweryfikowane wizerunki postaci
 
-- **Harry Potter:** Daniel Radcliffe w oficjalnej fotografii promocyjnej z „Harry'ego Pottera i Czary Ognia”; [HarryPotter.com](https://www.harrypotter.com/features/harry-potter-book-character-descriptions-versus-how-they-looked-in-the-films). © Warner Bros. / Wizarding World.
+- **Harry Potter:** grafika przesłana przez użytkownika jako `34015.jpg`, zastępująca wcześniejszy odnośnik do fotografii wydawcy. Pliki `public/avatars/harry-v4.webp` (600 × 700) i `public/avatars/harry-icon-v4.webp` (128 × 150). Zachowano pełną kompozycję, a miniatura skupia się na twarzy. Autor i pierwotne źródło przesłanej kompozycji nie zostały podane; nie przypisujemy jej autorstwa ImageGen ani licencji Creative Commons.
 - **Spider-Man:** grafika komiksowej postaci z [oficjalnej strony Marvel Japan](https://marvel.disney.co.jp/character/spiderman). © Marvel / Disney.
 - **Batman:** portret komiksowej postaci z [oficjalnej strony DC](https://www.dc.com/characters/batman). © DC.
 - **Mandalorianin:** Din Djarin z [oficjalnego Databanku StarWars.com](https://www.starwars.com/databank/the-mandalorian/). © Lucasfilm / Disney.
 
-Adresy grafik, źródła i kadrowanie zapisano w [avatar-source-verification-v3.json](avatar-source-verification-v3.json). To bezpośrednie odnośniki do materiałów wydawców, nie fotografie przypadkowych osób. Nie przypisujemy tym materiałom licencji Creative Commons ani nie przedstawiamy ich jako własnych ilustracji. Dostępność czterech materiałów i ich miniatur zależy od źródeł zewnętrznych; aplikacja pokazuje czytelny komunikat w razie błędu zamiast podmieniać postać.
+Adresy grafik, źródła i kadrowanie zapisano w [avatar-source-verification-v3.json](avatar-source-verification-v3.json). Spider-Man, Batman i Mandalorianin korzystają z bezpośrednich odnośników do materiałów wydawców. Harry korzysta z lokalnego pliku przesłanego przez użytkownika. Nie przypisujemy tym materiałom licencji Creative Commons ani nie przedstawiamy ich jako własnych ilustracji. Dostępność trzech materiałów i ich miniatur zależy od źródeł zewnętrznych; aplikacja pokazuje czytelny komunikat w razie błędu zamiast podmieniać postać.
 
 ## Zachowane fotografie sportowców
 

@@ -2,11 +2,12 @@
   {
     "key": "harry",
     "name": "Harry Potter",
-    "source": "https://www.harrypotter.com/features/harry-potter-book-character-descriptions-versus-how-they-looked-in-the-films",
-    "image": "https://contentful.harrypotter.com/usf1vwtuqyxm/3SQ3X2km8wkQIsQWa02yOY/8801d7055a3e99dae8e60f54bb4b1db8/HarryPotter_WB_F4_HarryPotterMidshot_Promo_080615_Port.jpg?fm=jpg&q=75&w=914",
-    "thumbnail": "https://contentful.harrypotter.com/usf1vwtuqyxm/3SQ3X2km8wkQIsQWa02yOY/8801d7055a3e99dae8e60f54bb4b1db8/HarryPotter_WB_F4_HarryPotterMidshot_Promo_080615_Port.jpg?fm=jpg&q=75&w=128",
-    "rights": "Warner Bros. / Wizarding World",
-    "position": "50% 18%"
+    "provenance": "Grafika przesłana przez użytkownika w tej rozmowie",
+    "original_filename": "34015.jpg",
+    "original_sha256": "4c15978325eb1a24b73ded4c13e58a50f88b71fdd62c5426164d3d0d9c7b82e1",
+    "image": "avatars/harry-v4.webp",
+    "thumbnail": "avatars/harry-icon-v4.webp",
+    "optimization": "Pełna kompozycja zachowana w portrecie 600 × 700; miniatura twarzy 128 × 150. Konwersja do WebP. Autor i pierwotne źródło przesłanej kompozycji nie zostały podane."
   },
   {
     "key": "spider",

@@ -10,6 +10,6 @@ Licencja: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/
 Pliki: messi-v2.webp, messi-icon-v2.webp
 Zmiany: kadrowanie, zmniejszenie i konwersja do WebP.
 
-Pozostałe materiały: 8 nowych ilustracji ImageGen oraz bezpośrednie odnośniki do 4 wizerunków postaci opublikowanych przez wydawców.
+Pozostałe materiały: 8 nowych ilustracji ImageGen, grafika Harry’ego Pottera przesłana przez użytkownika (34015.jpg; pliki harry-v4.webp i harry-icon-v4.webp; autor i pierwotne źródło nie zostały podane) oraz bezpośrednie odnośniki do 3 wizerunków postaci opublikowanych przez wydawców.
 Źródła i prawa: docs/AVATAR_ART.md oraz docs/avatar-source-verification-v3.json.
 Nie przypisujemy materiałom wydawców licencji Creative Commons.
