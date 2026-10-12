@@ -24,7 +24,7 @@ import { GuideModal, PassageCard } from './bits';
 import { askConfirm } from './dialogs';
 import { ExerciseView } from './exercises/Exercises';
 import { answerText, correctText, initialAnswer, isCorrect, isReady, questionText, type Answer } from './exercises/logic';
-import { backScreen, isExamRun, useApp, type Run, type SessionResult } from './hooks';
+import { backScreen, isExamRun, useApp, useBackGuard, type Run, type SessionResult } from './hooks';
 import { Icon } from './icons';
 import { ReportButton } from './Report';
 
@@ -99,7 +99,7 @@ export function runTitle(run: Run, topics: ParsedTopic[]): string {
     case 'diagnostic':
       return `Test na start: ${subjectOf(run.subjectId).name}`;
     case 'gen':
-      return run.facts?.length ? 'Tabliczka: najsłabsze działania' : generatorById(run.genId)?.title ?? 'Trening';
+      return run.facts?.length ? 'Tabliczka: najsłabsze działania' : (generatorById(run.genId)?.title ?? 'Trening');
     case 'fix':
       return 'Poprawa błędów';
   }
@@ -233,7 +233,11 @@ export function Practice({ run }: { run: Run }) {
     // Język obcy: polecenie czyta polski głos, a zdanie i odpowiedzi — głos w języku zadania.
     // Pytania do tekstu bywają w całości w języku obcym („Where is…?”) — wtedy czyta je głos obcy.
     if (lang === 'pl') speak(`${ex.prompt}. ${body}`);
-    else speakParts([{ text: ex.prompt, lang: FOREIGN_PROMPT.test(ex.prompt) ? lang : 'pl' }, { text: body, lang }]);
+    else
+      speakParts([
+        { text: ex.prompt, lang: FOREIGN_PROMPT.test(ex.prompt) ? lang : 'pl' },
+        { text: body, lang },
+      ]);
   }, [item, topics]);
 
   useEffect(() => {
@@ -270,7 +274,7 @@ export function Practice({ run }: { run: Run }) {
       coinsGained: after.coinsEarned - before.coinsEarned,
       levelBefore: before.level,
       levelAfter: after.level,
-      starsAfter: run.kind === 'topic' ? after.topics.get(run.topicId)?.stars ?? 0 : 0,
+      starsAfter: run.kind === 'topic' ? (after.topics.get(run.topicId)?.stars ?? 0) : 0,
       levelChanges,
       newBadges: after.badges.filter((b) => b.earned && !earnedBefore.has(b.id)).map((b) => b.title),
       streakAfter: after.streak,
@@ -390,12 +394,16 @@ export function Practice({ run }: { run: Run }) {
 
   const back = () => go(backScreen(run, subjectId));
 
-  const exit = async () => {
+  const canLeave = async () => {
     const msg = exam ? 'Przerwać? Niedokończony sprawdzian nie dostanie oceny.' : 'Skończyć teraz? To, co już zrobione, zostanie zapisane.';
-    if (started.current && !(await askConfirm(msg, { ok: exam ? 'Przerwij' : 'Skończ', cancel: exam ? 'Piszę dalej' : 'Ćwiczę dalej' }))) return;
+    if (started.current && !(await askConfirm(msg, { ok: exam ? 'Przerwij' : 'Skończ', cancel: exam ? 'Piszę dalej' : 'Ćwiczę dalej' }))) return false;
     finished.current = true;
     if (started.current) await save(false);
-    back();
+    return true;
+  };
+  useBackGuard(canLeave);
+  const exit = async () => {
+    if (await canLeave()) back();
   };
 
   if (!item) {
@@ -422,7 +430,11 @@ export function Practice({ run }: { run: Run }) {
   const glossary = lang === 'pl' ? [] : topics.filter((t) => t.subject === exTopic?.subject).flatMap((t) => parseWords(t.words));
   // Podpowiadamy słowa ze zdania, nigdy z odpowiedzi do wyboru ani z luk.
   const visibleText =
-    ex.type === 'choice' ? speakableSentence(ex.sentence ?? '') : ex.type === 'fill' || ex.type === 'dictation' ? ex.parts.filter((p) => typeof p === 'string').join(' … ') : '';
+    ex.type === 'choice'
+      ? speakableSentence(ex.sentence ?? '')
+      : ex.type === 'fill' || ex.type === 'dictation'
+        ? ex.parts.filter((p) => typeof p === 'string').join(' … ')
+        : '';
   const hintWords = glossary.length ? wordHints(visibleText, glossary) : [];
   const hasHint = !!(ex.hint || hintWords.length || exTopic?.description);
   // „Oblicz pisemnie”: rozwiązanie krok po kroku pokazuje sam słupek z kratkami, więc w stopce nie powtarzamy wyjaśnienia.
@@ -430,7 +442,11 @@ export function Practice({ run }: { run: Run }) {
   const ready = isReady(ex, answer);
   const inRetry = idx >= mainCount;
   const pctDone = inRetry ? 100 : Math.round(((idx + (phase === 'feedback' ? 1 : 0)) / mainCount) * 100);
-  const counter = exam ? `Pytanie ${idx + 1} z ${mainCount}` : inRetry ? `Poprawka ${idx - mainCount + 1} z ${queue.length - mainCount}` : `${idx + 1} / ${mainCount}`;
+  const counter = exam
+    ? `Pytanie ${idx + 1} z ${mainCount}`
+    : inRetry
+      ? `Poprawka ${idx - mainCount + 1} z ${queue.length - mainCount}`
+      : `${idx + 1} / ${mainCount}`;
   const showCorrectText = !ok && (ex.type === 'choice' || ex.type === 'tap' || ex.type === 'fill' || ex.type === 'dictation');
   const hasGuide = !!(exTopic?.guide || exTopic?.description);
 
@@ -538,7 +554,9 @@ export function Practice({ run }: { run: Run }) {
               {ex.explain && !division && <div className="fb-text">{ex.explain}</div>}
               {lang !== 'pl' && ex.hint && <div className="fb-text fb-translation">{ex.hint}</div>}
               {!ok && !item.retry && (
-                <div className="fb-text muted">{retryQueued ? 'To zadanie wróci jeszcze raz na końcu.' : 'To zadanie wróci w powtórce w kolejnych dniach.'}</div>
+                <div className="fb-text muted">
+                  {retryQueued ? 'To zadanie wróci jeszcze raz na końcu.' : 'To zadanie wróci w powtórce w kolejnych dniach.'}
+                </div>
               )}
               {!ok && (
                 <ReportButton
@@ -570,7 +588,16 @@ export function Practice({ run }: { run: Run }) {
           </div>
         </div>
       )}
-      {guideOpen && exTopic && <GuideModal topicTitle={exTopic.title} description={exTopic.description} guide={exTopic.guide} words={exTopic.words} lang={lang} onClose={() => setGuideOpen(false)} />}
+      {guideOpen && exTopic && (
+        <GuideModal
+          topicTitle={exTopic.title}
+          description={exTopic.description}
+          guide={exTopic.guide}
+          words={exTopic.words}
+          lang={lang}
+          onClose={() => setGuideOpen(false)}
+        />
+      )}
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import { openSubjectMore, openTopicMore, openPlan } from './clear-helpers';
 import type { Page } from '@playwright/test';
 import { expect, test } from './fixtures';
 
@@ -11,12 +12,16 @@ async function snap(page: Page, name: string) {
 async function answerAny(page: Page) {
   if (await page.locator('.opt').count()) {
     await page.locator('.opt:not([disabled])').first().click();
+    await openTopicMore(page);
   } else if (await page.locator('.word').count()) {
     await page.locator('.word').first().click();
+    await openTopicMore(page);
   } else if (await page.locator('.token').count()) {
     while (await page.locator('.bank .token').count()) {
       await page.locator('.bank .token').first().click();
+      await openTopicMore(page);
       await page.locator('.basket').first().click();
+      await openTopicMore(page);
       await page.waitForTimeout(80);
     }
   } else if (await page.locator('.gap').count()) {
@@ -52,18 +57,34 @@ test('pełna ścieżka: profil → przedmiot → ćwiczenie → podsumowanie →
 
   // Przedmiot → temat → ćwiczenie
   await page.locator('.subject-big', { hasText: 'Język polski' }).click();
-  await expect(page.getByRole('heading', { name: 'Wyspa Polskiego' })).toBeVisible();
+  await openSubjectMore(page);
+  await expect(page.getByRole('heading', { name: 'Język polski' })).toBeVisible();
   await page.waitForTimeout(300);
   await snap(page, '02b-subject-wyspy');
-  await page.getByRole('button', { name: /Rzeczownik — kto\? co\?/ }).first().click();
+  await page
+    .getByRole('button', { name: /Rzeczownik — kto\? co\?/ })
+    .first()
+    .click();
+  await openTopicMore(page);
   await expect(page.getByRole('dialog')).toBeVisible();
   await snap(page, '03-topic-sheet');
-  await page.getByRole('dialog').getByRole('button', { name: /Graj!/ }).click();
+  await page
+    .getByRole('dialog')
+    .getByRole('button', { name: /^Ćwicz/ })
+    .click();
 
   const seen = new Set<string>();
   let total = 0;
   for (let step = 0; step < 40; step++) {
-    const cls = (await page.locator('.opt').count()) ? 'choice' : (await page.locator('.word').count()) ? 'tap' : (await page.locator('.token').count()) ? 'sort' : (await page.locator('.gap').count()) ? 'fill' : 'match';
+    const cls = (await page.locator('.opt').count())
+      ? 'choice'
+      : (await page.locator('.word').count())
+        ? 'tap'
+        : (await page.locator('.token').count())
+          ? 'sort'
+          : (await page.locator('.gap').count())
+            ? 'fill'
+            : 'match';
     if (!seen.has(cls)) {
       seen.add(cls);
       await snap(page, `04-ex-${cls}`);
@@ -86,7 +107,7 @@ test('pełna ścieżka: profil → przedmiot → ćwiczenie → podsumowanie →
   await page.waitForTimeout(300);
   await snap(page, '06-summary');
   await page.getByRole('button', { name: 'Wróć do tematów' }).click();
-  await expect(page.getByRole('heading', { name: 'Wyspa Polskiego' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Język polski' })).toBeVisible();
   await page.getByRole('button', { name: 'Wróć', exact: true }).click();
 
   // Nagrody
@@ -113,20 +134,31 @@ test('pełna ścieżka: profil → przedmiot → ćwiczenie → podsumowanie →
     ['Wyścigi', 'wyscigi'],
   ] as const) {
     await page.getByRole('button', { name: 'Wygląd' }).click();
-    await page.getByRole('dialog').getByRole('button', { name: new RegExp(name) }).click();
+    await page
+      .getByRole('dialog')
+      .getByRole('button', { name: new RegExp(name) })
+      .click();
     await page.waitForTimeout(500);
     await snap(page, `08-start-${file}`);
     await page.locator('.subject-big', { hasText: 'Matematyka' }).click();
+    await openSubjectMore(page);
     await page.waitForTimeout(300);
     await snap(page, `08b-subject-${file}`);
     await page.getByRole('button', { name: 'Wróć', exact: true }).click();
   }
   // Ćwiczenie w stylu Pixel
   await page.getByRole('button', { name: 'Wygląd' }).click();
-  await page.getByRole('dialog').getByRole('button', { name: /Pixel Quest/ }).click();
+  await page
+    .getByRole('dialog')
+    .getByRole('button', { name: /Pixel Quest/ })
+    .click();
   await page.locator('.subject-big', { hasText: 'Język polski' }).click();
-  await page.getByRole('button', { name: /GRAJ/ }).last().click();
-  if (await page.getByRole('dialog').count()) await page.getByRole('dialog').getByRole('button', { name: /GRAJ/ }).click();
+  await openSubjectMore(page);
+  await page.locator('.clear-topic').first().click();
+  await page
+    .getByRole('dialog')
+    .getByRole('button', { name: /^Ćwicz/ })
+    .click();
   await answerAny(page);
   await page.getByRole('button', { name: 'Sprawdź' }).click();
   await page.waitForTimeout(720);
@@ -137,7 +169,10 @@ test('pełna ścieżka: profil → przedmiot → ćwiczenie → podsumowanie →
 
   // Panel rodzica
   await page.getByRole('button', { name: 'Wygląd' }).click();
-  await page.getByRole('dialog').getByRole('button', { name: /Wyspy Wiedzy/ }).click();
+  await page
+    .getByRole('dialog')
+    .getByRole('button', { name: /Wyspy Wiedzy/ })
+    .click();
   await page.getByRole('button', { name: 'Panel rodzica' }).click();
   for (const d of '123456') await page.getByRole('button', { name: d, exact: true }).click();
   await page.getByRole('button', { name: 'Zatwierdź' }).click();
@@ -150,7 +185,9 @@ test('pełna ścieżka: profil → przedmiot → ćwiczenie → podsumowanie →
   await snap(page, '11-parent-topics');
   await page.getByRole('button', { name: 'Nowy temat' }).click();
   await page.getByPlaceholder('np. Czasownik — czas przeszły').fill('Test: czasowniki');
-  await page.locator('textarea.textarea').fill('wybierz: Które słowo jest czasownikiem? | *skacze | kot\nkliknij: Kliknij czasownik. >> Ola *czyta*.\nzly: linia');
+  await page
+    .locator('textarea.textarea')
+    .fill('wybierz: Które słowo jest czasownikiem? | *skacze | kot\nkliknij: Kliknij czasownik. >> Ola *czyta*.\nzly: linia');
   await expect(page.getByText('1 błąd', { exact: true })).toBeVisible();
   await snap(page, '12-parent-editor');
   await page.getByRole('button', { name: 'Zapisz' }).click();
@@ -162,17 +199,26 @@ test('pełna ścieżka: profil → przedmiot → ćwiczenie → podsumowanie →
   await page.getByRole('button', { name: 'Ustawienia' }).click();
   await snap(page, '14-parent-settings');
   await page.getByRole('button', { name: 'Wyjdź' }).click();
+  await openPlan(page);
 
   // Nowy temat widoczny dla ucznia (bez działu stoi w „Pozostałych”)
   await page.locator('.subject-big', { hasText: 'Język polski' }).click();
-  await page.getByRole('group', { name: 'Dział' }).getByRole('button', { name: /^Pozostałe/ }).click();
+  await openSubjectMore(page);
+  await page
+    .getByRole('group', { name: 'Dział' })
+    .getByRole('button', { name: /^Pozostałe/ })
+    .click();
   await expect(page.getByText('Test: czasowniki').first()).toBeVisible();
 
   // Dane przetrwały przeładowanie (IndexedDB)
   await page.reload();
   await expect(page.getByText('Cześć, Kuba!')).toBeVisible();
   await page.locator('.subject-big', { hasText: 'Język polski' }).click();
-  await page.getByRole('group', { name: 'Dział' }).getByRole('button', { name: /^Pozostałe/ }).click();
+  await openSubjectMore(page);
+  await page
+    .getByRole('group', { name: 'Dział' })
+    .getByRole('button', { name: /^Pozostałe/ })
+    .click();
   await expect(page.getByText('Test: czasowniki').first()).toBeVisible();
 
   expect(errors.filter((e) => !/favicon|manifest/i.test(e))).toEqual([]);
@@ -189,7 +235,11 @@ test('dwie osoby: każda ma swoją klasę, tematy i postępy', async ({ page }) 
 
   // Kuba robi jedno ćwiczenie z matematyki
   await page.locator('.subject-big', { hasText: 'Matematyka' }).click();
-  await page.getByRole('group', { name: 'Dział' }).getByRole('button', { name: /^Mnożenie i dzielenie/ }).click();
+  await openSubjectMore(page);
+  await page
+    .getByRole('group', { name: 'Dział' })
+    .getByRole('button', { name: /^Mnożenie i dzielenie/ })
+    .click();
   await expect(page.getByText('Mnożenie przez 6 i 7').first()).toBeVisible();
   await expect(page.getByText('Ułamki: skracanie i rozszerzanie')).toHaveCount(0);
   await page.getByRole('button', { name: 'Wróć', exact: true }).click();
@@ -204,12 +254,17 @@ test('dwie osoby: każda ma swoją klasę, tematy i postępy', async ({ page }) 
   await expect(page.getByText('Cześć, Ola!')).toBeVisible();
   await snap(page, '15-start-ola');
   await page.locator('.subject-big', { hasText: 'Matematyka' }).click();
-  await page.getByRole('group', { name: 'Dział' }).getByRole('button', { name: /^Ułamki zwykłe/ }).click();
+  await openSubjectMore(page);
+  await page
+    .getByRole('group', { name: 'Dział' })
+    .getByRole('button', { name: /^Ułamki zwykłe/ })
+    .click();
   await expect(page.getByText('Ułamki: skracanie i rozszerzanie').first()).toBeVisible();
   await expect(page.getByText('Mnożenie przez 6 i 7')).toHaveCount(0);
   await snap(page, '16-subject-ola-mat');
   await page.getByRole('button', { name: 'Wróć', exact: true }).click();
   await page.locator('.subject-big', { hasText: 'Język polski' }).click();
+  await openSubjectMore(page);
   await expect(page.getByText('Przypadki rzeczownika').first()).toBeVisible();
   await expect(page.getByText('Rzeczownik — kto? co?')).toHaveCount(0);
 
@@ -241,6 +296,7 @@ test('dwie osoby: każda ma swoją klasę, tematy i postępy', async ({ page }) 
   await page.getByRole('alertdialog').getByRole('button', { name: 'Usuń' }).click();
   await expect(page.getByText('Usunięto: Ola')).toBeVisible();
   await page.getByRole('button', { name: 'Wyjdź' }).click();
+  await openPlan(page);
   await expect(page.getByText('Cześć, Jakub!')).toBeVisible();
   await page.reload();
   // została jedna osoba — aplikacja nie pyta, kto się uczy

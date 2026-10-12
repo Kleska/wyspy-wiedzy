@@ -1,14 +1,16 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { DialogHost } from './ui/dialogs';
 import { store } from './data/store';
 import { loadThemeFonts, themeOf } from './themes';
 import type { Profile } from './types';
-import { Home, SubjectScreen } from './ui/Home';
+import { Home } from './ui/Home';
+import { SubjectScreen } from './ui/SubjectScreen';
+import { StudentNav } from './ui/StudentNav';
+import { useNavigation } from './ui/navigation';
 import { Learn, ReviewSheet } from './ui/Learn';
-import { AppContext, useStoreVersion, type AppCtx, type Screen } from './ui/hooks';
+import { AppContext, useStoreVersion, type AppCtx } from './ui/hooks';
 import { Login } from './ui/Login';
 import { Onboarding, ProfilePicker } from './ui/Onboarding';
-import { ParentGate } from './ui/parent/ParentGate';
 import { Practice } from './ui/Practice';
 import { Rewards } from './ui/Rewards';
 import { Pairs } from './ui/Pairs';
@@ -19,6 +21,7 @@ import { ThemePicker } from './ui/ThemePicker';
 import { TopicSheet } from './ui/TopicSheet';
 
 const PROFILE_KEY = 'ww-profile';
+const ParentGate = lazy(() => import('./ui/parent/ParentGate').then((m) => ({ default: m.ParentGate })));
 
 function Splash({ text }: { text: string }) {
   return (
@@ -41,7 +44,7 @@ export function App() {
   const st = store.state;
   // Przy kilku osobach na jednym urządzeniu pytamy „Kto się dziś uczy?” przy każdym uruchomieniu.
   const [profileId, setProfileId] = useState<string | null>(null);
-  const [screen, setScreen] = useState<Screen>({ name: 'home' });
+  const { screen, go: navigate, reset, openOverlay, closeOverlay, registerBackGuard } = useNavigation();
   const [themesOpen, setThemesOpen] = useState(false);
   const [topicOpen, setTopicOpen] = useState<string | null>(null);
   const [picking, setPicking] = useState(false);
@@ -67,27 +70,34 @@ export function App() {
     void loadThemeFonts(theme.id);
   }, [theme.id, theme.themeColor]);
 
-  const choose = useCallback((id: string) => {
-    setProfileId(id);
-    try {
-      localStorage.setItem(PROFILE_KEY, id);
-    } catch {
-      /* ignore */
-    }
-    setPicking(false);
-    setScreen({ name: 'home' });
-    window.scrollTo(0, 0);
-  }, []);
+  const choose = useCallback(
+    (id: string) => {
+      setProfileId(id);
+      try {
+        localStorage.setItem(PROFILE_KEY, id);
+      } catch {
+        /* ignore */
+      }
+      setPicking(false);
+      reset();
+      window.scrollTo(0, 0);
+    },
+    [reset],
+  );
 
-  // Przycisk „wstecz” w Androidzie wraca do ekranu głównego zamiast zamykać aplikację.
-  const go = useCallback((s: Screen) => {
-    setScreen(s);
-    setTopicOpen(null);
-    window.scrollTo(0, 0);
-    if (s.name !== 'home') history.pushState({ ww: s.name }, '');
-  }, []);
+  const go = useCallback(
+    (s: Parameters<typeof navigate>[0]) => {
+      setTopicOpen(null);
+      setThemesOpen(false);
+      navigate(s);
+    },
+    [navigate],
+  );
   useEffect(() => {
-    const onPop = () => setScreen((cur) => (cur.name === 'practice' || cur.name === 'sprint' || cur.name === 'pairs' ? cur : { name: 'home' }));
+    const onPop = () => {
+      setTopicOpen(null);
+      setThemesOpen(false);
+    };
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
   }, []);
@@ -106,12 +116,19 @@ export function App() {
             theme,
             go,
             toast,
-            openThemes: () => setThemesOpen(true),
-            openTopic: (id: string) => setTopicOpen(id),
+            openThemes: () => {
+              openOverlay('themes');
+              setThemesOpen(true);
+            },
+            openTopic: (id: string) => {
+              openOverlay('topic');
+              setTopicOpen(id);
+            },
             switchProfile: () => setPicking(true),
+            registerBackGuard,
           }
         : null,
-    [profile, theme, go, toast],
+    [profile, theme, go, toast, openOverlay, registerBackGuard],
   );
 
   if (!st.ready) return <Splash text="Ładuję…" />;
@@ -123,8 +140,8 @@ export function App() {
 
   return (
     <AppContext.Provider value={ctx}>
-      <div className="app">
-        {screen.name === 'home' && <Home />}
+      <div className={`app${['home', 'subject', 'times', 'rewards'].includes(screen.name) ? ' has-student-nav' : ''}`}>
+        {screen.name === 'home' && <Home section={screen.section} />}
         {screen.name === 'subject' && <SubjectScreen key={`${screen.subjectId}:${screen.unit ?? ''}`} subjectId={screen.subjectId} unit={screen.unit} />}
         {screen.name === 'practice' && <Practice key={screen.nonce} run={screen.run} />}
         {screen.name === 'sprint' && <Sprint key={screen.nonce} game={screen.game} />}
@@ -134,9 +151,30 @@ export function App() {
         {screen.name === 'sheet' && <ReviewSheet topicIds={screen.topicIds} title={screen.title} from={screen.from} subjectId={screen.subjectId} />}
         {screen.name === 'summary' && <Summary result={screen.result} />}
         {screen.name === 'rewards' && <Rewards />}
-        {screen.name === 'parent' && <ParentGate onExit={() => go({ name: 'home' })} />}
-        {themesOpen && <ThemePicker onClose={() => setThemesOpen(false)} />}
-        {topicOpen && <TopicSheet topicId={topicOpen} onClose={() => setTopicOpen(null)} />}
+        {screen.name === 'parent' && (
+          <Suspense fallback={<Splash text="Otwieram panel rodzica…" />}>
+            <ParentGate onExit={() => go({ name: 'home' })} />
+          </Suspense>
+        )}
+        {themesOpen && (
+          <ThemePicker
+            onClose={() => {
+              setThemesOpen(false);
+              closeOverlay();
+            }}
+          />
+        )}
+        {topicOpen && (
+          <TopicSheet
+            topicId={topicOpen}
+            from={screen.name === 'home' ? 'home' : 'subject'}
+            onClose={() => {
+              setTopicOpen(null);
+              closeOverlay();
+            }}
+          />
+        )}
+        {['home', 'subject', 'times', 'rewards'].includes(screen.name) && <StudentNav screen={screen} />}
         <DialogHost />
         {toastMsg && (
           <div className="toast" role="status">

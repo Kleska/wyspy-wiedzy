@@ -7,7 +7,7 @@ import { playSound } from '../speech';
 import { coinText, plural } from '../themes';
 import { askConfirm } from './dialogs';
 import { withFractions } from './exercises/Exercises';
-import { useApp, type SprintGame } from './hooks';
+import { useApp, useBackGuard, type SprintGame } from './hooks';
 import { Icon } from './icons';
 import { snapshot } from './Practice';
 
@@ -24,7 +24,7 @@ type Tile = { id: string; pair: number; text: string };
 export const pairsKey = (g: SprintGame) => `pairs:${g.kind === 'gen' ? g.genId : `quiz:${g.subjectId}`}`;
 
 export function pairsTitle(g: SprintGame): string {
-  return g.kind === 'gen' ? generatorById(g.genId)?.title ?? 'Pary' : subjectOf(g.subjectId).name;
+  return g.kind === 'gen' ? (generatorById(g.genId)?.title ?? 'Pary') : subjectOf(g.subjectId).name;
 }
 
 /**
@@ -67,7 +67,11 @@ function makeTiles(game: SprintGame, profileId: string): Tile[] {
     const g = generatorById(game.genId);
     if (g)
       pool = generateExercises(g, 40).map((ex) => {
-        const text = ex.parts.filter((p): p is string => typeof p === 'string').join('').replace(/=\s*$/, '').trim();
+        const text = ex.parts
+          .filter((p): p is string => typeof p === 'string')
+          .join('')
+          .replace(/=\s*$/, '')
+          .trim();
         const ans = (ex.parts.find((p) => Array.isArray(p)) as string[])[0];
         return [[text, ans]];
       });
@@ -75,10 +79,12 @@ function makeTiles(game: SprintGame, profileId: string): Tile[] {
     pool = pairsPool(profileId, game.subjectId);
   }
   const pairs = pickPairs(pool, PAIRS_COUNT);
-  return shuffle(pairs.flatMap(([l, r], i) => [
-    { id: `${i}L`, pair: i, text: l },
-    { id: `${i}R`, pair: i, text: r },
-  ]));
+  return shuffle(
+    pairs.flatMap(([l, r], i) => [
+      { id: `${i}L`, pair: i, text: l },
+      { id: `${i}R`, pair: i, text: r },
+    ]),
+  );
 }
 
 export const fmtTime = (ms: number) => `${(ms / 1000).toFixed(1).replace('.', ',')} s`;
@@ -88,7 +94,7 @@ export function Pairs({ game }: { game: SprintGame }) {
   const settings = store.settings;
   const key = pairsKey(game);
   const title = pairsTitle(game);
-  const backTo = () => go({ name: 'subject', subjectId: game.kind === 'gen' ? 'mat' : game.subjectId });
+  const backTo = () => go(game.home ? { name: 'home', section: 'games' } : { name: 'subject', subjectId: game.kind === 'gen' ? 'mat' : game.subjectId });
 
   const before = useRef(snapshot(profile.id));
   const best = before.current.pairsBest.get(key) ?? null;
@@ -167,9 +173,13 @@ export function Pairs({ game }: { game: SprintGame }) {
     }
   };
 
+  const canLeave = async () => {
+    if (phase === 'play' && !(await askConfirm('Przerwać grę? Wynik się nie zapisze.', { ok: 'Przerwij', cancel: 'Gram dalej' }))) return false;
+    return true;
+  };
+  useBackGuard(canLeave);
   const exit = async () => {
-    if (phase === 'play' && !(await askConfirm('Przerwać grę? Wynik się nie zapisze.', { ok: 'Przerwij', cancel: 'Gram dalej' }))) return;
-    backTo();
+    if (await canLeave()) backTo();
   };
 
   if (phase === 'intro') {
@@ -181,9 +191,7 @@ export function Pairs({ game }: { game: SprintGame }) {
           </span>
           <div className="label">Pary na czas</div>
           <h1>{title}</h1>
-          <p style={{ fontWeight: 700 }}>
-            Połącz {PAIRS_COUNT} par jak najszybciej: stuknij jeden kafelek, potem pasujący do niego. Zła para to sekunda kary.
-          </p>
+          <p style={{ fontWeight: 700 }}>Połącz {PAIRS_COUNT} par jak najszybciej: stuknij jeden kafelek, potem pasujący do niego. Zła para to sekunda kary.</p>
           <div className="sprint-record">
             <Icon name="trophy" /> Twój rekord: <b>{best === null ? '—' : fmtTime(best)}</b>
           </div>
@@ -236,7 +244,7 @@ export function Pairs({ game }: { game: SprintGame }) {
             <Icon name="repeat" /> Jeszcze raz
           </button>
           <button className="btn btn-primary btn-lg" onClick={backTo}>
-            Wróć do tematów
+            {game.home ? 'Wróć do gier' : 'Wróć do tematów'}
           </button>
         </div>
       </div>
@@ -249,7 +257,14 @@ export function Pairs({ game }: { game: SprintGame }) {
         <button className="btn icon-btn" onClick={exit} aria-label="Przerwij grę">
           <Icon name="x" />
         </button>
-        <div className="bar pr-progress" role="progressbar" aria-valuenow={matched.size} aria-valuemin={0} aria-valuemax={PAIRS_COUNT} aria-label="Połączone pary">
+        <div
+          className="bar pr-progress"
+          role="progressbar"
+          aria-valuenow={matched.size}
+          aria-valuemin={0}
+          aria-valuemax={PAIRS_COUNT}
+          aria-label="Połączone pary"
+        >
           <span style={{ width: `${(matched.size / PAIRS_COUNT) * 100}%` }} />
         </div>
         <span className="sprint-secs" role="timer">

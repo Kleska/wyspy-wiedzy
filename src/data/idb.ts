@@ -19,7 +19,8 @@ export interface OutboxEntry {
   base?: unknown;
 }
 
-const DB_NAME = 'wyspy-wiedzy';
+declare const __STAGING__: boolean;
+const DB_NAME = __STAGING__ ? 'wyspy-wiedzy-test' : 'wyspy-wiedzy';
 const VERSION = 1;
 
 export interface KV {

@@ -1,11 +1,8 @@
-import { plural } from '../themes';
-import { useApp, useProgress } from './hooks';
+import { useApp } from './hooks';
 import { Icon } from './icons';
 
 export function TopBar({ back }: { back?: () => void }) {
   const { profile, theme, go, openThemes, switchProfile } = useApp();
-  const progress = useProgress(profile.id);
-  const pending = progress?.pendingRewards ?? 0;
   return (
     <header className="topbar">
       {back ? (
@@ -29,23 +26,6 @@ export function TopBar({ back }: { back?: () => void }) {
         </span>
       </button>
       <div className="chips">
-        {progress && (
-          <>
-            <span className="chip" title="Dni nauki z rzędu">
-              <Icon name="flame" size={20} className="ic-flame" />
-              {progress.streak}
-              <span className="hide-sm">{plural(progress.streak, ['dzień', 'dni', 'dni'])}</span>
-            </span>
-            <span className="chip" title={theme.coin[2]}>
-              <Icon name="coin" size={20} className="ic-coin" />
-              {progress.coins}
-            </span>
-          </>
-        )}
-        <button className="btn tb-btn" onClick={() => go({ name: 'rewards' })} aria-label={pending ? `Nagrody (${pending} czeka)` : 'Nagrody'}>
-          <Icon name="gift" />
-          <span className="tb-label">Nagrody</span>
-        </button>
         <button className="btn tb-btn" onClick={openThemes} aria-label="Wygląd">
           <Icon name="palette" />
           <span className="tb-label">Wygląd</span>

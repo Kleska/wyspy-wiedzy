@@ -14,12 +14,20 @@ export function Onboarding({ onDone, onCancel, first = true }: { onDone: (id: st
   const [avatar, setAvatar] = useState(FREE_AVATARS.find((a) => !taken.has(a)) ?? FREE_AVATARS[0]);
   const [theme, setTheme] = useState<ThemeId>('wyspy');
   const [err, setErr] = useState('');
+  const [busy, setBusy] = useState(false);
   const create = async () => {
     if (!name.trim()) return setErr('Wpisz imię.');
     if (!grade) return setErr('Wybierz klasę.');
     const p: Profile = { id: uid(), name: name.trim(), avatar, theme, grade, createdAt: nowIso(), updatedAt: nowIso() };
-    await store.put('profile', p);
-    onDone(p.id);
+    if (busy) return;
+    setBusy(true);
+    try {
+      await store.put('profile', p);
+      onDone(p.id);
+    } catch {
+      setErr('Nie udało się zapisać profilu. Spróbuj jeszcze raz.');
+      setBusy(false);
+    }
   };
   return (
     <div className="center-screen">
@@ -27,7 +35,15 @@ export function Onboarding({ onDone, onCancel, first = true }: { onDone: (id: st
         <h1 style={{ fontSize: 34 }}>{first ? 'Witaj w Wyspach Wiedzy!' : 'Nowa osoba'}</h1>
         <label className="field">
           <span>Imię</span>
-          <input id="ob-name" className="input input-lg" value={name} onChange={(e) => setName(e.target.value)} maxLength={20} autoComplete="off" placeholder="Imię" />
+          <input
+            id="ob-name"
+            className="input input-lg"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            maxLength={20}
+            autoComplete="off"
+            placeholder="Imię"
+          />
         </label>
         <div className="field">
           <span>Klasa</span>
@@ -39,27 +55,33 @@ export function Onboarding({ onDone, onCancel, first = true }: { onDone: (id: st
             ))}
           </div>
         </div>
-        <div className="field">
-          <span>Bohater</span>
-          <div className="emoji-grid" role="group" aria-label="Bohater">
-            {FREE_AVATARS.map((a) => (
-              <button key={a} type="button" aria-pressed={a === avatar} onClick={() => setAvatar(a)} aria-label={avatarName(a)} title={avatarName(a)}>
-                {a}
-              </button>
-            ))}
+        <details className="clear-details onboarding-choice">
+          <summary>
+            {avatar} Bohater i wygląd <span className="muted">— opcjonalnie</span>
+          </summary>
+          <p className="muted">Możesz zmienić je później przyciskiem Wygląd.</p>
+          <div className="field">
+            <span>Bohater</span>
+            <div className="emoji-grid" role="group" aria-label="Bohater">
+              {FREE_AVATARS.map((a) => (
+                <button key={a} type="button" aria-pressed={a === avatar} onClick={() => setAvatar(a)} aria-label={avatarName(a)} title={avatarName(a)}>
+                  {a}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
-        <div className="field">
-          <span>Wygląd (można zmienić w każdej chwili)</span>
-          <div className="theme-cards">
-            {THEME_ORDER.map((id) => (
-              <button key={id} className="theme-card" aria-pressed={theme === id} onClick={() => setTheme(id)}>
-                <ThemePreview id={id} />
-                <span className="theme-name">{THEMES[id].name}</span>
-              </button>
-            ))}
+          <div className="field">
+            <span>Wygląd (można zmienić w każdej chwili)</span>
+            <div className="theme-cards">
+              {THEME_ORDER.map((id) => (
+                <button key={id} className="theme-card" aria-pressed={theme === id} onClick={() => setTheme(id)}>
+                  <ThemePreview id={id} />
+                  <span className="theme-name">{THEMES[id].name}</span>
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        </details>
         {err && (
           <p className="error" role="alert">
             {err}
@@ -71,8 +93,8 @@ export function Onboarding({ onDone, onCancel, first = true }: { onDone: (id: st
               Anuluj
             </button>
           )}
-          <button className="btn btn-primary btn-lg" style={{ flex: 1 }} onClick={create}>
-            {first ? 'Zaczynamy!' : 'Dodaj'}
+          <button className="btn btn-primary btn-lg" style={{ flex: 1 }} onClick={create} disabled={busy}>
+            {busy ? 'Zapisuję…' : first ? 'Zaczynamy!' : 'Dodaj'}
           </button>
         </div>
       </div>

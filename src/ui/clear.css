@@ -1,0 +1,507 @@
+/* Wspólny układ wszystkich motywów. Zmienne kolorów i fontów nadal pochodzą z styles.css. */
+.has-student-nav {
+  padding-bottom: calc(110px + env(safe-area-inset-bottom));
+}
+.clear-start,
+.clear-subject {
+  max-width: 1040px;
+  margin: 0 auto;
+}
+.clear-start {
+  gap: 24px;
+}
+.clear-page-head {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.clear-page-head h1,
+.today-greeting h1 {
+  font-size: clamp(28px, 4vw, 38px);
+}
+.today-greeting {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+.today-greeting > div:first-child {
+  display: grid;
+  gap: 6px;
+}
+.today-goal {
+  flex: 0 0 220px;
+  display: grid;
+  gap: 8px;
+}
+.today-goal > span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 700;
+}
+.today-goal .bar {
+  height: 8px;
+}
+.today-card {
+  display: grid;
+  gap: 18px;
+  padding: 28px;
+  border: 1px solid var(--line);
+}
+.today-eyebrow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.today-main {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+}
+.today-main > div {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+.today-main h2 {
+  font-size: clamp(24px, 3.8vw, 32px);
+  overflow-wrap: anywhere;
+}
+.today-icon {
+  flex: 0 0 64px;
+  height: 64px;
+  display: grid;
+  place-items: center;
+  background: var(--accent-soft);
+  color: var(--text);
+  border-radius: var(--radius-sm);
+}
+.today-start {
+  width: 100%;
+}
+.today-details {
+  justify-self: center;
+  font-size: 15px;
+  padding: 8px;
+}
+.simple-subjects {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+.simple-subjects .subject-big {
+  min-height: 106px;
+  padding: 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.simple-subjects .subject-badge {
+  width: 48px;
+  min-width: 48px;
+  height: 56px;
+  font-size: 22px;
+}
+.simple-subjects .subject-name {
+  font-size: 23px;
+  line-height: 1.15;
+}
+.simple-subjects .subject-body {
+  gap: 4px;
+}
+.simple-subjects .subject-meta {
+  font-size: 14px;
+}
+.review-card {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  align-items: center;
+  justify-content: space-between;
+}
+.review-card > div:first-child {
+  display: grid;
+  gap: 8px;
+  flex: 1 1 280px;
+}
+.review-card h2 {
+  font-size: 23px;
+}
+.review-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.clear-details {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 14px 18px;
+}
+.clear-details > summary {
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  min-height: 30px;
+  line-height: 1.5;
+}
+.clear-details[open] > summary {
+  margin-bottom: 16px;
+}
+.clear-details .muted {
+  font-size: 15px;
+}
+.today-card .plan-card {
+  box-shadow: none;
+}
+.today-card .plan-topic {
+  min-height: 48px;
+}
+.today-card .plan-list {
+  gap: 8px;
+}
+.progress-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+  align-items: start;
+}
+.student-nav {
+  position: fixed;
+  z-index: 40;
+  bottom: max(14px, env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  width: min(calc(100% - 32px), 680px);
+  padding: 7px;
+  gap: 4px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 30px #0002;
+}
+.student-nav button {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 4px;
+  min-height: 62px;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+  color: var(--muted);
+  font: 700 13px var(--font-body);
+  cursor: pointer;
+}
+.student-nav button[aria-current='page'] {
+  background: var(--accent-soft);
+  color: var(--text);
+}
+.student-nav button[aria-current='page']::after {
+  content: '';
+  width: 14px;
+  height: 3px;
+  background: var(--accent);
+  border-radius: 3px;
+}
+.topbar .chips {
+  margin-left: auto;
+}
+.clear-subject {
+  display: grid;
+  gap: 22px;
+}
+.clear-subject .subject-head {
+  padding: 10px 0;
+}
+.clear-subject .subject-head h1 {
+  font-size: clamp(28px, 4vw, 38px);
+}
+.clear-subject .unit-chips {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  max-width: 100%;
+}
+.clear-subject .unit-chips > button {
+  flex-shrink: 0;
+}
+.topic-list {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+}
+.clear-topic {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  min-height: 100px;
+  padding: 18px;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  text-align: left;
+  cursor: pointer;
+}
+.clear-topic.recommended {
+  background: var(--surface-3);
+  border-color: var(--secondary);
+}
+.clear-topic-number {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--surface-2);
+  font-weight: 800;
+}
+.clear-topic-text {
+  display: grid;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+.clear-topic-text > small {
+  color: var(--muted);
+  font-size: 13px;
+}
+.clear-topic-text > b {
+  font: 700 21px var(--font-body);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+.clear-topic-text .level-chip {
+  justify-self: start;
+  font-size: 12px;
+}
+.subject-more .challenges {
+  box-shadow: none;
+  background: transparent;
+  padding: 0;
+}
+.topic-choices {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+.topic-choice {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  justify-items: start;
+  min-height: 152px;
+  padding: 22px;
+  background: var(--surface-3);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  text-align: left;
+  cursor: pointer;
+}
+.topic-choice.suggested {
+  border: 2px solid var(--secondary);
+}
+.topic-choice b {
+  font: 700 22px var(--font-body);
+}
+.topic-choice > span {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.topic-more {
+  margin-top: 6px;
+}
+.onboarding-choice[open] {
+  display: grid;
+  gap: 20px;
+}
+.onboarding-choice .theme-cards {
+  margin-top: 8px;
+}
+.parent-student-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  margin-bottom: 20px;
+  border: 1px solid var(--line);
+}
+.parent-student-bar small {
+  max-width: 480px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.preview-banner {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 8px 18px;
+  padding: 10px 16px;
+  background: #153a30;
+  color: #fff;
+  font:
+    600 13px/1.45 system-ui,
+    sans-serif;
+}
+.preview-banner > b {
+  border: 1px solid #89c6b6;
+  border-radius: 8px;
+  padding: 3px 8px;
+}
+.preview-banner details > summary {
+  cursor: pointer;
+}
+.preview-banner details[open] {
+  flex-basis: 100%;
+  max-width: 1000px;
+}
+.preview-banner details p {
+  padding-top: 8px;
+}
+.modal[tabindex='-1']:focus,
+.parent-menu[tabindex='-1']:focus {
+  outline: none;
+}
+@media (max-width: 640px) {
+  .clear-start,
+  .clear-subject {
+    padding: 20px 14px;
+    gap: 20px;
+  }
+  .today-greeting {
+    align-items: start;
+    gap: 14px;
+    flex-direction: column;
+  }
+  .today-goal {
+    flex: none;
+    width: 100%;
+  }
+  .today-goal .bar {
+    max-width: none;
+  }
+  .today-card {
+    padding: 20px;
+    gap: 16px;
+  }
+  .today-eyebrow .pill {
+    font-size: 11px;
+  }
+  .today-main {
+    gap: 12px;
+    align-items: start;
+  }
+  .today-icon {
+    flex-basis: 44px;
+    height: 44px;
+  }
+  .today-icon svg {
+    width: 24px;
+    height: 24px;
+  }
+  .today-main h2 {
+    font-size: 24px;
+  }
+  .simple-subjects {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .simple-subjects .subject-big {
+    min-height: 82px;
+    padding: 14px 16px;
+  }
+  .simple-subjects .subject-badge {
+    width: 44px;
+    min-width: 44px;
+    height: 48px;
+  }
+  .simple-subjects .subject-name {
+    font-size: 21px;
+  }
+  .student-nav {
+    width: calc(100% - 20px);
+    padding: 5px;
+    gap: 1px;
+    bottom: max(8px, env(safe-area-inset-bottom));
+  }
+  .student-nav button {
+    min-height: 58px;
+    font-size: 11px;
+  }
+  .student-nav svg {
+    width: 20px;
+    height: 20px;
+  }
+  .clear-topic {
+    gap: 12px;
+    padding: 14px;
+    min-height: 94px;
+  }
+  .clear-topic-text > b {
+    font-size: 18px;
+  }
+  .clear-topic-number {
+    width: 30px;
+    height: 30px;
+  }
+  .topic-choices {
+    gap: 10px;
+  }
+  .topic-choice {
+    padding: 16px 12px;
+    min-height: 154px;
+  }
+  .topic-choice b {
+    font-size: 18px;
+  }
+  .topic-choice > span {
+    font-size: 13px;
+  }
+  .progress-cards {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .review-actions .btn {
+    flex: 1 1 160px;
+    font-size: 16px;
+    padding: 12px;
+  }
+  .parent-student-bar {
+    padding: 14px;
+  }
+  .parent-student-bar .student-pick,
+  .parent-student-bar select {
+    width: 100%;
+  }
+  .topbar {
+    gap: 6px;
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+  .topbar .person-btn {
+    flex: 1;
+    min-width: 0;
+    max-width: 190px;
+  }
+  .topbar .person-btn-text b {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .topbar .chips {
+    gap: 6px;
+  }
+  .topbar .brand {
+    flex-shrink: 0;
+  }
+}

@@ -8,15 +8,16 @@ export default defineConfig(({ mode }) => ({
   base: './',
   plugins: mode === 'preview' ? [react(), viteSingleFile()] : [react()],
   build: {
-    outDir: mode === 'preview' ? 'dist-preview' : 'dist',
+    outDir: mode === 'staging' ? 'dist-staging' : mode === 'preview' ? 'dist-preview' : 'dist',
     assetsInlineLimit: mode === 'preview' ? 100_000_000 : 4096,
     chunkSizeWarningLimit: 1500,
   },
   define: {
     __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
     __PREVIEW__: JSON.stringify(mode === 'preview'),
+    __STAGING__: JSON.stringify(mode === 'staging'),
   },
   test: {
-    include: ['tests/**/*.test.ts'],
+    include: ['tests/**/*.test.ts', 'tests/**/*.test.tsx'],
   },
 }));

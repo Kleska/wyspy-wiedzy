@@ -11,6 +11,7 @@ import { plural } from '../../themes';
 import { useProgress } from '../hooks';
 import { TimesGrid, TimesLegend, useTimesMap } from '../TimesTable';
 import { Icon, Stars } from '../icons';
+import { useParentStudent } from './ParentStudent';
 
 const DAY_NAMES = ['nd', 'pn', 'wt', 'śr', 'cz', 'pt', 'sb'];
 
@@ -108,7 +109,7 @@ function buildReport(p: Profile, progress: Progress, topics: ParsedTopic[], weak
 
 export function ParentStats() {
   const profiles = store.profiles();
-  const [pid, setPid] = useState(profiles[0]?.id ?? null);
+  const { studentId: pid } = useParentStudent();
   const progress = useProgress(pid);
   const timesMap = useTimesMap(pid ?? '');
   const times = factsSummary(timesMap);
@@ -210,21 +211,11 @@ export function ParentStats() {
       <div className="row" style={{ flexWrap: 'wrap' }}>
         <h1 style={{ flex: 1 }}>Postępy</h1>
         {/* Lista jest zawsze widoczna (także przy jednej osobie), żeby było jasne, czyje to postępy i gdzie się je przełącza. */}
-        <label className="student-pick">
-          <span>Uczeń</span>
-          <select className="select" value={pid} onChange={(e) => setPid(e.target.value)} aria-label="Uczeń">
-            {profiles.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.avatar} {p.name} (klasa {p.grade ?? 3})
-              </option>
-            ))}
-          </select>
-        </label>
       </div>
       {profiles.length === 1 && (
         <p className="muted" style={{ fontSize: 14 }}>
-          Na liście jest na razie jedna osoba. Kolejne dzieci pojawią się tu same, gdy zalogujesz konto rodziny na ich urządzeniach — albo dodaj je w zakładce Ustawienia →
-          „Osoby (dzieci)”.
+          Na liście jest na razie jedna osoba. Kolejne dzieci pojawią się tu same, gdy zalogujesz konto rodziny na ich urządzeniach — albo dodaj je w zakładce
+          Ustawienia → „Osoby (dzieci)”.
         </p>
       )}
 
@@ -244,7 +235,8 @@ export function ParentStats() {
         <div className="card kpi">
           <b>{progress.streak}</b>
           <span>
-            {plural(progress.streak, ['dzień', 'dni', 'dni'])} z rzędu (rekord {progress.bestStreak}){progress.freezes > 0 ? ` · zamrożenia: ${progress.freezes}` : ''}
+            {plural(progress.streak, ['dzień', 'dni', 'dni'])} z rzędu (rekord {progress.bestStreak})
+            {progress.freezes > 0 ? ` · zamrożenia: ${progress.freezes}` : ''}
           </span>
         </div>
         <div className="card kpi">
@@ -332,7 +324,11 @@ export function ParentStats() {
         <h2 className="card-title">Czas nauki — ostatnie 14 dni</h2>
         <div className="chart" role="img" aria-label="Minuty nauki dziennie przez ostatnie 14 dni">
           {days.map((d, i) => (
-            <div key={d.key} className={`chart-col ${i === days.length - 1 ? 'show' : ''}`} title={`${d.label}: ${Math.round(d.sec / 60)} min, ${d.answered} ${plural(d.answered, ['odpowiedź', 'odpowiedzi', 'odpowiedzi'])}`}>
+            <div
+              key={d.key}
+              className={`chart-col ${i === days.length - 1 ? 'show' : ''}`}
+              title={`${d.label}: ${Math.round(d.sec / 60)} min, ${d.answered} ${plural(d.answered, ['odpowiedź', 'odpowiedzi', 'odpowiedzi'])}`}
+            >
               <span className="chart-val" style={{ bottom: `calc(${(d.sec / maxSec) * 100}% + 4px)` }}>
                 {Math.round(d.sec / 60)} min
               </span>
@@ -443,7 +439,17 @@ export function ParentStats() {
                       </div>
                     </td>
                     <td>{w.topic}</td>
-                    <td>{w.answers.length ? w.answers.map((a, j) => <div key={j} className="wrong-answer">„{a}”</div>) : <span className="muted">—</span>}</td>
+                    <td>
+                      {w.answers.length ? (
+                        w.answers.map((a, j) => (
+                          <div key={j} className="wrong-answer">
+                            „{a}”
+                          </div>
+                        ))
+                      ) : (
+                        <span className="muted">—</span>
+                      )}
+                    </td>
                     <td>
                       <span className="pill bad">{w.wrong}</span>
                     </td>
@@ -482,7 +488,7 @@ export function ParentStats() {
                     <td>{MODE_LABEL[s.mode] ?? s.mode}</td>
                     <td>
                       {s.topicId
-                        ? allTopics.find((t) => t.id === s.topicId)?.title ?? '(usunięty temat)'
+                        ? (allTopics.find((t) => t.id === s.topicId)?.title ?? '(usunięty temat)')
                         : s.topicIds?.length
                           ? s.topicIds.map((id) => allTopics.find((t) => t.id === id)?.title ?? '?').join(', ')
                           : s.genId

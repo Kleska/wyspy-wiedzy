@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useDialogFocus } from './dialogFocus';
 import { parseWords, passageParagraphs } from '../dsl';
 import { divisionLayout, lessonDivision } from '../longdiv';
 import { LEVEL_NAMES, type TopicLevel } from '../engine';
@@ -9,14 +10,10 @@ import { Icon } from './icons';
 import { DivisionGrid } from './LongDivision';
 
 export function Modal({ title, onClose, children, wide }: { title: string; onClose: () => void; children: React.ReactNode; wide?: boolean }) {
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
+  const dialogRef = useDialogFocus<HTMLDivElement>(onClose);
   return (
     <div className="modal-backdrop" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className={`modal ${wide ? 'modal-wide' : ''}`} role="dialog" aria-modal="true" aria-label={title}>
+      <div ref={dialogRef} tabIndex={-1} className={`modal ${wide ? 'modal-wide' : ''}`} role="dialog" aria-modal="true" aria-label={title}>
         <div className="modal-head">
           <h2>{title}</h2>
           <button className="btn icon-btn" onClick={onClose} aria-label="Zamknij">
@@ -90,7 +87,18 @@ export function GuideCard({ title, description, guide, lang = 'pl' }: { title?: 
         <b>{title ?? 'Ściąga'}</b>
         <span className="spacer" />
         {canRead && (
-          <button className="btn icon-btn btn-sm" onClick={() => speak(text.split(/\r?\n/).filter((l) => !lessonDivision(l)).join('. '))} aria-label="Przeczytaj ściągę na głos">
+          <button
+            className="btn icon-btn btn-sm"
+            onClick={() =>
+              speak(
+                text
+                  .split(/\r?\n/)
+                  .filter((l) => !lessonDivision(l))
+                  .join('. '),
+              )
+            }
+            aria-label="Przeczytaj ściągę na głos"
+          >
             <Icon name="volume" size={20} />
           </button>
         )}

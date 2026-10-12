@@ -9,7 +9,7 @@ import { coinText, plural } from '../themes';
 import type { Attempt, ChoiceExercise, FillExercise, Session } from '../types';
 import { askConfirm } from './dialogs';
 import { renderSentence, withFractions } from './exercises/Exercises';
-import { useApp, type SprintGame } from './hooks';
+import { useApp, useBackGuard, type SprintGame } from './hooks';
 import { Icon } from './icons';
 import { snapshot } from './Practice';
 
@@ -18,7 +18,7 @@ type Q = { topicId: string; ex: FillExercise | ChoiceExercise; order?: number[] 
 export const sprintKey = (g: SprintGame) => (g.kind === 'gen' ? g.genId : `quiz:${g.subjectId}`);
 
 export function sprintTitle(g: SprintGame): string {
-  return g.kind === 'gen' ? generatorById(g.genId)?.title ?? 'Błyskawica' : `${subjectOf(g.subjectId).name}: szybkie pytania`;
+  return g.kind === 'gen' ? (generatorById(g.genId)?.title ?? 'Błyskawica') : `${subjectOf(g.subjectId).name}: szybkie pytania`;
 }
 
 /** Pytania do Błyskawicy z tematów przedmiotu: tylko „wybierz” (szybkie stuknięcie). */
@@ -44,7 +44,7 @@ export function Sprint({ game }: { game: SprintGame }) {
   const settings = store.settings;
   const key = sprintKey(game);
   const title = sprintTitle(game);
-  const backTo = () => go({ name: 'subject', subjectId: game.kind === 'gen' ? 'mat' : game.subjectId });
+  const backTo = () => go(game.home ? { name: 'home', section: 'games' } : { name: 'subject', subjectId: game.kind === 'gen' ? 'mat' : game.subjectId });
 
   const before = useRef(snapshot(profile.id));
   const best = before.current.sprintBest.get(key) ?? 0;
@@ -199,11 +199,15 @@ export function Sprint({ game }: { game: SprintGame }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [phase, gap, value, answerFill]);
 
-  const exit = async () => {
+  const canLeave = async () => {
     if (phase === 'play') {
-      if (!(await askConfirm('Przerwać Błyskawicę? Wynik się nie zapisze.', { ok: 'Przerwij', cancel: 'Gram dalej' }))) return;
+      if (!(await askConfirm('Przerwać Błyskawicę? Wynik się nie zapisze.', { ok: 'Przerwij', cancel: 'Gram dalej' }))) return false;
     }
-    backTo();
+    return true;
+  };
+  useBackGuard(canLeave);
+  const exit = async () => {
+    if (await canLeave()) backTo();
   };
 
   const needsComma = gap?.some((a) => a.includes(','));
@@ -280,7 +284,7 @@ export function Sprint({ game }: { game: SprintGame }) {
             <Icon name="repeat" /> Jeszcze raz
           </button>
           <button className="btn btn-primary btn-lg" onClick={backTo}>
-            Wróć do tematów
+            {game.home ? 'Wróć do gier' : 'Wróć do tematów'}
           </button>
         </div>
       </div>
@@ -293,7 +297,11 @@ export function Sprint({ game }: { game: SprintGame }) {
         <button className="btn icon-btn" onClick={exit} aria-label="Przerwij Błyskawicę">
           <Icon name="x" />
         </button>
-        <div className="bar pr-progress sprint-time" role="timer" aria-label={`${plural(secs, ['Została', 'Zostały', 'Zostało'])} ${secs} ${plural(secs, ['sekunda', 'sekundy', 'sekund'])}`}>
+        <div
+          className="bar pr-progress sprint-time"
+          role="timer"
+          aria-label={`${plural(secs, ['Została', 'Zostały', 'Zostało'])} ${secs} ${plural(secs, ['sekunda', 'sekundy', 'sekund'])}`}
+        >
           <span style={{ width: `${(left / (SPRINT_SECONDS * 1000)) * 100}%` }} />
         </div>
         <span className="sprint-secs">{secs} s</span>
@@ -323,7 +331,11 @@ export function Sprint({ game }: { game: SprintGame }) {
                 </button>
               ))}
               {needsComma || needsSlash ? (
-                <button type="button" onClick={() => answerFill(value + (needsComma ? ',' : '/'), false)} aria-label={needsComma ? 'Przecinek' : 'Kreska ułamkowa'}>
+                <button
+                  type="button"
+                  onClick={() => answerFill(value + (needsComma ? ',' : '/'), false)}
+                  aria-label={needsComma ? 'Przecinek' : 'Kreska ułamkowa'}
+                >
                   {needsComma ? ',' : '/'}
                 </button>
               ) : (

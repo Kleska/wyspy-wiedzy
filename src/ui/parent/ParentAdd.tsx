@@ -6,6 +6,7 @@ import { TYPE_LABEL } from '../../dsl';
 import type { ExerciseType, TopicSource } from '../../types';
 import { Icon } from '../icons';
 import type { EditorSeed } from './ParentTopics';
+import { useParentStudent } from './ParentStudent';
 
 type Mode = 'text' | 'photo' | 'paste';
 
@@ -13,9 +14,10 @@ const TYPES: ExerciseType[] = ['choice', 'tap', 'sort', 'fill', 'match', 'dictat
 const TYPE_WORD: Record<ExerciseType, string> = { choice: 'wybierz', tap: 'kliknij', sort: 'sortuj', fill: 'wpisz', match: 'pary', dictation: 'dyktando' };
 
 export function ParentAdd({ pin, onResult }: { pin: string; onResult: (s: EditorSeed) => void }) {
+  const { studentId } = useParentStudent();
   const [mode, setMode] = useState<Mode>('photo');
   const [subject, setSubject] = useState('pl');
-  const [grade, setGrade] = useState(() => store.profiles()[0]?.grade ?? 3);
+  const [grade, setGrade] = useState(() => store.get('profile', studentId)?.grade ?? 3);
   const [count, setCount] = useState(12);
   const [types, setTypes] = useState<ExerciseType[]>([]);
   const [reading, setReading] = useState(false);
@@ -90,7 +92,16 @@ export function ParentAdd({ pin, onResult }: { pin: string; onResult: (s: Editor
   const usePasted = () => {
     const r = parsePastedAnswer(pasted);
     if (!r.dsl) return setErr('Nie znalazłem zadań w wklejonym tekście. Linie powinny zaczynać się od „wybierz:”, „kliknij:” itd.');
-    onResult({ title: r.title || 'Nowy temat', subject, description: r.description, guide: r.guide, dsl: r.dsl, source: 'import', grades: [grade], note: 'Sprawdź zadania przed zapisaniem.' });
+    onResult({
+      title: r.title || 'Nowy temat',
+      subject,
+      description: r.description,
+      guide: r.guide,
+      dsl: r.dsl,
+      source: 'import',
+      grades: [grade],
+      note: 'Sprawdź zadania przed zapisaniem.',
+    });
   };
 
   return (
@@ -141,7 +152,14 @@ export function ParentAdd({ pin, onResult }: { pin: string; onResult: (s: Editor
           </label>
           <label className="field">
             <span>Liczba zadań</span>
-            <input className="input" type="number" min={3} max={30} value={count} onChange={(e) => setCount(Math.min(30, Math.max(3, Number(e.target.value) || 12)))} />
+            <input
+              className="input"
+              type="number"
+              min={3}
+              max={30}
+              value={count}
+              onChange={(e) => setCount(Math.min(30, Math.max(3, Number(e.target.value) || 12)))}
+            />
           </label>
         </div>
 
@@ -150,7 +168,11 @@ export function ParentAdd({ pin, onResult }: { pin: string; onResult: (s: Editor
           <div className="row" style={{ flexWrap: 'wrap' }}>
             {TYPES.map((t) => (
               <label key={t} className="pill" style={{ padding: '8px 12px', cursor: 'pointer' }}>
-                <input type="checkbox" checked={types.includes(t)} onChange={(e) => setTypes((cur) => (e.target.checked ? [...cur, t] : cur.filter((x) => x !== t)))} />{' '}
+                <input
+                  type="checkbox"
+                  checked={types.includes(t)}
+                  onChange={(e) => setTypes((cur) => (e.target.checked ? [...cur, t] : cur.filter((x) => x !== t)))}
+                />{' '}
                 {TYPE_LABEL[t]}
               </label>
             ))}
@@ -218,8 +240,8 @@ export function ParentAdd({ pin, onResult }: { pin: string; onResult: (s: Editor
         ) : (
           <div className="col" style={{ gap: 12 }}>
             <div className="note">
-              1. Kliknij „Skopiuj polecenie”. 2. Otwórz czat z Claude, wklej polecenie i (jeśli chcesz) dołącz zdjęcie strony. 3. Skopiuj odpowiedź Claude i wklej ją
-              poniżej. Nie potrzebujesz klucza API — wystarczy zwykłe konto Claude.
+              1. Kliknij „Skopiuj polecenie”. 2. Otwórz czat z Claude, wklej polecenie i (jeśli chcesz) dołącz zdjęcie strony. 3. Skopiuj odpowiedź Claude i
+              wklej ją poniżej. Nie potrzebujesz klucza API — wystarczy zwykłe konto Claude.
             </div>
             <div className="row">
               <button className="btn" onClick={copyPrompt}>
@@ -228,7 +250,12 @@ export function ParentAdd({ pin, onResult }: { pin: string; onResult: (s: Editor
             </div>
             <label className="field">
               <span>Wklej odpowiedź Claude</span>
-              <textarea className="textarea" value={pasted} onChange={(e) => setPasted(e.target.value)} placeholder={'TYTUŁ: …\nZASADA: …\nŚCIĄGA: …\nwybierz: …'} />
+              <textarea
+                className="textarea"
+                value={pasted}
+                onChange={(e) => setPasted(e.target.value)}
+                placeholder={'TYTUŁ: …\nZASADA: …\nŚCIĄGA: …\nwybierz: …'}
+              />
             </label>
             <div className="row">
               <button className="btn btn-primary" onClick={usePasted} disabled={!pasted.trim()}>
