@@ -1,0 +1,49 @@
+{
+  "common": "Use case: stylized-concept. Asset type: free starter avatar portrait for an educational adventure game used by Polish fifth-grade pupils aged around 11. Create a polished original 3D video-game character illustration, clearly stylized and playful, with expressive features, appealing clean shapes and detailed materials. Youthful action-adventure game aesthetic that an eleven-year-old would choose as their profile avatar. Confident friendly expression and energetic posture. NOT a photograph, NOT a realistic older teenager or adult fashion model, NOT a baby or preschool mascot, NOT chibi with an oversized head. Natural child-adventurer proportions, age eleven to twelve for human characters, with a slightly stylized head for clarity. Portrait framing from head to mid-torso, full hair/head visible, subject centered, face large and readable at tiny profile-icon size, a little breathing room above the hair, only one character, a small relevant prop fully readable. Rich saturated color accents, soft 3D studio lighting, crisp silhouette, clean softly blurred colored game-world background. Cohesive premium game roster art. No writing, labels, nameplate, watermark, border or logos. ",
+  "subjects": {
+    "street": "Character: Rider, an eleven-year-old boy skater adventurer. Friendly freckled round face, short chestnut hair, teal skate helmet worn properly, orange hoodie and dark teal protective vest. Holding a compact skateboard near one shoulder. Lively approachable smile. Teal skate-park background. Make him unmistakably a school-age child, no beard, no mature jaw or adult styling.",
+    "nova": "Character: Nova, a twelve-year-old girl space explorer. Warm brown skin, dark curly hair tied into two practical puffs, curious smile and bright eyes. Youthful violet and white astronaut suit with an open helmet collar, small holographic star map floating near her gloved hand. Purple-and-blue space-station background. Clearly a school-age explorer, no makeup or fashion posing.",
+    "code": "Character: Pixel, an original friendly compact gaming robot. Rounded cyan armor with bright orange accents, little antenna, large expressive dark-glass eyes in a readable round face, a cheerful confident expression. Holding a small game controller. A cool capable robot companion for an eleven-year-old, not a plush baby mascot. Blue digital workshop background. No letters or numerical markings.",
+    "striker": "Character: Napastnik, an eleven-year-old football boy. Short curly dark hair, warm medium-brown skin, lively friendly face, blue-and-red unbranded football jersey, holding a classic soccer ball in front of his torso. Athletic energetic child proportions, no adult athlete face, no beard, no American-football pads. Bright softly blurred green football-pitch background.",
+    "artist": "Character: Artystka, an eleven-year-old girl music creator. Short copper-red hair, natural expressive face with a cheerful grin, chunky turquoise headphones resting around her neck, purple jacket over a bright coral T-shirt. Holding a small colorful portable synthesizer/music pad. Confident playful creative energy, no makeup or adult model appearance. Warm pink and cyan music-room background.",
+    "detective": "Character: Detektyw, a twelve-year-old boy puzzle explorer. Warm medium skin, small round glasses, tousled black hair under a dark blue cap, yellow explorer jacket with teal details, holding a magnifying glass below the chin without hiding his face. Clever curious friendly expression. Youthful school-age proportions, no noir adult trench-coat model. Deep blue and golden cozy mystery-room background."
+  },
+  "method": "built-in ImageGen",
+  "transparent_background": false,
+  "ronaldo": {
+    "prompt": "Use case: background-extraction. Asset type: photographic avatar for an educational app. Input image 1 is the EDIT TARGET: a phone screenshot containing a real photograph of Cristiano Ronaldo in Portugal's red number 7 jersey, standing with arms crossed. Extract ONLY the existing photographed Ronaldo, including his complete head, shoulders, crossed arms and visible torso. Remove all phone status icons, close button, pale gray bars, bottom navigation, 1/2 label, white photo background and all screenshot UI. Output a clean cutout on genuine transparent alpha, centered in a portrait composition with a little breathing room above the hair and beside the arms. Keep the same face, hairstyle, skin texture, expression, gaze, body, exact pose, jersey colors and existing kit details from the supplied image. This is faithful background removal, not a redesigned or repainted person. Do not beautify, change the face, invent accessories, add text, add a border, change the lighting, or add decorative effects. Preserve identity and photographic realism as closely as possible. Clean natural hair and jersey edges, no white fringe or screenshot remnants.",
+    "method": "built-in ImageGen edit",
+    "transparent_background": true,
+    "reference": "34016.png"
+  },
+  "asset_paths": {
+    "street": {
+      "portrait": "public/avatars/street-v4.webp",
+      "icon": "public/avatars/street-icon-v4.webp"
+    },
+    "nova": {
+      "portrait": "public/avatars/nova-v4.webp",
+      "icon": "public/avatars/nova-icon-v4.webp"
+    },
+    "code": {
+      "portrait": "public/avatars/code-v4.webp",
+      "icon": "public/avatars/code-icon-v4.webp"
+    },
+    "striker": {
+      "portrait": "public/avatars/striker-v4.webp",
+      "icon": "public/avatars/striker-icon-v4.webp"
+    },
+    "artist": {
+      "portrait": "public/avatars/artist-v4.webp",
+      "icon": "public/avatars/artist-icon-v4.webp"
+    },
+    "detective": {
+      "portrait": "public/avatars/detective-v4.webp",
+      "icon": "public/avatars/detective-icon-v4.webp"
+    },
+    "ronaldo": {
+      "portrait": "public/avatars/ronaldo-v4.webp",
+      "icon": "public/avatars/ronaldo-icon-v4.webp"
+    }
+  }
+}

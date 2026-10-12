@@ -1,3 +1,4 @@
+import { openSubjectMore, openTopicMore, openPlan } from './clear-helpers';
 import type { Page } from '@playwright/test';
 import { expect, test } from './fixtures';
 
@@ -31,12 +32,24 @@ test('sortowanie (przeciąganie), luki i pary działają i dają poprawny wynik'
   await page.locator('textarea.textarea').fill(DSL);
   await page.getByRole('button', { name: 'Zapisz' }).click();
   await page.getByRole('button', { name: 'Wyjdź' }).click();
+  await openPlan(page);
 
   await page.locator('.subject-big', { hasText: 'Język polski' }).click();
+  await openSubjectMore(page);
   // Temat od rodzica bez działu stoi na planszy w dziale „Pozostałe”.
-  await page.getByRole('group', { name: 'Dział' }).getByRole('button', { name: /^Pozostałe/ }).click();
-  await page.getByRole('button', { name: /Test typów/ }).first().click();
-  await page.getByRole('dialog').getByRole('button', { name: /Graj!/ }).click();
+  await page
+    .getByRole('group', { name: 'Dział' })
+    .getByRole('button', { name: /^Pozostałe/ })
+    .click();
+  await page
+    .getByRole('button', { name: /Test typów/ })
+    .first()
+    .click();
+  await openTopicMore(page);
+  await page
+    .getByRole('dialog')
+    .getByRole('button', { name: /^Ćwicz/ })
+    .click();
 
   for (let step = 0; step < 3; step++) {
     if (await page.locator('.token').count()) {
@@ -125,10 +138,22 @@ test('zadania liczbowe: klawiatura z cyframi i ułamek piętrowy zamiast polskic
   await page.locator('textarea.textarea').fill('wpisz: Skróć ułamek. >> 6/8 = [3/4]\nwpisz: Oblicz. >> 2,5 + 1,25 = [3,75]');
   await page.getByRole('button', { name: 'Zapisz' }).click();
   await page.getByRole('button', { name: 'Wyjdź' }).click();
+  await openPlan(page);
   await page.locator('.subject-big', { hasText: 'Matematyka' }).click();
-  await page.getByRole('group', { name: 'Dział' }).getByRole('button', { name: /^Pozostałe/ }).click();
-  await page.getByRole('button', { name: /Test liczb/ }).first().click();
-  await page.getByRole('dialog').getByRole('button', { name: /Graj!/ }).click();
+  await openSubjectMore(page);
+  await page
+    .getByRole('group', { name: 'Dział' })
+    .getByRole('button', { name: /^Pozostałe/ })
+    .click();
+  await page
+    .getByRole('button', { name: /Test liczb/ })
+    .first()
+    .click();
+  await openTopicMore(page);
+  await page
+    .getByRole('dialog')
+    .getByRole('button', { name: /^Ćwicz/ })
+    .click();
 
   for (let step = 0; step < 2; step++) {
     await expect(page.getByLabel('Klawiatura liczbowa')).toBeVisible();

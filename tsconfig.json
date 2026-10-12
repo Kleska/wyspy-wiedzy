@@ -26,6 +26,7 @@
   "include": [
     "src",
     "tests",
-    "supabase/functions/ai/prompt.ts"
+    "supabase/functions/ai/prompt.ts",
+    "e2e"
   ]
 }

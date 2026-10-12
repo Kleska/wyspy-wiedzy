@@ -1,4 +1,5 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { AvatarPortrait } from '../AvatarPortrait';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { askConfirm } from '../dialogs';
 import { SUBJECTS, subjectLang, subjectOf } from '../../content/seed';
 import { gradeOf, nowIso, store, uid } from '../../data/store';
@@ -11,6 +12,7 @@ import { GRADES } from '../Onboarding';
 import { useStoreVersion } from '../hooks';
 import { Icon } from '../icons';
 import { DisabledExercises } from './ParentReports';
+import { useParentStudent } from './ParentStudent';
 
 export interface EditorSeed {
   topicId?: string;
@@ -49,7 +51,14 @@ const STATE_LABEL: Record<TopicState, string> = { now: 'Teraz', library: 'Biblio
 export function ParentTopics({ onEdit }: { onEdit: (s: EditorSeed) => void }) {
   useStoreVersion();
   const profiles = store.profiles();
-  const [who, setWho] = useState<string>(profiles[0]?.id ?? 'all');
+  const { studentId, selectStudent } = useParentStudent();
+  const [showAll, setShowAll] = useState(false);
+  useEffect(() => setShowAll(false), [studentId]);
+  const who = showAll ? 'all' : studentId;
+  const setWho = (id: string) => {
+    setShowAll(id === 'all');
+    if (id !== 'all') selectStudent(id);
+  };
   const person = who === 'all' ? undefined : store.get('profile', who);
   const all = store.allTopics();
   const topics = person ? all.filter((t) => !t.grades?.length || t.grades.includes(gradeOf(person))) : all;
@@ -105,7 +114,7 @@ export function ParentTopics({ onEdit }: { onEdit: (s: EditorSeed) => void }) {
         <span className="who-label">Dla kogo</span>
         {profiles.map((p) => (
           <button key={p.id} type="button" aria-pressed={who === p.id} onClick={() => setWho(p.id)}>
-            {p.avatar} {p.name} · kl. {gradeOf(p)}
+            <AvatarPortrait value={p.avatar} /> {p.name} · kl. {gradeOf(p)}
           </button>
         ))}
         <button type="button" aria-pressed={who === 'all'} onClick={() => setWho('all')}>
@@ -115,13 +124,15 @@ export function ParentTopics({ onEdit }: { onEdit: (s: EditorSeed) => void }) {
       {person ? (
         <p className="muted">
           <b>Teraz</b> — temat jest w planie dziecka i stoi na górze jego ekranu startowego
-          {plan ? ` (plan${plan.title ? ` „${plan.title}”` : ''}${plan.until ? `, termin ${new Date(plan.until + 'T12:00:00').toLocaleDateString('pl-PL')}` : ', bez terminu'})` : ''}. <b>Biblioteka</b> —
-          zwykły temat na planszy swojego działu. <b>Skończony</b> — schodzi z planszy, ale zostaje w powtórkach, błędach i sprawdzianach.
+          {plan
+            ? ` (plan${plan.title ? ` „${plan.title}”` : ''}${plan.until ? `, termin ${new Date(plan.until + 'T12:00:00').toLocaleDateString('pl-PL')}` : ', bez terminu'})`
+            : ''}
+          . <b>Biblioteka</b> — zwykły temat na planszy swojego działu. <b>Skończony</b> — schodzi z planszy, ale zostaje w powtórkach, błędach i sprawdzianach.
         </p>
       ) : (
         <p className="muted">
-          Tematy wbudowane możesz ukryć albo skopiować i zmienić. Własne tematy edytujesz w prostym formacie tekstowym — jedno zadanie w jednej linii. Żeby ustawić, co dziecko ćwiczy
-          teraz, a co ma już za sobą, wybierz je u góry.
+          Tematy wbudowane możesz ukryć albo skopiować i zmienić. Własne tematy edytujesz w prostym formacie tekstowym — jedno zadanie w jednej linii. Żeby
+          ustawić, co dziecko ćwiczy teraz, a co ma już za sobą, wybierz je u góry.
         </p>
       )}
       {SUBJECTS.filter((s) => topics.some((t) => t.subject === s.id)).map((s) => {
@@ -175,7 +186,8 @@ export function ParentTopics({ onEdit }: { onEdit: (s: EditorSeed) => void }) {
                         <div className="topic-item-head">
                           <b>{t.title}</b>
                           <div className="muted topic-item-meta">
-                            {t.exercises.length} {plural(t.exercises.length, ['zadanie', 'zadania', 'zadań'])} · {gradesLabel(t.grades)} · {SOURCE_LABEL[t.source]}
+                            {t.exercises.length} {plural(t.exercises.length, ['zadanie', 'zadania', 'zadań'])} · {gradesLabel(t.grades)} ·{' '}
+                            {SOURCE_LABEL[t.source]}
                             {isHidden ? ' · ukryty dla ucznia' : ''}
                           </div>
                           {t.errors.length > 0 && (
@@ -203,7 +215,18 @@ export function ParentTopics({ onEdit }: { onEdit: (s: EditorSeed) => void }) {
                               <button
                                 className="btn btn-sm"
                                 onClick={() =>
-                                  onEdit({ title: `${t.title} (moja wersja)`, subject: t.subject, description: t.description ?? '', guide: t.guide, words: t.words, unit: t.unit, lesson: t.lesson, dsl: t.dsl, source: 'manual', grades: t.grades })
+                                  onEdit({
+                                    title: `${t.title} (moja wersja)`,
+                                    subject: t.subject,
+                                    description: t.description ?? '',
+                                    guide: t.guide,
+                                    words: t.words,
+                                    unit: t.unit,
+                                    lesson: t.lesson,
+                                    dsl: t.dsl,
+                                    source: 'manual',
+                                    grades: t.grades,
+                                  })
                                 }
                               >
                                 <Icon name="copy" size={16} /> Kopiuj i zmień
@@ -213,7 +236,21 @@ export function ParentTopics({ onEdit }: { onEdit: (s: EditorSeed) => void }) {
                             <>
                               <button
                                 className="btn btn-sm"
-                                onClick={() => onEdit({ topicId: t.id, title: t.title, subject: t.subject, description: t.description ?? '', guide: t.guide, words: t.words, unit: t.unit, lesson: t.lesson, dsl: t.dsl, source: t.source, grades: t.grades })}
+                                onClick={() =>
+                                  onEdit({
+                                    topicId: t.id,
+                                    title: t.title,
+                                    subject: t.subject,
+                                    description: t.description ?? '',
+                                    guide: t.guide,
+                                    words: t.words,
+                                    unit: t.unit,
+                                    lesson: t.lesson,
+                                    dsl: t.dsl,
+                                    source: t.source,
+                                    grades: t.grades,
+                                  })
+                                }
                               >
                                 <Icon name="pencil" size={16} /> Edytuj
                               </button>
@@ -244,7 +281,19 @@ export function ParentTopics({ onEdit }: { onEdit: (s: EditorSeed) => void }) {
 }
 
 /** Zwijany dział. Stan otwarcia pamiętamy lokalnie — zmiana stanu tematu nie zamyka działu, w którym rodzic właśnie pracuje. */
-export function UnitFold({ title, meta, open: initial, done, children }: { title: string; meta?: ReactNode; open: boolean; done?: boolean; children: ReactNode }) {
+export function UnitFold({
+  title,
+  meta,
+  open: initial,
+  done,
+  children,
+}: {
+  title: string;
+  meta?: ReactNode;
+  open: boolean;
+  done?: boolean;
+  children: ReactNode;
+}) {
   const [open, setOpen] = useState(initial);
   return (
     <details className={`unit-fold ${done ? 'is-done' : ''}`} open={open} onToggle={(e) => setOpen(e.currentTarget.open)}>
@@ -278,7 +327,11 @@ export function TopicEditor({ seed, onClose }: { seed: EditorSeed; onClose: () =
   const save = async () => {
     setErr('');
     if (parsed.exercises.length === 0) return setErr('Dodaj co najmniej jedno poprawne zadanie.');
-    if (parsed.errors.length && !(await askConfirm(`Linie z błędami (${parsed.errors.length}) zostaną pominięte przez aplikację. Zapisać mimo to?`, { ok: 'Zapisz' }))) return;
+    if (
+      parsed.errors.length &&
+      !(await askConfirm(`Linie z błędami (${parsed.errors.length}) zostaną pominięte przez aplikację. Zapisać mimo to?`, { ok: 'Zapisz' }))
+    )
+      return;
     const now = nowIso();
     if (target !== 'new' && target !== seed.topicId) {
       const t = store.get('topic', target);
@@ -289,7 +342,13 @@ export function TopicEditor({ seed, onClose }: { seed: EditorSeed; onClose: () =
     }
     if (!title.trim()) return setErr('Podaj tytuł tematu.');
     const existing = seed.topicId ? store.get('topic', seed.topicId) : undefined;
-    const maxOrder = Math.max(100, ...store.allTopics().filter((t) => t.subject === subject).map((t) => t.order));
+    const maxOrder = Math.max(
+      100,
+      ...store
+        .allTopics()
+        .filter((t) => t.subject === subject)
+        .map((t) => t.order),
+    );
     const topic: Topic = {
       id: existing?.id ?? `t-${uid()}`,
       subject,
@@ -360,9 +419,23 @@ export function TopicEditor({ seed, onClose }: { seed: EditorSeed; onClose: () =
               </label>
               <label className="field">
                 <span>Dział (opcjonalnie) — tematy z tym samym działem są razem na planszy dziecka, np. „Ułamki zwykłe” albo „Unit 1”</span>
-                <input className="input" value={unit} onChange={(e) => setUnit(e.target.value)} maxLength={30} placeholder="np. Ułamki zwykłe" list="ww-units" />
+                <input
+                  className="input"
+                  value={unit}
+                  onChange={(e) => setUnit(e.target.value)}
+                  maxLength={30}
+                  placeholder="np. Ułamki zwykłe"
+                  list="ww-units"
+                />
                 <datalist id="ww-units">
-                  {[...new Set(store.allTopics().filter((t) => t.subject === subject && t.unit).map((t) => t.unit!.trim()))].map((u) => (
+                  {[
+                    ...new Set(
+                      store
+                        .allTopics()
+                        .filter((t) => t.subject === subject && t.unit)
+                        .map((t) => t.unit!.trim()),
+                    ),
+                  ].map((u) => (
                     <option key={u} value={u} />
                   ))}
                 </datalist>
@@ -372,14 +445,25 @@ export function TopicEditor({ seed, onClose }: { seed: EditorSeed; onClose: () =
                 <div className="row" style={{ flexWrap: 'wrap', gap: 6 }}>
                   {GRADES.map((g) => (
                     <label key={g} className="pill" style={{ padding: '8px 12px', cursor: 'pointer', fontSize: 14 }}>
-                      <input type="checkbox" checked={grades.includes(g)} onChange={(e) => setGrades((cur) => (e.target.checked ? [...cur, g] : cur.filter((x) => x !== g)))} /> {g}
+                      <input
+                        type="checkbox"
+                        checked={grades.includes(g)}
+                        onChange={(e) => setGrades((cur) => (e.target.checked ? [...cur, g] : cur.filter((x) => x !== g)))}
+                      />{' '}
+                      {g}
                     </label>
                   ))}
                 </div>
               </fieldset>
               <label className="field">
                 <span>Zasada dla dziecka — 1–2 zdania (pokazuje się jako podpowiedź)</span>
-                <textarea className="input" style={{ minHeight: 70 }} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="np. Czasownik mówi, co ktoś robi. Pytamy: co robi?" />
+                <textarea
+                  className="input"
+                  style={{ minHeight: 70 }}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="np. Czasownik mówi, co ktoś robi. Pytamy: co robi?"
+                />
               </label>
               <label className="field">
                 <span>Ściąga — dłuższe wyjaśnienie z przykładami (dziecko widzi ją przed tematem i po błędzie)</span>
@@ -392,8 +476,18 @@ export function TopicEditor({ seed, onClose }: { seed: EditorSeed; onClose: () =
                 />
               </label>
               <label className="field">
-                <span>Lekcja (tryb nauki) — krótkie karty do przeczytania przed ćwiczeniami: najważniejsze, krok po kroku, tak / nie tak, zapamiętaj, pytania kontrolne</span>
-                <textarea className="input" style={{ minHeight: 180, fontSize: 14 }} value={lesson} onChange={(e) => setLesson(e.target.value)} spellCheck={false} placeholder={LESSON_HELP} />
+                <span>
+                  Lekcja (tryb nauki) — krótkie karty do przeczytania przed ćwiczeniami: najważniejsze, krok po kroku, tak / nie tak, zapamiętaj, pytania
+                  kontrolne
+                </span>
+                <textarea
+                  className="input"
+                  style={{ minHeight: 180, fontSize: 14 }}
+                  value={lesson}
+                  onChange={(e) => setLesson(e.target.value)}
+                  spellCheck={false}
+                  placeholder={LESSON_HELP}
+                />
               </label>
               {lessonErrors.length > 0 && (
                 <div className="note" role="alert">
@@ -410,14 +504,28 @@ export function TopicEditor({ seed, onClose }: { seed: EditorSeed; onClose: () =
               {(subjectLang(subject) !== 'pl' || words) && (
                 <label className="field">
                   <span>Słówka — po jednym w linii: wyraz = tłumaczenie (lista do nauki z wymową i podpowiedzi do słów w zdaniach)</span>
-                  <textarea className="input" style={{ minHeight: 110 }} value={words} onChange={(e) => setWords(e.target.value)} spellCheck={false} placeholder={'wardrobe = szafa\nnext to = obok\ntrousers = spodnie'} />
+                  <textarea
+                    className="input"
+                    style={{ minHeight: 110 }}
+                    value={words}
+                    onChange={(e) => setWords(e.target.value)}
+                    spellCheck={false}
+                    placeholder={'wardrobe = szafa\nnext to = obok\ntrousers = spodnie'}
+                  />
                 </label>
               )}
             </>
           ) : null}
           <label className="field">
             <span>Zadania — jedno w linii</span>
-            <textarea className="textarea" style={{ minHeight: 320 }} value={dsl} onChange={(e) => setDsl(e.target.value)} spellCheck={false} placeholder={DSL_HELP} />
+            <textarea
+              className="textarea"
+              style={{ minHeight: 320 }}
+              value={dsl}
+              onChange={(e) => setDsl(e.target.value)}
+              spellCheck={false}
+              placeholder={DSL_HELP}
+            />
           </label>
           <details>
             <summary style={{ cursor: 'pointer', fontWeight: 700 }}>Jak zapisywać zadania?</summary>
@@ -460,7 +568,11 @@ export function TopicEditor({ seed, onClose }: { seed: EditorSeed; onClose: () =
         <section className="card col" style={{ gap: 10 }}>
           <h2 className="card-title" style={{ margin: 0 }}>
             Podgląd: {parsed.exercises.length} {plural(parsed.exercises.length, ['zadanie', 'zadania', 'zadań'])}
-            {parsed.errors.length > 0 && <span className="pill bad" style={{ marginLeft: 8 }}>{parsed.errors.length} {plural(parsed.errors.length, ['błąd', 'błędy', 'błędów'])}</span>}
+            {parsed.errors.length > 0 && (
+              <span className="pill bad" style={{ marginLeft: 8 }}>
+                {parsed.errors.length} {plural(parsed.errors.length, ['błąd', 'błędy', 'błędów'])}
+              </span>
+            )}
           </h2>
           <div className="dsl-preview">
             {parsed.errors.map((e) => (

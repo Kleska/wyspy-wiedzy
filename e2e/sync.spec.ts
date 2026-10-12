@@ -1,3 +1,4 @@
+import { openSubjectMore, openTopicMore, openPlan, openParentPlan, openParentStats } from './clear-helpers';
 import type { Browser, BrowserContext, Page, Route, WebSocketRoute } from '@playwright/test';
 import { expect, test, useLocalConfig } from './fixtures';
 
@@ -19,7 +20,12 @@ async function snap(page: Page, name: string) {
   if (shots) await page.screenshot({ path: `${shots}/${test.info().project.name}-${name}.png`, fullPage: true });
 }
 
-const cors = { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': '*', 'access-control-expose-headers': '*' };
+const cors = {
+  'access-control-allow-origin': '*',
+  'access-control-allow-headers': '*',
+  'access-control-allow-methods': '*',
+  'access-control-expose-headers': '*',
+};
 const b64 = (o: object) => Buffer.from(JSON.stringify(o)).toString('base64url');
 
 interface Row {
@@ -41,25 +47,45 @@ class FakeSupabase {
 
   private session() {
     const exp = Math.floor(Date.now() / 1000) + 3600;
-    const user = { id: USER_ID, aud: 'authenticated', role: 'authenticated', email: EMAIL, app_metadata: { provider: 'email' }, user_metadata: {}, identities: [], created_at: '2026-10-01T00:00:00Z' };
+    const user = {
+      id: USER_ID,
+      aud: 'authenticated',
+      role: 'authenticated',
+      email: EMAIL,
+      app_metadata: { provider: 'email' },
+      user_metadata: {},
+      identities: [],
+      created_at: '2026-10-01T00:00:00Z',
+    };
     const access_token = `${b64({ alg: 'HS256', typ: 'JWT' })}.${b64({ sub: USER_ID, role: 'authenticated', aud: 'authenticated', email: EMAIL, exp })}.podpis`;
     return { access_token, token_type: 'bearer', expires_in: 3600, expires_at: exp, refresh_token: 'odswiez', user };
   }
 
   /** Włącza „chmurę” na urządzeniu: konfiguracja aplikacji wskazuje atrapę, a zapytania trafiają tutaj. */
   async enable(ctx: BrowserContext) {
-    await ctx.route('**/config.js', (r) => r.fulfill({ contentType: 'application/javascript', body: `window.WW_CONFIG = { supabaseUrl: "${SUPA}", supabaseAnonKey: "sb_publishable_test" };` }));
+    await ctx.route('**/config.js', (r) =>
+      r.fulfill({ contentType: 'application/javascript', body: `window.WW_CONFIG = { supabaseUrl: "${SUPA}", supabaseAnonKey: "sb_publishable_test" };` }),
+    );
     await ctx.route(`${SUPA}/**`, (r) => this.handle(ctx, r));
     await ctx.routeWebSocket(/fake-project\.supabase\.co\/realtime/, (ws) => {
       const state = { ctx, topics: new Map<string, number[]>() };
       this.sockets.set(ws, state);
       ws.onClose(() => this.sockets.delete(ws));
       ws.onMessage((raw) => {
-        const [joinRef, ref, topic, event, payload] = JSON.parse(String(raw)) as [string | null, string | null, string, string, { config?: { postgres_changes?: object[] } }];
+        const [joinRef, ref, topic, event, payload] = JSON.parse(String(raw)) as [
+          string | null,
+          string | null,
+          string,
+          string,
+          { config?: { postgres_changes?: object[] } },
+        ];
         let response: object = {};
         if (event === 'phx_join') {
           const filters = (payload.config?.postgres_changes ?? []).map((f, i) => ({ ...f, id: i + 1 }));
-          state.topics.set(topic, filters.map((f) => f.id));
+          state.topics.set(
+            topic,
+            filters.map((f) => f.id),
+          );
           response = { postgres_changes: filters };
         }
         if (event === 'phx_leave') state.topics.delete(topic);
@@ -74,7 +100,18 @@ class FakeSupabase {
       if (this.offline.has(ctx)) continue;
       for (const [topic, ids] of topics) {
         this.liveSignals++;
-        ws.send(JSON.stringify([null, null, topic, 'postgres_changes', { ids, data: { schema: 'public', table: 'ww_docs', commit_timestamp: row.server_updated_at, type: 'INSERT', columns: [], record: row, errors: null } }]));
+        ws.send(
+          JSON.stringify([
+            null,
+            null,
+            topic,
+            'postgres_changes',
+            {
+              ids,
+              data: { schema: 'public', table: 'ww_docs', commit_timestamp: row.server_updated_at, type: 'INSERT', columns: [], record: row, errors: null },
+            },
+          ]),
+        );
       }
     }
   }
@@ -91,7 +128,8 @@ class FakeSupabase {
     if (this.offline.has(ctx)) return route.abort('internetdisconnected');
     if (req.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: cors });
     const url = new URL(req.url());
-    const json = (status: number, body: unknown) => route.fulfill({ status, headers: { ...cors, 'content-type': 'application/json' }, body: JSON.stringify(body) });
+    const json = (status: number, body: unknown) =>
+      route.fulfill({ status, headers: { ...cors, 'content-type': 'application/json' }, body: JSON.stringify(body) });
 
     if (url.pathname === '/auth/v1/token') {
       if (url.searchParams.get('grant_type') === 'refresh_token') return json(200, this.session());
@@ -118,7 +156,12 @@ class FakeSupabase {
       if (since?.startsWith('gt.')) out = out.filter((r) => Date.parse(r.server_updated_at) > Date.parse(since.slice(3)));
       const kinds = url.searchParams.get('kind');
       if (kinds?.startsWith('in.(')) {
-        const set = new Set(kinds.slice(4, -1).split(',').map((k) => k.replace(/"/g, '')));
+        const set = new Set(
+          kinds
+            .slice(4, -1)
+            .split(',')
+            .map((k) => k.replace(/"/g, '')),
+        );
         out = out.filter((r) => set.has(r.kind));
       }
       out.sort((a, b) => a.server_updated_at.localeCompare(b.server_updated_at));
@@ -138,7 +181,10 @@ async function device(browser: Browser): Promise<{ ctx: BrowserContext; page: Pa
 async function onboard(page: Page, name: string, grade: number) {
   await page.goto('/');
   await page.getByPlaceholder('Imię').fill(name);
-  await page.getByRole('group', { name: 'Klasa' }).getByRole('button', { name: String(grade), exact: true }).click();
+  await page
+    .getByRole('group', { name: 'Klasa' })
+    .getByRole('button', { name: String(grade), exact: true })
+    .click();
   await page.getByRole('button', { name: 'Zaczynamy!' }).click();
   await expect(page.getByText(`Cześć, ${name}!`)).toBeVisible();
 }
@@ -147,12 +193,16 @@ async function onboard(page: Page, name: string, grade: number) {
 async function answerAny(page: Page) {
   if (await page.locator('.practice .opt').count()) {
     await page.locator('.practice .opt:not([disabled])').first().click();
+    await openTopicMore(page);
   } else if (await page.locator('.word').count()) {
     await page.locator('.word').first().click();
+    await openTopicMore(page);
   } else if (await page.locator('.token').count()) {
     while (await page.locator('.bank .token').count()) {
       await page.locator('.bank .token').first().click();
+      await openTopicMore(page);
       await page.locator('.basket').first().click();
+      await openTopicMore(page);
       await page.waitForTimeout(60);
     }
   } else if (await page.locator('.gap').count()) {
@@ -191,8 +241,16 @@ test('dwa urządzenia: postępy córki widać u rodzica, plan od rodzica trafia 
   // ── Zanim włączono chmurę: każde urządzenie ma własne dane i własny PIN ──
   await onboard(tablet.page, 'Zosia', 5);
   await tablet.page.locator('.subject-big', { hasText: 'Angielski' }).click();
-  await tablet.page.getByRole('button', { name: /Miesiące/ }).first().click();
-  await tablet.page.getByRole('dialog').getByRole('button', { name: /Graj!/ }).click();
+  await openSubjectMore(tablet.page);
+  await tablet.page
+    .getByRole('button', { name: /Miesiące/ })
+    .first()
+    .click();
+  await openTopicMore(tablet.page);
+  await tablet.page
+    .getByRole('dialog')
+    .getByRole('button', { name: /^Ćwicz/ })
+    .click();
   for (let i = 0; i < 3; i++) {
     await expect(tablet.page.getByRole('button', { name: 'Sprawdź' })).toBeVisible();
     await answerAny(tablet.page);
@@ -206,8 +264,9 @@ test('dwa urządzenia: postępy córki widać u rodzica, plan od rodzica trafia 
   await tablet.page.getByRole('button', { name: 'Panel rodzica' }).click();
   await typePin(tablet.page, '111111');
   await typePin(tablet.page, '111111');
-  await expect(tablet.page.getByRole('heading', { name: 'Postępy' })).toBeVisible();
+  await expect(tablet.page.getByRole('heading', { name: /^Postępy:/ })).toBeVisible();
   await tablet.page.getByRole('button', { name: 'Wyjdź' }).click();
+  await openPlan(tablet.page);
 
   await onboard(phone.page, 'Kuba', 3);
   await phone.page.getByRole('button', { name: 'Panel rodzica' }).click();
@@ -254,11 +313,16 @@ test('dwa urządzenia: postępy córki widać u rodzica, plan od rodzica trafia 
   await expect(phone.page.locator('.sync-bar')).toContainText('na żywo');
   await snap(phone.page, 's02-parent-live');
   await expect(phone.page.getByLabel('Uczeń').locator('option', { hasText: 'Zosia' })).toHaveCount(1);
-  await phone.page.getByLabel('Uczeń').selectOption({ label: (await phone.page.getByLabel('Uczeń').locator('option', { hasText: 'Zosia' }).innerText()).trim() });
+  await phone.page
+    .getByLabel('Uczeń')
+    .selectOption({ label: (await phone.page.getByLabel('Uczeń').locator('option', { hasText: 'Zosia' }).innerText()).trim() });
   await expect(phone.page.locator('.parent-main')).toContainText('Miesiące');
 
   await phone.page.getByRole('button', { name: 'Plan i sprawdziany' }).click();
-  await phone.page.getByLabel('Uczeń').selectOption({ label: (await phone.page.getByLabel('Uczeń').locator('option', { hasText: 'Zosia' }).innerText()).trim() });
+  await openParentPlan(phone.page);
+  await phone.page
+    .getByLabel('Uczeń')
+    .selectOption({ label: (await phone.page.getByLabel('Uczeń').locator('option', { hasText: 'Zosia' }).innerText()).trim() });
   await phone.page.getByPlaceholder('np. Sprawdzian z ułamków').fill('Sprawdzian: Unit 0');
   await phone.page.getByRole('group', { name: 'Angielski' }).getByRole('button', { name: 'Zaznacz wszystkie (9)' }).click();
   await phone.page.getByRole('button', { name: 'Zapisz plan (9)' }).click();
@@ -272,6 +336,7 @@ test('dwa urządzenia: postępy córki widać u rodzica, plan od rodzica trafia 
 
   // ── Córka odpowiada na pytanie, a rodzic widzi to u siebie bez odświeżania ──
   await phone.page.getByRole('button', { name: 'Postępy' }).click();
+  await openParentStats(phone.page);
   const answersOnPhone = () => phone.page.evaluate(() => document.querySelector('.parent-main')?.textContent ?? '');
   const before = await answersOnPhone();
   await tablet.page.getByRole('button', { name: /Ćwicz: / }).click();
@@ -287,20 +352,29 @@ test('dwa urządzenia: postępy córki widać u rodzica, plan od rodzica trafia 
   await tablet.page.getByRole('button', { name: 'Wróć', exact: true }).click();
   await expect(tablet.page.getByText('Cześć, Zosia!')).toBeVisible();
   await phone.page.getByRole('button', { name: 'Plan i sprawdziany' }).click();
-  await phone.page.getByLabel('Uczeń').selectOption({ label: (await phone.page.getByLabel('Uczeń').locator('option', { hasText: 'Zosia' }).innerText()).trim() });
+  await openParentPlan(phone.page);
+  await phone.page
+    .getByLabel('Uczeń')
+    .selectOption({ label: (await phone.page.getByLabel('Uczeń').locator('option', { hasText: 'Zosia' }).innerText()).trim() });
 
   // ── Rodzic zadaje córce kartkówkę: pojawia się na jej tablecie na żywo ──
   await phone.page.getByRole('button', { name: 'Zadaj kartkówkę' }).click();
   await phone.page.locator('.quiz-form').getByPlaceholder('np. Have got i can').fill('Miesiące na jutro');
   await phone.page.locator('.quiz-form .unit-fold > summary', { hasText: 'Unit 0' }).click();
   await phone.page.locator('.quiz-form .check-row', { hasText: 'Miesiące' }).locator('input').check();
-  await phone.page.locator('.quiz-form').getByRole('button', { name: /^Zadaj kartkówkę \(/ }).click();
+  await phone.page
+    .locator('.quiz-form')
+    .getByRole('button', { name: /^Zadaj kartkówkę \(/ })
+    .click();
   await expect(tablet.page.getByRole('region', { name: 'Kartkówki od rodzica' })).toContainText('Miesiące na jutro');
 
   // ── Tablet bez internetu: córka zmienia wygląd, a rodzic w tym czasie zmienia plan. Nic nie może zginąć. ──
   cloud.offline.add(tablet.ctx);
   await tablet.page.getByRole('button', { name: 'Wygląd' }).click();
-  await tablet.page.getByRole('dialog').getByRole('button', { name: /Zeszyt/ }).click();
+  await tablet.page
+    .getByRole('dialog')
+    .getByRole('button', { name: /Zeszyt/ })
+    .click();
   if (await tablet.page.getByRole('dialog').count()) await tablet.page.keyboard.press('Escape');
   await phone.page.getByPlaceholder('np. Sprawdzian z ułamków').fill('Sprawdzian w piątek');
   await phone.page.getByRole('button', { name: 'Zapisz plan (9)' }).click();
@@ -317,7 +391,10 @@ test('dwa urządzenia: postępy córki widać u rodzica, plan od rodzica trafia 
   // aż do powrotu sieci) — pobrana wtedy wersja z chmury nie może nadpisać świeżej, niewysłanej zmiany wyglądu.
   cloud.offline.add(tablet.ctx);
   await tablet.page.getByRole('button', { name: 'Wygląd' }).click();
-  await tablet.page.getByRole('dialog').getByRole('button', { name: /Kosmos/ }).click();
+  await tablet.page
+    .getByRole('dialog')
+    .getByRole('button', { name: /Kosmos/ })
+    .click();
   if (await tablet.page.getByRole('dialog').count()) await tablet.page.keyboard.press('Escape');
   await phone.page.getByRole('button', { name: 'Tematy' }).click();
   await phone.page.getByRole('group', { name: 'Dla kogo' }).getByRole('button', { name: /Zosia/ }).click();
@@ -333,6 +410,7 @@ test('dwa urządzenia: postępy córki widać u rodzica, plan od rodzica trafia 
   expect(zosia()?.plan?.title).toBe('Sprawdzian w piątek');
   // Na tablecie córki dział zszedł z planszy do „Skończonych”.
   await tablet.page.locator('.subject-big', { hasText: 'Matematyka' }).click();
+  await openSubjectMore(tablet.page);
   await expect(tablet.page.getByRole('group', { name: 'Dział' }).getByRole('button', { name: /^Liczby i działania/ })).toHaveCount(0);
   await expect(tablet.page.locator('details.done-topics summary')).toContainText('Skończone · 2 tematy');
   await tablet.page.getByRole('button', { name: 'Wróć', exact: true }).click();
@@ -404,7 +482,7 @@ test('dwa urządzenia: postępy córki widać u rodzica, plan od rodzica trafia 
   await expect(tablet.page.getByRole('heading', { name: 'Ustaw PIN rodzica' })).toBeVisible();
   await typePin(tablet.page, '246810');
   await typePin(tablet.page, '246810');
-  await expect(tablet.page.getByRole('heading', { name: 'Postępy' })).toBeVisible();
+  await expect(tablet.page.getByRole('heading', { name: /^Postępy:/ })).toBeVisible();
   await tablet.page.getByRole('button', { name: 'Ustawienia' }).click();
   await expect(tablet.page.getByLabel('Połącz z inną osobą: Zosia')).toBeVisible();
   await expect(tablet.page.getByText('Tryb na żywo:')).toContainText('działa');
@@ -414,10 +492,11 @@ test('dwa urządzenia: postępy córki widać u rodzica, plan od rodzica trafia 
 
   // Nowy PIN obowiązuje też na telefonie rodzica.
   await phone.page.getByRole('button', { name: 'Wyjdź' }).click();
+  await openPlan(phone.page);
   await phone.page.waitForTimeout(1500);
   await phone.page.getByRole('button', { name: 'Panel rodzica' }).click();
   await typePin(phone.page, '246810');
-  await expect(phone.page.getByRole('heading', { name: 'Postępy' })).toBeVisible();
+  await expect(phone.page.getByRole('heading', { name: /^Postępy:/ })).toBeVisible();
 
   // Po ponownym uruchomieniu tablet jest nadal zalogowany i ma komplet danych.
   await tablet.page.reload();

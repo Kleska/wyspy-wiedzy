@@ -1,4 +1,6 @@
+import { AvatarPortrait, AvatarCredit } from './AvatarPortrait';
 import { AVATARS, ownedAvatars } from '../avatars';
+import { unlockAvatar } from '../avatarPurchase';
 import { store, nowIso } from '../data/store';
 import { THEME_ORDER, THEMES } from '../themes';
 import { useApp } from './hooks';
@@ -8,28 +10,41 @@ import { ThemePreview } from './ThemePreview';
 
 /** „Wygląd”: dziecko samo zmienia bohatera (z tych, które ma) i motyw. */
 export function ThemePicker({ onClose }: { onClose: () => void }) {
-  const { profile, go } = useApp();
+  const { profile, go, toast } = useApp();
   const owned = ownedAvatars(profile.id, profile.avatar, store.list('redemption'));
-  const heroes = AVATARS.filter((a) => owned.has(a.emoji));
+  const heroes = AVATARS.filter((a) => owned.has(a.emoji)).sort((a, b) => Number(!!b.art) - Number(!!a.art));
   const more = AVATARS.length - heroes.length;
   return (
     <Modal title="Wygląd i bohater" onClose={onClose} wide>
       <section className="look-section">
-        <h3 className="look-title">Twój bohater</h3>
-        <div className="hero-pick" role="group" aria-label="Twój bohater">
-          {heroes.map((a) => (
+        <h3 className="look-title">Twój bohater</h3><p className="muted">Podstawowa kolekcja jest bezpłatna. Gwiazdy sportu, filmu i komiksu odblokujesz w Nagrodach.</p>
+        <div className="hero-pick portrait-pick" role="group" aria-label="Twój bohater">
+          {heroes.filter((a) => !!a.art).map((a) => (
             <button
               key={a.emoji}
               type="button"
               aria-pressed={profile.avatar === a.emoji}
               aria-label={`Bohater: ${a.name}`}
               title={a.name}
-              onClick={() => void store.put('profile', { ...profile, avatar: a.emoji, updatedAt: nowIso() })}
+              onClick={() => void unlockAvatar(profile.id, a.emoji).catch((error) => toast(error instanceof Error ? error.message : 'Nie udało się zmienić bohatera.'))}
             >
-              {a.emoji}
+              <AvatarPortrait value={a.emoji} variant="card" /><small>{a.name}</small>
             </button>
           ))}
         </div>
+        <details className="clear-details"><summary>Klasyczne ikony</summary><div className="hero-pick portrait-pick" role="group" aria-label="Klasyczne ikony">          {heroes.filter((a) => !a.art).map((a) => (
+            <button
+              key={a.emoji}
+              type="button"
+              aria-pressed={profile.avatar === a.emoji}
+              aria-label={`Bohater: ${a.name}`}
+              title={a.name}
+              onClick={() => void unlockAvatar(profile.id, a.emoji).catch((error) => toast(error instanceof Error ? error.message : 'Nie udało się zmienić bohatera.'))}
+            >
+              <AvatarPortrait value={a.emoji} variant="card" /><small>{a.name}</small>
+            </button>
+          ))}</div></details>
+        <details className="clear-details"><summary>Źródła grafik</summary><div className="col">{AVATARS.filter((a) => a.credit).map((a) => <div key={a.emoji}><b>{a.name}</b><AvatarCredit value={a.emoji} /></div>)}</div></details>
         {more > 0 && (
           <button
             className="btn btn-sm look-more"

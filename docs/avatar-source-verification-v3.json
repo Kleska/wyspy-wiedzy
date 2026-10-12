@@ -1,0 +1,50 @@
+[
+  {
+    "key": "harry",
+    "name": "Harry Potter",
+    "provenance": "Grafika przesłana przez użytkownika w tej rozmowie",
+    "original_filename": "34015.jpg",
+    "original_sha256": "4c15978325eb1a24b73ded4c13e58a50f88b71fdd62c5426164d3d0d9c7b82e1",
+    "image": "avatars/harry-v4.webp",
+    "thumbnail": "avatars/harry-icon-v4.webp",
+    "optimization": "Pełna kompozycja zachowana w portrecie 600 × 700; miniatura twarzy 128 × 150. Konwersja do WebP. Autor i pierwotne źródło przesłanej kompozycji nie zostały podane."
+  },
+  {
+    "key": "spider",
+    "name": "Spider-Man",
+    "source": "https://marvel.disney.co.jp/character/spiderman",
+    "image": "https://lumiere-a.akamaihd.net/v1/images/eb_comic_12473_12497_12452_12480_12540_12510_12531_816eeaca.jpeg?region=0%2C0%2C2048%2C878",
+    "thumbnail": "https://lumiere-a.akamaihd.net/v1/images/eb_comic_12473_12497_12452_12480_12540_12510_12531_816eeaca.jpeg?region=1260%2C0%2C760%2C878&width=128",
+    "rights": "Marvel / Disney",
+    "position": "86% 50%"
+  },
+  {
+    "key": "batman",
+    "name": "Batman",
+    "source": "https://www.dc.com/characters/batman",
+    "image": "https://static.dc.com/dc/files/default_images/Char_Thumb_Batman_20190116_5c3fc4b40fae42.85141247.jpg",
+    "thumbnail": "https://static.dc.com/dc/files/default_images/Char_Thumb_Batman_20190116_5c3fc4b40fae42.85141247.jpg?w=160",
+    "rights": "DC",
+    "position": "50% 15%"
+  },
+  {
+    "key": "mando",
+    "name": "Mandalorianin",
+    "source": "https://www.starwars.com/databank/the-mandalorian/",
+    "image": "https://lumiere-a.akamaihd.net/v1/images/din-djarin-the-mandalorian-main_66f8a62f.jpeg?region=98%2C0%2C1821%2C1023",
+    "thumbnail": "https://lumiere-a.akamaihd.net/v1/images/din-djarin-the-mandalorian-main_66f8a62f.jpeg?region=800%2C0%2C600%2C700&width=128",
+    "rights": "Lucasfilm / Disney",
+    "position": "50% 15%"
+  },
+  {
+    "key": "ronaldo",
+    "name": "Cristiano Ronaldo",
+    "provenance": "Fotografia w zrzucie ekranu przesłanym przez użytkownika; wycięcie tła i elementów telefonu w ImageGen",
+    "original_filename": "34016.png",
+    "original_sha256": "39a1c5b48ca9bf5da3e7e334297ebe59a929ab8260dd39005046d5ac171d5ff4",
+    "image": "avatars/ronaldo-v4.webp",
+    "thumbnail": "avatars/ronaldo-icon-v4.webp",
+    "method": "built-in ImageGen background-extraction; zachowana przezroczystość; kadrowanie i konwersja do WebP",
+    "original_source": "Autor i pierwotne źródło fotografii w zrzucie nie zostały podane. Nie przypisujemy temu plikowi licencji wcześniejszej fotografii Ronaldo."
+  }
+]

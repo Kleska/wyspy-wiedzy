@@ -1,88 +1,84 @@
+import { useState } from 'react';
 import { subjectLang, subjectOf } from '../content/seed';
 import { store } from '../data/store';
 import { LEVEL_NAMES, topicState } from '../engine';
 import { plural } from '../themes';
-import { GuideCard, LevelChip, LevelSteps, Modal, WordsDetails } from './bits';
+import { GuideCard, LevelChip, Modal, WordsDetails } from './bits';
 import { practice, useApp, useProgress } from './hooks';
-import { Icon, Stars } from './icons';
+import { Icon } from './icons';
 import { TrainerButtons } from './Trainers';
 
 export { Modal };
 
-export function TopicSheet({ topicId, onClose }: { topicId: string; onClose: () => void }) {
-  const { profile, theme, go } = useApp();
+export function TopicSheet({ topicId, onClose, from = 'subject' }: { topicId: string; onClose: () => void; from?: 'home' | 'subject' }) {
+  const { profile, go } = useApp();
   const progress = useProgress(profile.id)!;
+  const [guideOpen, setGuideOpen] = useState(false);
   const topic = store.topicsFor(profile.id).find((t) => t.id === topicId);
   if (!topic) return null;
   const s = progress.topics.get(topic.id);
-  const level = s?.level ?? 0;
   const n = Math.min(store.settings.sessionLength, topic.exercises.length);
   const testN = Math.min(10, topic.exercises.length);
   const state = topicState(profile, topic.id, Date.now());
   const hasLesson = !!topic.lesson?.trim();
-  const lessonDone = !!progress?.lessonsDone.has(topic.id);
+  const canLearn = hasLesson || !!(topic.guide || topic.description || topic.words);
   return (
     <Modal title={topic.title} onClose={onClose}>
-      <div className="row" style={{ justifyContent: 'space-between', flexWrap: 'wrap' }}>
-        <span className="label">
-          {subjectOf(topic.subject).name}
-          {topic.unit ? ` · ${topic.unit}` : ''}
-          {state === 'now' ? ' · w planie od rodzica' : state === 'done' ? ' · skończony' : ''}
-        </span>
-        <Stars n={s?.stars ?? 0} size={26} />
-      </div>
-      <div className="level-line">
-        <LevelChip level={level} />
-        <LevelSteps level={level} />
-        {s?.placed && <span className="muted" style={{ fontSize: 14, fontWeight: 700 }}>zaliczony testem</span>}
-      </div>
-      {level === 0 ? (
-        <GuideCard description={topic.description} guide={topic.guide} lang={subjectLang(topic.subject)} />
-      ) : (
-        (topic.guide || topic.description) && (
-          <details className="guide-details">
-            <summary>
-              <Icon name="book" size={20} /> Ściąga
-            </summary>
-            <GuideCard description={topic.description} guide={topic.guide} lang={subjectLang(topic.subject)} />
-          </details>
-        )
-      )}
-      <WordsDetails words={topic.words} lang={subjectLang(topic.subject)} />
-      <div className="stat-tiles">
-        <div className="stat-tile">
-          <b>{Math.round((s?.mastery ?? 0) * 100)}%</b>
-          <small>opanowane</small>
-        </div>
-        <div className="stat-tile">
-          <b>{s?.newCount ?? topic.exercises.length}</b>
-          <small>{plural(s?.newCount ?? topic.exercises.length, ['nowe', 'nowe', 'nowych'])}</small>
-        </div>
-        <div className="stat-tile">
-          <b>{s?.dueCount ?? 0}</b>
-          <small>do powtórki</small>
-        </div>
-      </div>
-      <p className="muted" style={{ fontWeight: 700, fontSize: 14 }}>
-        Poziomy: {LEVEL_NAMES.slice(1).join(' → ')}. Rosną, gdy odpowiadasz dobrze kilka dni z rzędu, a spadają, gdy coś się zapomina.
+      <p className="muted">
+        {subjectOf(topic.subject).name}
+        {topic.unit ? ` · ${topic.unit}` : ''}
+        {state === 'now' ? ' · w planie od rodzica' : state === 'done' ? ' · skończony' : ''}
       </p>
-      {hasLesson && (
-        <button className={`btn btn-lg btn-block ${lessonDone ? '' : 'btn-primary'}`} onClick={() => go({ name: 'learn', topicId: topic.id, nonce: Date.now(), from: 'subject' })}>
-          <Icon name="book" /> {lessonDone ? 'Powtórz lekcję' : 'Nauka: poznaj temat krok po kroku'}
-        </button>
-      )}
-      <button className={`btn btn-lg btn-block ${hasLesson && !lessonDone ? '' : 'btn-primary'}`} onClick={() => go(practice({ kind: 'topic', topicId: topic.id }))}>
-        {theme.start} ({n} {plural(n, ['zadanie', 'zadania', 'zadań'])})
-      </button>
-      <TrainerButtons topics={[topic]} />
-      {testN >= 5 && (
+      <LevelChip level={s?.level ?? 0} small />
+      <div className="topic-choices">
+        {canLearn && (
+          <button
+            className={`topic-choice${hasLesson && !progress.lessonsDone.has(topic.id) ? ' suggested' : ''}`}
+            onClick={() => (hasLesson ? go({ name: 'learn', topicId: topic.id, nonce: Date.now(), from }) : setGuideOpen((open) => !open))}
+            aria-expanded={hasLesson ? undefined : guideOpen}
+          >
+            <Icon name="book" size={28} />
+            <b>Poznaj temat</b>
+            <span>{hasLesson ? 'Krok po kroku, z przykładami' : 'Krótka zasada i przykłady'}</span>
+          </button>
+        )}
         <button
-          className="btn btn-block"
-          onClick={() => go(practice({ kind: 'test', topicIds: [topic.id], title: `Sprawdzian: ${topic.title}`, subjectId: topic.subject, count: testN }))}
+          className={`topic-choice${!hasLesson || progress.lessonsDone.has(topic.id) ? ' suggested' : ''}`}
+          onClick={() => go(practice({ kind: 'topic', topicId: topic.id, home: from === 'home' }))}
         >
-          <Icon name="test" /> Sprawdzian z tego tematu ({testN} pytań)
+          <Icon name="pencil" size={28} />
+          <b>Ćwicz</b>
+          <span>
+            {n} {plural(n, ['zadanie', 'zadania', 'zadań'])} · z podpowiedziami
+          </span>
         </button>
+      </div>
+      {guideOpen && (
+        <section className="col" aria-label="Wyjaśnienie tematu">
+          <GuideCard description={topic.description} guide={topic.guide} lang={subjectLang(topic.subject)} />
+          <WordsDetails words={topic.words} lang={subjectLang(topic.subject)} open />
+        </section>
       )}
+      <details className="clear-details topic-more">
+        <summary>Więcej: ściąga, trening i sprawdzian</summary>
+        <div className="col">
+          <GuideCard description={topic.description} guide={topic.guide} lang={subjectLang(topic.subject)} />
+          <WordsDetails words={topic.words} lang={subjectLang(topic.subject)} />
+          <TrainerButtons topics={[topic]} home={from === 'home'} />
+          {testN >= 5 && (
+            <button
+              className="btn btn-block"
+              onClick={() => go(practice({ kind: 'test', topicIds: [topic.id], title: `Sprawdzian: ${topic.title}`, subjectId: topic.subject, count: testN }))}
+            >
+              <Icon name="test" /> Sprawdzian z tego tematu ({testN} pytań)
+            </button>
+          )}
+          <p className="muted">
+            Opanowane: {Math.round((s?.mastery ?? 0) * 100)}% · do powtórki: {s?.dueCount ?? 0}
+          </p>
+          <p className="muted">Poziomy: {LEVEL_NAMES.slice(1).join(' → ')}. Rosną, gdy pamiętasz odpowiedzi także w kolejnych dniach.</p>
+        </div>
+      </details>
     </Modal>
   );
 }

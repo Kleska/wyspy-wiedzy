@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useDialogFocus } from './dialogFocus';
 
 /*
  * Własne okna potwierdzenia i wpisywania tekstu zamiast window.confirm/prompt
@@ -35,6 +36,7 @@ export function DialogHost() {
   const [text, setText] = useState('');
   const okRef = useRef<HTMLButtonElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const dialogRef = useDialogFocus<HTMLFormElement>(() => close(req?.kind === 'text' ? null : false), !!req);
 
   useEffect(() => {
     push = (r) => {
@@ -49,11 +51,6 @@ export function DialogHost() {
   useEffect(() => {
     if (!req) return;
     (req.kind === 'text' ? inputRef.current : okRef.current)?.focus();
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') close(req.kind === 'text' ? null : false);
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [req]);
 
@@ -65,6 +62,8 @@ export function DialogHost() {
   return (
     <div className="modal-backdrop" style={{ zIndex: 95 }}>
       <form
+        ref={dialogRef}
+        tabIndex={-1}
         className="modal"
         role="alertdialog"
         aria-modal="true"
@@ -76,7 +75,17 @@ export function DialogHost() {
         }}
       >
         <p style={{ fontWeight: 800, fontSize: 19, lineHeight: 1.35 }}>{req.message}</p>
-        {req.kind === 'text' && <input ref={inputRef} id="dialog-text" className="input" value={text} onChange={(e) => setText(e.target.value)} maxLength={40} aria-label={req.message} />}
+        {req.kind === 'text' && (
+          <input
+            ref={inputRef}
+            id="dialog-text"
+            className="input"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            maxLength={40}
+            aria-label={req.message}
+          />
+        )}
         <div className="row" style={{ justifyContent: 'flex-end', flexWrap: 'wrap' }}>
           <button type="button" className="btn" onClick={() => close(req.kind === 'text' ? null : false)}>
             {req.cancel}

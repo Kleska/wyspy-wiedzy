@@ -5,6 +5,7 @@ import { withoutDisabled } from '../engine';
 import type { DocKind, DocMap, Exercise, ParsedTopic, Profile, Settings, Topic } from '../types';
 import { openKV, type KV, type OutboxEntry, type StoredDoc } from './idb';
 import { mergeDoc, MUTABLE_KINDS, sameJson } from './merge';
+declare const __STAGING__: boolean;
 
 declare global {
   interface Window {
@@ -138,7 +139,7 @@ export class Store {
       const m = this.docs[d.kind as DocKind] as Map<string, unknown> | undefined;
       if (m) m.set(d.id, d.data);
     }
-    const cfg = typeof window !== 'undefined' ? window.WW_CONFIG : undefined;
+    const cfg = !__STAGING__ && typeof window !== 'undefined' ? window.WW_CONFIG : undefined;
     const cloud = !!(cfg?.supabaseUrl && cfg?.supabaseAnonKey);
     this.state = {
       ...this.state,
@@ -264,7 +265,9 @@ export class Store {
       await this.kv.putDocs(docs.map((doc) => ({ k: `${kind}:${(doc as { id: string }).id}`, kind, id: (doc as { id: string }).id, data: doc })));
       if (this.state.cloud && this.state.auth.status === 'signedIn') {
         const mutable = MUTABLE_KINDS.includes(kind);
-        await this.kv.addOutboxMany(docs.map((doc) => ({ kind, id: (doc as { id: string }).id, data: doc, base: mutable ? before.get((doc as { id: string }).id) : undefined })));
+        await this.kv.addOutboxMany(
+          docs.map((doc) => ({ kind, id: (doc as { id: string }).id, data: doc, base: mutable ? before.get((doc as { id: string }).id) : undefined })),
+        );
         this.patchSync({ pending: this.state.sync.pending + docs.length });
         this.scheduleSync(1500);
       } else {
@@ -345,8 +348,7 @@ export class Store {
         if (event === 'SIGNED_OUT') {
           this.stopLive();
           this.patch({ auth: { status: 'signedOut' } });
-        }
-        else if (session && this.state.auth.userId !== session.user.id) void this.onSignedIn(session.user.id, session.user.email ?? '');
+        } else if (session && this.state.auth.userId !== session.user.id) void this.onSignedIn(session.user.id, session.user.email ?? '');
       });
       window.addEventListener('online', () => this.scheduleSync(300));
       document.addEventListener('visibilitychange', () => {
@@ -539,8 +541,7 @@ export class Store {
     let maxSeen = cursor;
     let changed = false;
     for (let page = 0; page < 200; page++) {
-      const { data, error } = await this.supa!
-        .from(SYNC_TABLE)
+      const { data, error } = await this.supa!.from(SYNC_TABLE)
         .select('kind,id,data,deleted,server_updated_at')
         .gt('server_updated_at', since)
         .order('server_updated_at', { ascending: true })

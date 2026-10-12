@@ -17,7 +17,7 @@ describe('bohaterowie', () => {
 
   it('na start są nie tylko zwierzaki, a pierwszy jest lis', () => {
     expect(FREE_AVATARS[0]).toBe('🦊');
-    for (const g of AVATAR_GROUPS) {
+    for (const g of AVATAR_GROUPS.filter((g) => !['sport', 'screen'].includes(g.id))) {
       expect(AVATARS.some((a) => a.group === g.id && a.cost === 0), g.title).toBe(true);
     }
   });

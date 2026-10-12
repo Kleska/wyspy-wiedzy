@@ -1,5 +1,5 @@
 import { Fragment, useState } from 'react';
-import { nowIso, store, uid } from '../../data/store';
+import { gradeOf, nowIso, store } from '../../data/store';
 import { dateKey, GRADE_NAMES, hideQuizzes, isQuizHidden, mistakesToFix, quizStates } from '../../engine';
 import { plural } from '../../themes';
 import type { AssignedQuiz, Profile } from '../../types';
@@ -7,6 +7,8 @@ import { askConfirm } from '../dialogs';
 import { useProgress } from '../hooks';
 import { Icon } from '../icons';
 import { assignMistakeQuiz, examMistakeRows, ExamMistakes, MISTAKE_QUIZ_MAX } from './ExamMistakes';
+import { assignQuizToProfiles } from '../../quizAssignment';
+import { childHistory } from '../../studentHistory';
 import { TopicChecklist } from './TopicChecklist';
 
 const COUNTS = [5, 10, 15, 20];
@@ -18,6 +20,10 @@ const COUNTS = [5, 10, 15, 20];
 export function ParentQuiz({ p }: { p: Profile }) {
   const progress = useProgress(p.id);
   const topics = store.topicsFor(p.id);
+  const eligible = store.profiles().filter((child) => gradeOf(child) === gradeOf(p));
+  const [recipients, setRecipients] = useState<string[]>([p.id]);
+  const [busy, setBusy] = useState(false);
+  const [batchShown, setBatchShown] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState('');
   const [until, setUntil] = useState('');
@@ -43,21 +49,16 @@ export function ParentQuiz({ p }: { p: Profile }) {
   };
 
   const assign = async () => {
-    const first = topics.find((t) => sel.includes(t.id));
-    const quiz: AssignedQuiz = {
-      id: uid(),
-      title: title.trim() || (sel.length === 1 && first ? first.title : 'Kartkówka'),
-      topicIds: sel,
-      count: n,
-      until: until || undefined,
-      createdAt: nowIso(),
-    };
-    await store.put('profile', { ...p, quizzes: [...(p.quizzes ?? []), quiz], updatedAt: nowIso() });
-    setOpen(false);
-    setTitle('');
-    setUntil('');
-    setSel([]);
-    flash(`Zadano kartkówkę: ${p.name} zobaczy ją na ekranie startowym.`);
+    if (busy) return;
+    setBusy(true);
+    try {
+      const result = await assignQuizToProfiles({ profileIds: recipients, topicIds: sel, count, title, until });
+      setOpen(false); setTitle(''); setUntil(''); setSel([]);
+      setBatchShown(result.batchId);
+      flash(`Zadano kartkówkę (${result.count} pytań): ${result.names.join(', ')}. Każde dziecko ma te same zadania i własny wynik.`);
+    } catch (error) {
+      flash(error instanceof Error ? error.message : 'Nie udało się zapisać kartkówki. Spróbuj ponownie.');
+    } finally { setBusy(false); }
   };
 
   // „Przywróć” przywraca kartkówkę także na ekranie dziecka (nawet jeśli dziecko schowało ją wcześniej samo).
@@ -71,7 +72,8 @@ export function ParentQuiz({ p }: { p: Profile }) {
 
   const remove = async (quiz: AssignedQuiz) => {
     if (!(await askConfirm(`Usunąć kartkówkę „${quiz.title}”? Wynik zostanie w historii sprawdzianów.`, { ok: 'Usuń', danger: true }))) return;
-    await store.put('profile', { ...p, quizzes: (p.quizzes ?? []).filter((q) => q.id !== quiz.id), updatedAt: nowIso() });
+    const cur = store.get('profile', p.id);
+    if (cur) await store.put('profile', { ...cur, quizzes: (cur.quizzes ?? []).filter((q) => q.id !== quiz.id), updatedAt: nowIso() });
   };
 
   return (
@@ -103,8 +105,7 @@ export function ParentQuiz({ p }: { p: Profile }) {
         )}
       </div>
       <p className="muted" style={{ fontSize: 14 }}>
-        Krótki sprawdzian z wybranych tematów: bez podpowiedzi, pisany raz, z oceną 1–6. {p.name} zobaczy go na ekranie startowym, a wynik pojawi się tutaj — razem z listą pytań, w
-        których były błędy. „Kartkówka z błędów” układa się sama z zadań, w których {p.name} pomylił(a) się w ostatnich 30 dniach i jeszcze ich nie poprawił(a).
+        Te same pytania dla wybranych dzieci, bez podpowiedzi. Każde pisze raz i dostaje własną ocenę 1–6. Odbiorcy to profile w tym koncie rodziny; koleżankę możesz dodać w Ustawieniach.
       </p>
       {msg && (
         <div className="note" role="status">
@@ -114,6 +115,7 @@ export function ParentQuiz({ p }: { p: Profile }) {
 
       {open && (
         <div className="col quiz-form" style={{ gap: 12 }}>
+          <fieldset className="quiz-recipients"><legend>Odbiorcy kartkówki · klasa {gradeOf(p)}</legend><p className="muted">Wybierz jedną lub kilka osób. Wyniki pozostają osobne.</p><div className="row" style={{ flexWrap: 'wrap' }}>{eligible.map((child) => <label key={child.id}><input type="checkbox" checked={recipients.includes(child.id)} onChange={(event) => setRecipients((ids) => event.target.checked ? [...ids, child.id] : ids.filter((id) => id !== child.id))} />{child.name}</label>)}</div>{eligible.length > 1 && <button type="button" className="btn btn-sm" onClick={() => setRecipients(eligible.map((child) => child.id))}>Wybierz całą klasę ({eligible.length})</button>}</fieldset>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
             <label className="field">
               <span>Nazwa kartkówki (opcjonalnie)</span>
@@ -142,8 +144,8 @@ export function ParentQuiz({ p }: { p: Profile }) {
             </p>
           )}
           <div className="row" style={{ flexWrap: 'wrap' }}>
-            <button className="btn btn-primary" onClick={assign} disabled={!sel.length}>
-              <Icon name="test" size={18} /> {sel.length ? `Zadaj kartkówkę (${n} ${plural(n, ['pytanie', 'pytania', 'pytań'])})` : 'Zaznacz tematy'}
+            <button className="btn btn-primary" onClick={assign} disabled={busy || !recipients.length || n < 1}>
+              <Icon name="test" size={18} /> {busy ? 'Zapisuję…' : !recipients.length ? 'Wybierz odbiorców' : sel.length ? `Zadaj kartkówkę (${n} ${plural(n, ['pytanie', 'pytania', 'pytań'])})` : 'Zaznacz tematy'}
             </button>
             <button className="btn" onClick={() => setOpen(false)}>
               Anuluj
@@ -172,7 +174,7 @@ export function ParentQuiz({ p }: { p: Profile }) {
                   <Fragment key={quiz.id}>
                     <tr>
                       <td>
-                        <b>{quiz.title}</b>
+                        <b>{quiz.title}</b>{quiz.batchId && <button className="btn btn-sm" style={{ margin: 6 }} onClick={() => setBatchShown(batchShown === quiz.batchId ? null : quiz.batchId!)}>Wyniki grupy</button>}
                         <div className="muted" style={{ fontSize: 12 }}>
                           {quiz.count} {plural(quiz.count, ['pytanie', 'pytania', 'pytań'])} · zadana {new Date(quiz.createdAt).toLocaleDateString('pl-PL')}
                         </div>
@@ -235,6 +237,7 @@ export function ParentQuiz({ p }: { p: Profile }) {
           </table>
         </div>
       )}
+      {batchShown && <BatchResults batchId={batchShown} onClose={() => setBatchShown(null)} />}
       {hiddenStates.length > 0 && (
         <details className="detail-box hidden-quizzes">
           <summary>
@@ -244,7 +247,7 @@ export function ParentQuiz({ p }: { p: Profile }) {
             {[...hiddenStates].reverse().map(({ quiz, result }) => (
               <li key={quiz.id}>
                 <span style={{ flex: 1, minWidth: 0 }}>
-                  <b>{quiz.title}</b>
+                  <b>{quiz.title}</b>{quiz.batchId && <button className="btn btn-sm" style={{ margin: 6 }} onClick={() => setBatchShown(batchShown === quiz.batchId ? null : quiz.batchId!)}>Wyniki grupy</button>}
                   <span className="muted" style={{ fontSize: 13 }}>
                     {' '}
                     · {result ? `${result.correct}/${result.total}, ocena ${result.grade}` : 'nienapisana'} · {new Date(quiz.createdAt).toLocaleDateString('pl-PL')}
@@ -269,4 +272,15 @@ export function ParentQuiz({ p }: { p: Profile }) {
         ))}
     </section>
   );
+}
+
+function BatchResults({ batchId, onClose }: { batchId: string; onClose: () => void }) {
+  const children = store.profiles().map((p) => ({ p, quiz: p.quizzes?.find((q) => q.batchId === batchId) })).filter((row) => !!row.quiz);
+  if (!children.length) return null;
+  return <section className="detail-box col" aria-label="Wyniki wspólnej kartkówki"><h3>{children[0].quiz!.title} · wyniki odbiorców</h3><p className="muted">Identyczne zadania. Wynik każdego dziecka liczymy osobno.</p><div className="table-wrap"><table className="table"><thead><tr><th>Dziecko</th><th>Stan</th><th>Wynik</th><th>Ocena</th></tr></thead><tbody>{children.map(({ p, quiz }) => {
+    const history = childHistory(p, store.list('session'), store.list('attempt'), store.allTopics(), 'parent').filter((e) => e.session.quizId === quiz!.id);
+    const result = history.filter((e) => e.session.completed).sort((a, b) => a.at - b.at)[0];
+    const latest = result ?? history[0];
+    return <tr key={p.id}><th>{p.name}</th><td>{result ? 'Napisana' : latest ? 'Niedokończona' : 'Do napisania'}</td><td>{latest ? `${latest.correct}/${latest.answered}` : '—'}</td><td>{result?.grade ?? '—'}</td></tr>;
+  })}</tbody></table></div><button className="btn btn-sm" onClick={onClose}>Zamknij wyniki grupy</button></section>;
 }

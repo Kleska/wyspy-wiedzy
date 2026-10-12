@@ -1,3 +1,4 @@
+import { AvatarPortrait } from '../AvatarPortrait';
 import { useState } from 'react';
 import { subjectName } from '../../content/seed';
 import { nowIso, store } from '../../data/store';
@@ -98,7 +99,7 @@ export function ReportsNotice({ onEdit }: { onEdit: (seed: EditorSeed) => void }
           <div key={r.id} className="report-row">
             <div className="report-head">
               <span>
-                {p.avatar} {r.byParent ? 'Rodzic' : p.name}
+                <AvatarPortrait value={p.avatar} /> {r.byParent ? 'Rodzic' : p.name}
                 {r.byParent ? ` (błędy: ${p.name})` : ''} · {new Date(r.at).toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' })}
               </span>
               <span className="pill">{REPORT_REASONS[r.reason].parent}</span>

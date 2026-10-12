@@ -39,18 +39,26 @@ export function useProgress(profileId: string | null): Progress | null {
 
 /** Co ćwiczymy: temat, powtórkę, sprawdzian, test na start, trening z generatora albo poprawę błędów. */
 export type Run =
-  | { kind: 'topic'; topicId: string }
+  | { kind: 'topic'; topicId: string; home?: boolean }
   | { kind: 'review' }
-  | { kind: 'test'; topicIds: string[]; title: string; subjectId: string; count: number; quizId?: string; /** Kartkówka z konkretnych zadań (np. z błędów). */ items?: { topicId: string; exerciseId: string }[] }
+  | {
+      kind: 'test';
+      topicIds: string[];
+      title: string;
+      subjectId: string;
+      count: number;
+      quizId?: string;
+      /** Kartkówka z konkretnych zadań (np. z błędów). */ items?: { topicId: string; exerciseId: string }[];
+    }
   | { kind: 'diagnostic'; subjectId: string }
-  | { kind: 'gen'; genId: string; facts?: [number, number][]; /** Trening zaczęty z ekranu startowego (karta „Teraz”) — po nim wracamy na start, nie do przedmiotu. */ home?: boolean }
+  | { kind: 'gen'; genId: string; facts?: [number, number][]; home?: boolean; from?: 'games' }
   | { kind: 'fix'; items: { topicId: string; exerciseId: string }[]; subjectId: string | null };
 
 /** Błyskawica: 60 sekund z generatora (matematyka) albo szybkie pytania z tematów przedmiotu. */
-export type SprintGame = { kind: 'gen'; genId: string } | { kind: 'quiz'; subjectId: string };
+export type SprintGame = { kind: 'gen'; genId: string; home?: boolean } | { kind: 'quiz'; subjectId: string; home?: boolean };
 
 export type Screen =
-  | { name: 'home' }
+  | { name: 'home'; section?: 'subjects' | 'games' | 'progress' }
   | { name: 'subject'; subjectId: string; /** Dział, który ma być otwarty na planszy (domyślnie dział polecanego tematu). */ unit?: string }
   | { name: 'practice'; run: Run; nonce: number }
   | { name: 'sprint'; game: SprintGame; nonce: number }
@@ -69,6 +77,8 @@ export const isExamRun = (run: Run) => run.kind === 'test' || run.kind === 'diag
 
 /** Dokąd wrócić po ćwiczeniu. */
 export function backScreen(run: Run, subjectId: string | null): Screen {
+  if (run.kind === 'gen' && run.from === 'games') return { name: 'home', section: 'games' };
+  if (run.kind === 'topic' && run.home) return { name: 'home' };
   if (run.kind === 'gen' && run.facts?.length) return { name: 'times' };
   if (run.kind === 'gen' && run.home) return { name: 'home' };
   return subjectId ? { name: 'subject', subjectId } : { name: 'home' };
@@ -120,6 +130,7 @@ export interface AppCtx {
   openThemes: () => void;
   openTopic: (topicId: string) => void;
   switchProfile: () => void;
+  registerBackGuard?: (guard: () => Promise<boolean>) => () => void;
 }
 
 export const AppContext = createContext<AppCtx | null>(null);
@@ -128,4 +139,10 @@ export function useApp(): AppCtx {
   const c = useContext(AppContext);
   if (!c) throw new Error('AppContext missing');
   return c;
+}
+
+/** Systemowe Wstecz korzysta z tego samego potwierdzenia co przycisk zakończenia. */
+export function useBackGuard(guard: () => Promise<boolean>) {
+  const { registerBackGuard } = useApp();
+  useEffect(() => registerBackGuard?.(guard), [registerBackGuard, guard]);
 }

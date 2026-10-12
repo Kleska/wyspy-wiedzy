@@ -9,6 +9,7 @@ import { examMistakeRows, ExamMistakes } from './ExamMistakes';
 import { ParentQuiz } from './ParentQuiz';
 import { PlanFromPhoto } from './PlanFromPhoto';
 import { TopicChecklist } from './TopicChecklist';
+import { useParentStudent } from './ParentStudent';
 
 /**
  * Po terminie planu rodzic decyduje raz, co z jego tematami: do „skończonych” (schodzą z planszy, zostają w powtórkach),
@@ -30,8 +31,8 @@ export function ExpiredPlanNotice({ p }: { p: Profile }) {
       </b>
       <p>
         {plan.title ? `„${plan.title}”` : 'Plan'}
-        {plan.until ? ` — termin ${new Date(plan.until + 'T12:00:00').toLocaleDateString('pl-PL')}` : ''}. W planie {plural(topics.length, ['był', 'były', 'było'])} {topics.length}{' '}
-        {plural(topics.length, ['temat', 'tematy', 'tematów'])}
+        {plan.until ? ` — termin ${new Date(plan.until + 'T12:00:00').toLocaleDateString('pl-PL')}` : ''}. W planie{' '}
+        {plural(topics.length, ['był', 'były', 'było'])} {topics.length} {plural(topics.length, ['temat', 'tematy', 'tematów'])}
         {topics.length ? `: ${topics.map((t) => t.title).join(', ')}` : ''}. Co z nimi zrobić?
       </p>
       <div className="row" style={{ flexWrap: 'wrap' }}>
@@ -55,7 +56,7 @@ export function ExpiredPlanNotice({ p }: { p: Profile }) {
 export function ParentPlan({ pin }: { pin: string }) {
   useStoreVersion();
   const profiles = store.profiles();
-  const [pid, setPid] = useState(profiles[0]?.id ?? null);
+  const { studentId: pid } = useParentStudent();
   // Po zapisaniu planu ze zdjęcia odświeżamy edytor planu (pokazuje nowe tematy i termin).
   const [ver, setVer] = useState(0);
   const p = pid ? store.get('profile', pid) : undefined;
@@ -64,31 +65,20 @@ export function ParentPlan({ pin }: { pin: string }) {
     <>
       <div className="row" style={{ flexWrap: 'wrap' }}>
         <h1 style={{ flex: 1 }}>Plan i sprawdziany</h1>
-        <label className="student-pick">
-          <span>Uczeń</span>
-          <select className="select" value={p.id} onChange={(e) => setPid(e.target.value)} aria-label="Uczeń">
-            {profiles.map((x) => (
-              <option key={x.id} value={x.id}>
-                {x.avatar} {x.name} (klasa {x.grade ?? 3})
-              </option>
-            ))}
-          </select>
-        </label>
       </div>
       {profiles.length === 1 && (
         <p className="muted" style={{ fontSize: 14 }}>
-          Na liście jest na razie jedna osoba. Kolejne dzieci pojawią się tu same, gdy zalogujesz konto rodziny na ich urządzeniach — albo dodaj je w zakładce Ustawienia → „Osoby
-          (dzieci)”.
+          Na liście jest na razie jedna osoba. Kolejne dzieci pojawią się tu same, gdy zalogujesz konto rodziny na ich urządzeniach — albo dodaj je w zakładce
+          Ustawienia → „Osoby (dzieci)”.
         </p>
       )}
       <p className="muted">
-        Wszystko tutaj dotyczy jednej osoby (gdy dzieci jest kilka, wybierasz ją u góry). Plan: przypnij tematy, które dziecko ma teraz ćwiczyć (np. przed sprawdzianem w szkole) —
-        zobaczy je na górze ekranu startowego, a aplikacja będzie je polecać w pierwszej kolejności. Kartkówka: krótki sprawdzian z wybranych tematów, pisany raz.
+        Zadaj kartkówkę jednej lub kilku osobom z tej samej klasy. Plan nauki poniżej dotyczy dziecka wybranego u góry.
       </p>
       <ParentQuiz key={`quiz-${p.id}`} p={p} />
-      <PlanEditor key={`${p.id}:${ver}`} p={p} />
-      <PlanFromPhoto key={`photo-${p.id}`} p={p} pin={pin} onPlanSaved={() => setVer((v) => v + 1)} />
-      <ExamHistory profileId={p.id} />
+      <details className="clear-details card parent-plan-editor"><summary>Plan nauki: {p.name}</summary><PlanEditor key={`${p.id}:${ver}`} p={p} /></details>
+      <details className="clear-details card"><summary>Ułóż plan ze zdjęcia</summary><PlanFromPhoto key={`photo-${p.id}`} p={p} pin={pin} onPlanSaved={() => setVer((v) => v + 1)} /></details>
+      <details className="clear-details card"><summary>Historia sprawdzianów i testów na start</summary><ExamHistory profileId={p.id} /></details>
     </>
   );
 }
@@ -146,8 +136,8 @@ function PlanEditor({ p }: { p: Profile }) {
       )}
       {status && (
         <div className={`note ${status.confirmed ? 'good' : ''}`}>
-          <b>{status.confirmed ? 'Materiał opanowany — potwierdził to sprawdzian próbny.' : 'Opanowanie materiału jeszcze niepotwierdzone.'}</b> Tematy na poziomie „Biegły”:{' '}
-          {status.fluent} z {status.total}.{' '}
+          <b>{status.confirmed ? 'Materiał opanowany — potwierdził to sprawdzian próbny.' : 'Opanowanie materiału jeszcze niepotwierdzone.'}</b> Tematy na
+          poziomie „Biegły”: {status.fluent} z {status.total}.{' '}
           {status.lastExam
             ? `Ostatni sprawdzian próbny (${new Date(status.lastExam.at).toLocaleDateString('pl-PL')}): ${status.lastExam.grade} — ${GRADE_NAMES[status.lastExam.grade]}, ${status.lastExam.correct}/${status.lastExam.total}.`
             : `Sprawdzianu próbnego jeszcze nie było (${planExamCount(status.total)} pytań bez podpowiedzi, dziecko uruchamia go z karty planu).`}{' '}
@@ -241,7 +231,11 @@ function ExamHistory({ profileId }: { profileId: string }) {
                     </td>
                     <td>
                       {e.correct < e.total ? (
-                        <button className="btn btn-sm" aria-expanded={shown === e.sessionId} onClick={() => setShown(shown === e.sessionId ? null : e.sessionId)}>
+                        <button
+                          className="btn btn-sm"
+                          aria-expanded={shown === e.sessionId}
+                          onClick={() => setShown(shown === e.sessionId ? null : e.sessionId)}
+                        >
                           <Icon name="eye" size={16} /> {shown === e.sessionId ? 'Ukryj' : `Pokaż (${e.total - e.correct})`}
                         </button>
                       ) : (
