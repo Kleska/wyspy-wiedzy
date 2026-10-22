@@ -46,6 +46,7 @@ export type Run =
       topicIds: string[];
       title: string;
       subjectId: string;
+      /** Zachowaj wybrany dział przy powrocie ze sprawdzianu. */ unit?: string;
       count: number;
       quizId?: string;
       /** Kartkówka z konkretnych zadań (np. z błędów). */ items?: { topicId: string; exerciseId: string }[];
@@ -81,6 +82,7 @@ export function backScreen(run: Run, subjectId: string | null): Screen {
   if (run.kind === 'topic' && run.home) return { name: 'home' };
   if (run.kind === 'gen' && run.facts?.length) return { name: 'times' };
   if (run.kind === 'gen' && run.home) return { name: 'home' };
+  if (run.kind === 'test' && subjectId && run.unit) return { name: 'subject', subjectId, unit: run.unit };
   return subjectId ? { name: 'subject', subjectId } : { name: 'home' };
 }
 

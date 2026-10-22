@@ -5,9 +5,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { store } from '../src/data/store';
 import { App } from '../src/App';
 import { seedPreview } from '../src/preview';
+import { MATH_NATURAL5, NATURAL_NUMBERS_UNIT } from '../src/content/naturalNumbers5';
+import { NATURAL_NUMBERS_EXAMS } from '../src/content/chapterExams';
 import { Home } from '../src/ui/Home';
 import { Modal } from '../src/ui/bits';
-import { AppContext, type AppCtx } from '../src/ui/hooks';
+import { AppContext, backScreen, type AppCtx } from '../src/ui/hooks';
 import { useNavigation } from '../src/ui/navigation';
 import { ParentPanel } from '../src/ui/parent/ParentPanel';
 import { SubjectScreen } from '../src/ui/SubjectScreen';
@@ -56,6 +58,43 @@ async function click(text: string, scope: ParentNode = host) {
 }
 
 describe('czytelny interfejs', () => {
+  it.each(['A', 'B'])('rozdział własności liczb uruchamia wariant %s z 28 pytaniami, również po skończeniu części tematów', async (variant) => {
+    const p = store.get('profile', 'demo-badaczka')!;
+    const done = [MATH_NATURAL5[0].id, 'b-m5-ulamki'];
+    await store.put('profile', { ...p, done, doneAt: p.updatedAt });
+    context = { ...context, profile: store.get('profile', p.id)! };
+    await render(<SubjectScreen subjectId="mat" unit={NATURAL_NUMBERS_UNIT} />);
+    expect(host.querySelectorAll('.clear-topic')).toHaveLength(6);
+    await act(async () => host.querySelector<HTMLDetailsElement>('.subject-more')!.open = true);
+    await act(async () => host.querySelector<HTMLButtonElement>('.challenges .challenge')!.click());
+    const dialog = host.querySelector('[role="dialog"]')!;
+    expect(dialog.querySelectorAll('input[type="checkbox"]:checked')).toHaveLength(7);
+    expect(dialog.textContent).not.toContain('Ułamki: skracanie i rozszerzanie');
+    expect(dialog.querySelector('[aria-label="Liczba pytań"] [aria-pressed="true"]')?.textContent).toBe('28');
+    await click(`Wariant ${variant}`);
+    await click('Zaczynam sprawdzian');
+    const screen = vi.mocked(context.go).mock.calls.at(-1)![0];
+    if (screen.name !== 'practice' || screen.run.kind !== 'test') throw new Error('Brak sprawdzianu matematycznego');
+    expect(screen.run.count).toBe(28);
+    expect(screen.run.topicIds).toHaveLength(7);
+    expect(screen.run.items).toEqual(NATURAL_NUMBERS_EXAMS.find((v) => v.id === variant)!.items);
+    expect(screen.run.title).toContain(`Wariant ${variant}`);
+    expect(backScreen(screen.run, 'mat')).toEqual({ name: 'subject', subjectId: 'mat', unit: NATURAL_NUMBERS_UNIT });
+  });
+  it('krótki test rozdziału losuje pytania zamiast przycinać przygotowany wariant', async () => {
+    context = { ...context, profile: store.get('profile', 'demo-badaczka')! };
+    await render(<SubjectScreen subjectId="mat" unit={NATURAL_NUMBERS_UNIT} />);
+    await act(async () => host.querySelector<HTMLDetailsElement>('.subject-more')!.open = true);
+    await act(async () => host.querySelector<HTMLButtonElement>('.challenges .challenge')!.click());
+    await click('15');
+    expect(host.querySelector('[aria-label="Wariant sprawdzianu"]')).toBeNull();
+    await click('Zaczynam sprawdzian');
+    const screen = vi.mocked(context.go).mock.calls.at(-1)![0];
+    if (screen.name !== 'practice' || screen.run.kind !== 'test') throw new Error('Brak sprawdzianu');
+    expect(screen.run.count).toBe(15);
+    expect(screen.run.items).toBeUndefined();
+    expect(screen.run.title).not.toContain('Wariant');
+  });
   it('historia kl. 5 pokazuje sześć tematów i uruchamia pełny sprawdzian z czterema pytaniami na temat', async () => {
     context = { ...context, profile: store.get('profile', 'demo-badaczka')! };
     await render(<SubjectScreen subjectId="his" />);

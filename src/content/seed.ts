@@ -7,6 +7,7 @@ import { HISTORY_GRADE5 } from './history5';
 import { LEKTURY_GRADE5 } from './lektury';
 import { LESSONS } from './lessons';
 import { MATH_GRADE3, MATH_GRADE5 } from './math';
+import { MATH_NATURAL5 } from './naturalNumbers5';
 import { READING_GRADE3, READING_GRADE5 } from './reading';
 import { POLISH_GRADE5 } from './polish5';
 import { UNITS } from './units';
@@ -211,6 +212,7 @@ export const BUILTIN_TOPICS: Topic[] = [
   READING_GRADE5,
   ...LEKTURY_GRADE5,
   ...MATH_GRADE5,
+  ...MATH_NATURAL5,
   ...ENGLISH_GRADE5,
   ...ENGLISH_GRADE3,
   ...HISTORY_GRADE5,

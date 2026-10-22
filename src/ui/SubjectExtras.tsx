@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { generatorsFor } from '../content/generators';
-import { historyChapter1ExamItems } from '../content/history5Exam';
+import { chapterExamFor } from '../content/chapterExams';
 import { subjectOf } from '../content/seed';
 import { gradeOf } from '../data/store';
 import { untouchedTopics, type Progress } from '../engine';
@@ -180,7 +180,7 @@ function TestSetup({
 }: {
   subjectId: string;
   topics: ParsedTopic[];
-  /** Tematy skończone: są na liście (z dopiskiem), ale domyślnie niezaznaczone. */
+  /** Skończone tematy bieżącego działu pozostają dostępne do sprawdzianu. */
   doneTopics: ParsedTopic[];
   scope?: string;
   progress: Progress;
@@ -188,14 +188,17 @@ function TestSetup({
   onClose: () => void;
 }) {
   const { go } = useApp();
-  const topics = [...boardTopics, ...doneTopics];
+  const topics = [...boardTopics, ...doneTopics.filter((t) => !scope || (t.unit?.trim() ?? '') === scope)];
   const doneIds = new Set(doneTopics.map((t) => t.id));
+  const chapterExam = chapterExamFor(subjectId, topics);
   const planned = topics.filter((t) => planIds.includes(t.id)).map((t) => t.id);
   const started = boardTopics.filter((t) => (progress.topics.get(t.id)?.level ?? 0) > 0).map((t) => t.id);
-  const [sel, setSel] = useState<string[]>(planned.length ? planned : started.length ? started : (boardTopics.length ? boardTopics : topics).map((t) => t.id));
-  const chapterExam = subjectId === 'his' ? historyChapter1ExamItems(topics) : undefined;
-  const [count, setCount] = useState(chapterExam ? 24 : 15);
-  const selectedChapterExam = count === 24 ? historyChapter1ExamItems(topics.filter((t) => sel.includes(t.id))) : undefined;
+  const [sel, setSel] = useState<string[]>(chapterExam ? topics.map((t) => t.id) : planned.length ? planned : started.length ? started : (boardTopics.length ? boardTopics : topics).map((t) => t.id));
+  const chapterCount = chapterExam ? chapterExam.topicCount * chapterExam.perTopic : undefined;
+  const [count, setCount] = useState(chapterCount ?? 15);
+  const [variantId, setVariantId] = useState(chapterExam?.variants[0].id ?? 'A');
+  const selectedChapter = count === chapterCount ? chapterExamFor(subjectId, topics.filter((t) => sel.includes(t.id))) : undefined;
+  const selectedVariant = selectedChapter?.variants.find((v) => v.id === variantId) ?? selectedChapter?.variants[0];
   const available = topics.filter((t) => sel.includes(t.id)).reduce((a, t) => a + t.exercises.length, 0);
   const title =
     sel.length === 1 ? `Sprawdzian: ${topics.find((t) => t.id === sel[0])?.title}` : `Sprawdzian: ${subjectOf(subjectId).name}${scope ? `, ${scope}` : ''}`;
@@ -226,18 +229,34 @@ function TestSetup({
       <div className="field">
         <span>Ile pytań?</span>
         <div className="grade-grid count-grid" role="group" aria-label="Liczba pytań">
-          {(chapterExam ? [10, 15, 20, 24] : [10, 15, 20]).map((n) => (
+          {(chapterCount ? [10, 15, 20, chapterCount] : [10, 15, 20]).map((n) => (
             <button key={n} type="button" aria-pressed={count === n} onClick={() => setCount(n)}>
               {n}
             </button>
           ))}
         </div>
       </div>
-      {selectedChapterExam && <p className="muted">Pełny rozdział: po 4 pytania z każdego z 6 tematów.</p>}
+      {selectedChapter && <p className="muted">Pełny rozdział: po {selectedChapter.perTopic} pytania z każdego z {selectedChapter.topicCount} tematów.</p>}
+      {selectedChapter && selectedChapter.variants.length > 1 && (
+        <div className="field">
+          <span>Wersja sprawdzianu</span>
+          <div className="grade-grid count-grid" role="group" aria-label="Wariant sprawdzianu">
+            {selectedChapter.variants.map((variant) => (
+              <button key={variant.id} type="button" aria-pressed={selectedVariant?.id === variant.id} onClick={() => setVariantId(variant.id)}>
+                {variant.label}
+              </button>
+            ))}
+          </div>
+          <small className="muted">Te same umiejętności, inne zadania. Krótsze testy losują pytania z wybranych tematów.</small>
+        </div>
+      )}
       <button
         className="btn btn-primary btn-lg btn-block"
         disabled={sel.length === 0}
-        onClick={() => go(practice({ kind: 'test', topicIds: sel, title, subjectId, count: Math.min(count, available), ...(selectedChapterExam ? { items: selectedChapterExam } : {}) }))}
+        onClick={() => go(practice({ kind: 'test', topicIds: sel,
+          title: `${title}${selectedVariant && (chapterExam?.variants.length ?? 0) > 1 ? ` — ${selectedVariant.label}` : ''}`,
+          subjectId, ...(scope ? { unit: scope } : {}), count: Math.min(count, available),
+          ...(selectedVariant ? { items: selectedVariant.items.map((item) => ({ ...item })) } : {}) }))}
       >
         <Icon name="test" /> Zaczynam sprawdzian
       </button>

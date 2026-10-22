@@ -347,6 +347,7 @@ describe('rozdziały i kartkówki od rodzica', () => {
       ['Ułamki dziesiętne', 1],
       ['Geometria', 1],
       ['Liczby i działania', 2],
+      ['Rozdział 2. W świecie własności liczb naturalnych', 7],
     ]);
     expect(board('mat', 3)).toEqual([
       ['Dodawanie i odejmowanie', 1],
