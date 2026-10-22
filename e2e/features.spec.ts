@@ -92,6 +92,10 @@ async function runExam(page: Page, max = 30) {
   for (let i = 0; i < max; i++) {
     const counter = await page.locator('.pr-top .muted').innerText();
     await answerAny(page);
+    await page.getByRole('button', { name: 'Sprawdź', exact: true }).click();
+    await expect(page.locator('.pr-foot[role="status"]')).toBeVisible();
+    // Ten sam bezpiecznik co w ćwiczeniach: szybki drugi klik nie pomija informacji zwrotnej.
+    await page.waitForTimeout(750);
     await page.getByRole('button', { name: /^(Dalej|Zakończ sprawdzian)$/ }).click();
     await page.waitForFunction((c) => !!document.querySelector('.summary') || document.querySelector('.pr-top .muted')?.textContent !== c, counter);
     if (await page.locator('.summary').count()) return;
@@ -1673,7 +1677,7 @@ test('historia kl. 5: rozdział „Pierwsze cywilizacje”, lekcje mieszczą si�
   await expect(dlg.locator('input[type=checkbox]:checked')).toHaveCount(topics.length);
   await dlg.getByRole('button', { name: 'Zaczynam sprawdzian' }).click();
   await expect(page.locator('.pr-topic')).toContainText('Sprawdzian: Historia, Pierwsze cywilizacje');
-  // Uwaga „bez podpowiedzi” stoi w stopce obok „Dalej” — nie spycha odpowiedzi pierwszego pytania pod stopkę.
+  // Uwaga o pierwszej odpowiedzi stoi w stopce obok „Sprawdź”, nie nad pytaniem.
   await expect(page.locator('.pr-foot .exam-note')).toBeVisible();
   expect(await overflow(), 'pierwsze pytanie sprawdzianu nie mieści się nad stopką').toBeLessThanOrEqual(1);
   await snap(page, 'f90-historia-question');

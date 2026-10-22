@@ -181,6 +181,7 @@ export function Practice({ run }: { run: Run }) {
     });
   }, [queue]);
   const feedbackAt = useRef(0);
+  const answerLocked = useRef(false);
   const [retryQueued, setRetryQueued] = useState(false);
 
   const save = useCallback(async (completed: boolean) => {
@@ -320,6 +321,7 @@ export function Practice({ run }: { run: Run }) {
       return;
     }
     setIdx(idx + 1);
+    answerLocked.current = false;
     setAnswer(initialAnswer(queue[idx + 1].ex));
     setPhase('answer');
     setHint(false);
@@ -327,7 +329,8 @@ export function Practice({ run }: { run: Run }) {
   }, [finish, idx, queue]);
 
   const check = useCallback(() => {
-    if (!item || phase !== 'answer' || !isReady(item.ex, answer)) return;
+    if (!item || phase !== 'answer' || answerLocked.current || !isReady(item.ex, answer)) return;
+    answerLocked.current = true;
     const correct = isCorrect(item.ex, answer);
     started.current = true;
     const attempt: Attempt = {
@@ -353,14 +356,12 @@ export function Practice({ run }: { run: Run }) {
     void save(false);
 
     if (exam) {
-      // Sprawdzian: bez podpowiedzi i bez informacji zwrotnej — wynik na końcu.
+      // Pierwsza odpowiedź liczy się do oceny; informacja zwrotna jest widoczna przed kolejnym pytaniem.
       examLog.current.push({ item, correct, given: answerText(item.ex, answer) });
       stopSpeaking();
-      advance();
-      return;
     }
 
-    const willRetry = !correct && !item.retry && queue.filter((q) => q.retry).length < MAX_RETRIES;
+    const willRetry = !exam && !correct && !item.retry && queue.filter((q) => q.retry).length < MAX_RETRIES;
     if (willRetry) setQueue((q) => [...q, { ...item, retry: true }]);
     setRetryQueued(willRetry);
     feedbackAt.current = Date.now();
@@ -369,10 +370,11 @@ export function Practice({ run }: { run: Run }) {
     setPraise(theme.praise[Math.floor(Math.random() * theme.praise.length)]);
     setPhase('feedback');
     if (settings.sounds) playSound(correct ? 'good' : 'bad');
-  }, [item, phase, answer, hint, profile.id, save, exam, advance, theme.praise, settings.sounds, queue]);
+  }, [item, phase, answer, hint, profile.id, save, exam, theme.praise, settings.sounds, queue]);
 
   const next = useCallback(() => {
     if (phase !== 'feedback' || Date.now() - feedbackAt.current < FEEDBACK_GUARD_MS) return;
+    feedbackAt.current = Infinity;
     stopSpeaking();
     advance();
   }, [advance, phase]);
@@ -536,11 +538,10 @@ export function Practice({ run }: { run: Run }) {
               Podpowiedź
             </button>
           )}
-          {/* Uwaga o sprawdzianie stoi w stopce obok „Dalej”: nad zadaniem spychała odpowiedzi pod stopkę na telefonie. */}
-          {exam && idx === 0 ? <p className="exam-note">Bez podpowiedzi i poprawek. Ocena na końcu.</p> : <span className="spacer" />}
+          {/* Krótka uwaga w stopce nie spycha odpowiedzi pod ekran na telefonie. */}
+          {exam && idx === 0 ? <p className="exam-note">Wynik po każdym pytaniu. Liczy się pierwsza odpowiedź.</p> : <span className="spacer" />}
           <button className="btn btn-primary btn-lg" onClick={check} disabled={!ready}>
-            {exam ? (idx + 1 >= queue.length ? 'Zakończ sprawdzian' : 'Dalej') : 'Sprawdź'}
-            {exam && <Icon name="arrowRight" />}
+            Sprawdź
           </button>
         </div>
       ) : (
@@ -550,11 +551,11 @@ export function Practice({ run }: { run: Run }) {
               <Icon name={ok ? 'check' : 'x'} size={28} stroke={3.2} />
             </span>
             <div>
-              <div className="fb-title">{ok ? praise : theme.oops}</div>
+              <div className="fb-title">{exam ? (ok ? 'Dobrze!' : 'Błąd') : ok ? praise : theme.oops}</div>
               {showCorrectText && <div className="fb-text">Poprawnie: {correctText(ex)}</div>}
               {ex.explain && !division && <div className="fb-text">{ex.explain}</div>}
               {lang !== 'pl' && ex.hint && <div className="fb-text fb-translation">{ex.hint}</div>}
-              {!ok && !item.retry && (
+              {!exam && !ok && !item.retry && (
                 <div className="fb-text muted">
                   {retryQueued ? 'To zadanie wróci jeszcze raz na końcu.' : 'To zadanie wróci w powtórce w kolejnych dniach.'}
                 </div>
@@ -577,13 +578,13 @@ export function Practice({ run }: { run: Run }) {
             </div>
           </div>
           <div className="fb-actions">
-            {!ok && hasGuide && (
+            {!exam && !ok && hasGuide && (
               <button className="btn" onClick={() => setGuideOpen(true)}>
                 <Icon name="book" /> Ściąga
               </button>
             )}
             <button className="btn btn-primary btn-lg" onClick={next}>
-              {idx + 1 >= queue.length ? 'Zakończ' : 'Dalej'}
+              {idx + 1 >= queue.length ? (exam ? 'Zakończ sprawdzian' : 'Zakończ') : 'Dalej'}
               <Icon name="arrowRight" />
             </button>
           </div>

@@ -41,8 +41,9 @@ można ją zainstalować na ekranie głównym i używać bez internetu. Postępy
   Wyniki zadań matematycznych są liczone w kodzie, nie wpisywane ręcznie.
 - Poziomy tematów (Nowy → Próbowany → Znany → Biegły → Opanowany) — rosną i spadają razem z pamięcią dziecka;
   po ćwiczeniu ekran „Co się zmieniło”.
-- Sprawdzian z oceną 1–6 (bez podpowiedzi, z listą błędów i „Popraw błędy”), test na start, który od razu
-  zalicza znane tematy, trening matematyki bez końca (zawsze nowe liczby) oraz mini-gry na ekranie startowym:
+- Sprawdziany i kartkówki pokazują wynik i wyjaśnienie po każdym pytaniu. Do oceny 1–6 liczy się pierwsza
+  odpowiedź, bez ponownych prób w tym samym teście; na końcu jest lista błędów i „Popraw błędy”. Dostępne są też:
+  test na start zaliczający znane tematy, trening matematyki bez końca (zawsze nowe liczby) oraz mini-gry:
   Błyskawica (60 sekund na rekord) i Pary na czas (połącz 6 par jak najszybciej).
 - „Moje błędy”: jednym przyciskiem dziecko poprawia zadania, w których pomyliło się w ostatnich 2 tygodniach.
 - Mapa tabliczki mnożenia 10 × 10: zielone — umie na pamięć (dobrze i szybko), żółte — uczy się, czerwone — do poprawy;

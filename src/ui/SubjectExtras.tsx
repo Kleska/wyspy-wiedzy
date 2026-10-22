@@ -50,7 +50,7 @@ export function Challenges({
         <Icon name="test" size={28} />
         <span>
           <b>Sprawdzian{scope ? `: ${scope}` : ''}</b>
-          <small>Bez podpowiedzi, z oceną 1–6</small>
+          <small>Wynik po każdym pytaniu i ocena 1–6</small>
         </span>
       </button>
       {topics.some((t) => t.lesson?.trim()) && (
@@ -205,7 +205,7 @@ function TestSetup({
   return (
     <Modal title="Sprawdzian" onClose={onClose}>
       <p className="muted" style={{ fontWeight: 700 }}>
-        Jak w szkole: bez podpowiedzi i bez poprawek. Na końcu ocena i lista błędów do poprawy.
+        Po każdej odpowiedzi zobaczysz wynik i wyjaśnienie. Do oceny liczy się pierwsza odpowiedź. Na końcu ocena i lista błędów.
       </p>
       <div className="field">
         <span>Z jakich tematów?</span>
