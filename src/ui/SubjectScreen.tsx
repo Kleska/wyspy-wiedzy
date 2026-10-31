@@ -1,3 +1,5 @@
+import { HISTORY_CHAPTER2 } from '../content/historyGreece5';
+import { HistoryChapterTools } from './HistoryChapterTools';
 import { subjectOf } from '../content/seed';
 import { store } from '../data/store';
 import { groupByUnit, planTopicIds, splitDone, suggestTopic, unitLabel } from '../engine';
@@ -45,6 +47,7 @@ export function SubjectScreen({ subjectId, unit: unitFromLink }: { subjectId: st
             ))}
           </div>
         )}
+        {subjectId === 'his' && unit === HISTORY_CHAPTER2 && <HistoryChapterTools key={unit} topics={every.filter((t) => t.unit === unit)} />}
         <section className="card topic-list" aria-label="Tematy">
           {!topics.length && (
             <p>{done.length ? 'Wszystkie tematy są skończone. Możesz do nich wrócić poniżej.' : 'Rodzic może dodać tematy w swoim panelu.'}</p>

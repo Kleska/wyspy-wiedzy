@@ -4,6 +4,7 @@ import { ENGLISH_GRADE3 } from './english3';
 import { ENGLISH_GRADE5 } from './english5';
 import { GUIDES } from './guides';
 import { HISTORY_GRADE5 } from './history5';
+import { HISTORY_GREECE5 } from './historyGreece5';
 import { LEKTURY_GRADE5 } from './lektury';
 import { LESSONS } from './lessons';
 import { MATH_GRADE3, MATH_GRADE5 } from './math';
@@ -216,6 +217,7 @@ export const BUILTIN_TOPICS: Topic[] = [
   ...ENGLISH_GRADE5,
   ...ENGLISH_GRADE3,
   ...HISTORY_GRADE5,
+  ...HISTORY_GREECE5,
 ].map((t) => ({
   ...t,
   guide: GUIDES[t.id] ?? t.guide,

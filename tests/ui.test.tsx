@@ -6,6 +6,10 @@ import { store } from '../src/data/store';
 import { App } from '../src/App';
 import { seedPreview } from '../src/preview';
 import { MATH_NATURAL5, NATURAL_NUMBERS_UNIT } from '../src/content/naturalNumbers5';
+import { HISTORY_CHAPTER2, HISTORY_GREECE5, GREECE_FLASHCARDS } from '../src/content/historyGreece5';
+import { Learn, ReviewSheet } from '../src/ui/Learn';
+import { HistoryChapterTools } from '../src/ui/HistoryChapterTools';
+import { HISTORY_GREECE_EXAMS } from '../src/content/chapterExams';
 import { NATURAL_NUMBERS_EXAMS } from '../src/content/chapterExams';
 import { Home } from '../src/ui/Home';
 import { Modal } from '../src/ui/bits';
@@ -58,6 +62,53 @@ async function click(text: string, scope: ParentNode = host) {
 }
 
 describe('czytelny interfejs', () => {
+  it('lekcja i zbiorcza ściąga wracają do Grecji zamiast pierwszego działu historii', async () => {
+    context = { ...context, profile: store.get('profile', 'demo-badaczka')! };
+    await render(<Learn topicId={HISTORY_GREECE5[0].id} from="subject" />);
+    await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Zamknij lekcję"]')!.click());
+    expect(context.go).toHaveBeenLastCalledWith({ name: 'subject', subjectId: 'his', unit: HISTORY_CHAPTER2 });
+    await render(<ReviewSheet topicIds={[HISTORY_GREECE5[5].id]} title="Ściąga" from="subject" subjectId="his" />);
+    expect(host.textContent).toContain('Bogowie i atrybuty');
+    await click('Wróć');
+    expect(context.go).toHaveBeenLastCalledWith({ name: 'subject', subjectId: 'his', unit: HISTORY_CHAPTER2 });
+  });
+  it('fiszki nie zdradzają odpowiedzi i ponownie chowają ją po zmianie karty', async () => {
+    context = { ...context, profile: store.get('profile', 'demo-badaczka')! };
+    const topics = store.topicsFor(context.profile.id).filter((t) => t.unit === HISTORY_CHAPTER2);
+    await render(<HistoryChapterTools topics={topics} />);
+    await act(async () => { host.querySelector<HTMLDetailsElement>('details')!.open = true; });
+    expect(host.textContent).toContain(GREECE_FLASHCARDS[0][0]);
+    expect(host.textContent).not.toContain(GREECE_FLASHCARDS[0][1]);
+    expect(button('Poprzednia fiszka').disabled).toBe(true);
+    await click('Pokaż odpowiedź');
+    expect(host.querySelector('[role="status"]')?.textContent).toBe(GREECE_FLASHCARDS[0][1]);
+    await click('Następna fiszka');
+    expect(host.querySelector('[role="status"]')).toBeNull();
+    expect(host.textContent).toContain('Fiszka 2 z 18');
+    await click('Poprzednia fiszka');
+    expect(host.querySelector('[role="status"]')).toBeNull();
+    await click('Ateny a Sparta');
+    expect(host.querySelectorAll('tbody tr')).toHaveLength(5);
+    await click('Oś czasu');
+    expect(host.querySelectorAll('.greece-timeline li')).toHaveLength(11);
+  });
+  it.each(['A', 'B'])('panel Grecji uruchamia sprawdzian %s i zachowuje drugi rozdział, także ze skończonym tematem', async (variant) => {
+    const p = store.get('profile', 'demo-badaczka')!;
+    await store.put('profile', { ...p, done: [HISTORY_GREECE5[0].id], doneAt: p.updatedAt });
+    context = { ...context, profile: store.get('profile', p.id)! };
+    await render(<SubjectScreen subjectId="his" unit={HISTORY_CHAPTER2} />);
+    expect(host.querySelectorAll('.clear-topic')).toHaveLength(5);
+    await click(`Sprawdzian ${variant} · 24 pytania`);
+    const screen = vi.mocked(context.go).mock.calls.at(-1)![0];
+    if (screen.name !== 'practice' || screen.run.kind !== 'test') throw new Error('Brak sprawdzianu Grecji');
+    expect(screen.run.items).toEqual(HISTORY_GREECE_EXAMS.find((v) => v.id === variant)!.items);
+    expect(screen.run.count).toBe(24);
+    expect(screen.run.topicIds).toHaveLength(6);
+    expect(backScreen(screen.run, 'his')).toEqual({ name: 'subject', subjectId: 'his', unit: HISTORY_CHAPTER2 });
+    await click('Ściąga rozdziału');
+    expect(context.go).toHaveBeenLastCalledWith(expect.objectContaining({ name: 'sheet', topicIds: [HISTORY_GREECE5[5].id] }));
+  });
+
   it.each(['A', 'B'])('rozdział własności liczb uruchamia wariant %s z 28 pytaniami, również po skończeniu części tematów', async (variant) => {
     const p = store.get('profile', 'demo-badaczka')!;
     const done = [MATH_NATURAL5[0].id, 'b-m5-ulamki'];

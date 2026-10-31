@@ -185,7 +185,7 @@ export function Learn({ topicId, from }: { topicId: string; from?: 'home' | 'sub
   const firstTime = useRef(!progress?.lessonsDone.has(topicId));
   const seed = useRef(uid());
 
-  const back: Screen = from === 'home' || !topic ? { name: 'home' } : { name: 'subject', subjectId: topic.subject };
+  const back: Screen = from === 'home' || !topic ? { name: 'home' } : { name: 'subject', subjectId: topic.subject, ...(topic.unit ? { unit: topic.unit } : {}) };
 
   if (!topic || !lesson || !cards.length) {
     return (
@@ -390,7 +390,8 @@ export function ReviewSheet({ topicIds, title, from, subjectId }: { topicIds: st
     .filter((t) => topicIds.includes(t.id))
     .map((t) => ({ t, lesson: parseLesson(t.lesson) }))
     .filter((x): x is { t: typeof x.t; lesson: Lesson } => !!x.lesson && x.lesson.key.length > 0);
-  const back: Screen = from === 'subject' && subjectId ? { name: 'subject', subjectId } : { name: 'home' };
+  const unit = items.length && items.every(({ t }) => t.unit === items[0].t.unit) ? items[0].t.unit : undefined;
+  const back: Screen = from === 'subject' && subjectId ? { name: 'subject', subjectId, ...(unit ? { unit } : {}) } : { name: 'home' };
   return (
     <>
       <TopBar back={() => go(back)} />

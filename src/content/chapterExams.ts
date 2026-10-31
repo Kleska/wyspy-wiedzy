@@ -2,6 +2,7 @@ import { parseDsl } from '../dsl';
 import type { ParsedTopic } from '../types';
 import { historyChapter1ExamItems } from './history5Exam';
 import { MATH_NATURAL5 } from './naturalNumbers5';
+import { HISTORY_GREECE5 } from './historyGreece5';
 
 export const NATURAL_NUMBERS_EXAMS = (['A', 'B'] as const).map((id, index) => ({
   id,
@@ -10,8 +11,20 @@ export const NATURAL_NUMBERS_EXAMS = (['A', 'B'] as const).map((id, index) => ({
     .map((ex) => ({ topicId: t.id, exerciseId: ex.id }))),
 }));
 
+export const HISTORY_GREECE_EXAMS = (['A', 'B'] as const).map((id, index) => ({
+  id, label: `Wariant ${id}`,
+  items: HISTORY_GREECE5.flatMap((t) => parseDsl(t.dsl).exercises.slice(-8 + index * 4, index === 0 ? -4 : undefined)
+    .map((ex) => ({ topicId: t.id, exerciseId: ex.id }))),
+}));
+
 /** Gotowy zestaw uruchamiamy wyłącznie dla pełnego rozdziału i aktualnie dozwolonych zadań. */
 export function chapterExamFor(subjectId: string, topics: ParsedTopic[]) {
+  if (subjectId === 'his' && topics.length === HISTORY_GREECE5.length &&
+    HISTORY_GREECE5.every((t) => topics.some((candidate) => candidate.id === t.id))) {
+    const variants = HISTORY_GREECE_EXAMS.filter((variant) => variant.items.every((item) =>
+      topics.find((t) => t.id === item.topicId)?.exercises.some((ex) => ex.id === item.exerciseId)));
+    return variants.length ? { topicCount: HISTORY_GREECE5.length, perTopic: 4, variants } : undefined;
+  }
   if (subjectId === 'his') {
     const items = historyChapter1ExamItems(topics);
     return items ? { topicCount: 6, perTopic: 4, variants: [{ id: 'A', label: 'Pełny rozdział', items }] } : undefined;

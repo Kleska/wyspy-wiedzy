@@ -448,7 +448,7 @@ describe('tryb nauki: lekcje', () => {
   });
 
   it('historia kl. 5: przedmiot, rozdział jako dział, lekcja z listami, wyjaśnienia, pytania kontrolne inne niż zadania', () => {
-    const history = BUILTIN_TOPICS.filter((t) => t.subject === 'his');
+    const history = BUILTIN_TOPICS.filter((t) => t.subject === 'his' && t.unit === 'Rozdział 1. Pierwsze cywilizacje');
     expect(history.map((t) => t.title)).toEqual(['Życie pierwszych ludzi', 'Miasta-państwa Mezopotamii', 'W Egipcie faraonów', 'W starożytnym Izraelu', 'Cywilizacje Indii i Chin', 'Od hieroglifów do alfabetu']);
     expect(subjectName('his')).toBe('Historia');
     for (const t of history) {
